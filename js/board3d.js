@@ -455,10 +455,40 @@ const colored = [];
     blob.position.z = span * 0.04;
   }
 
+  const hintMat = new THREE.MeshBasicMaterial({
+    color: 0xfff6bf,
+    transparent: true,
+    opacity: 0.96,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const hintHaloMat = new THREE.MeshBasicMaterial({
+    color: 0xffe14a,
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const hintGroup = new THREE.Group();
+  hintGroup.visible = false;
+  hintGroup.renderOrder = 4;
+  const hintShaft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.07, 0.52), hintMat);
+  hintShaft.position.set(0, 0, 0.55);
+  const hintHead = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.42, 4), hintMat);
+  hintHead.rotation.x = Math.PI / 2;
+  hintHead.position.set(0, 0, 0.98);
+  const hintHalo = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), hintHaloMat);
+  hintHalo.rotation.x = -Math.PI / 2;
+  hintHalo.position.set(0, -0.08, 0.7);
+  hintGroup.add(hintShaft, hintHead, hintHalo);
+  rig.add(hintGroup);
+  let hintBaseY = 1.32;
+
   function clearRig() {
     for (let i = rig.children.length - 1; i >= 0; i--) {
       const child = rig.children[i];
-      if (child === ballRoot || child === sparks) continue;
+      if (child === ballRoot || child === sparks || child === hintGroup) continue;
       rig.remove(child);
     }
     buttons.length = 0;
@@ -484,6 +514,7 @@ const colored = [];
       sinkJob = null;
     }
     n = level.size;
+    clearHint();
     clearRig();
     const half = (n - 1) * STEP / 2 + CELL / 2;
     const t = 0.55;
@@ -714,6 +745,29 @@ const colored = [];
     squashV = 3.5;
   }
 
+  function clearHint() {
+    hintGroup.visible = false;
+    for (const mesh of buttons) mesh.userData.hint = false;
+  }
+
+  function showHint(action, row, col) {
+    clearHint();
+    if (action === "press") {
+      for (const mesh of buttons) {
+        if (mesh.userData.row === row && mesh.userData.col === col && !mesh.userData.spent) {
+          mesh.userData.hint = true;
+        }
+      }
+      return;
+    }
+    const p = cellXZ(row, col);
+    const rot = { up: Math.PI, down: 0, left: Math.PI / 2, right: -Math.PI / 2 };
+    hintGroup.rotation.y = rot[action] || 0;
+    hintBaseY = 1.32;
+    hintGroup.position.set(p.x, hintBaseY, p.z);
+    hintGroup.visible = true;
+  }
+
   function dipButton(row, col) {
     const mesh = buttons.find((b) => b.userData.row === row && b.userData.col === col);
     if (mesh) mesh.userData.dip = 1;
@@ -889,13 +943,24 @@ const colored = [];
     partGeo.attributes.position.needsUpdate = true;
     partGeo.attributes.color.needsUpdate = true;
 
+    if (hintGroup.visible) {
+      const bob = Math.sin(time * 5.5);
+      hintGroup.position.y = hintBaseY + bob * 0.06;
+      const s = 1 + bob * 0.05;
+      hintGroup.scale.set(s, s, s);
+      hintMat.opacity = 0.78 + bob * 0.2;
+    }
+
     for (const mesh of buttons) {
       const dip = mesh.userData.dip || 0;
       if (dip > 0) mesh.userData.dip = Math.max(0, dip - dt * 3);
-      const pulse = mesh.userData.ready ? 1 + Math.sin(time * 6) * 0.08 : 1;
+      const readyPulse = mesh.userData.ready ? 1 + Math.sin(time * 6) * 0.08 : 1;
+      const hintPulse = mesh.userData.hint ? 1.12 + Math.sin(time * 8) * 0.14 : 1;
       const press = 1 - (mesh.userData.dip || 0) * 0.25;
-      mesh.scale.set(pulse, press, pulse);
+      mesh.scale.set(readyPulse * hintPulse, press, readyPulse * hintPulse);
       if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY - (mesh.userData.dip || 0) * 0.12;
+      if (mesh.userData.hint) mesh.material.emissiveIntensity = 0.55 + Math.sin(time * 8) * 0.4;
+      else if (!mesh.userData.spent) mesh.material.emissiveIntensity = 0.12;
     }
 
     renderer.render(scene, camera);
@@ -906,5 +971,5 @@ const colored = [];
   }
   requestAnimationFrame(frame);
 
-  return { resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall };
+  return { resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint };
 }

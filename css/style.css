@@ -74,14 +74,16 @@ body {
 .topbar {
   position: relative;
   flex: 0 0 auto;
-  height: 92px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 4px;
+  min-height: 96px;
+  padding-top: 2px;
 }
 
 .score-block {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
+  justify-self: end;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -89,10 +91,10 @@ body {
 }
 
 .crown {
-  width: 78px;
-  height: 56px;
+  width: 48px;
+  height: 34px;
   display: block;
-  filter: drop-shadow(0 0 12px rgba(255, 196, 60, 0.85)) drop-shadow(0 4px 0 #8a4a08);
+  filter: drop-shadow(0 0 8px rgba(255, 196, 60, 0.75)) drop-shadow(0 3px 0 #8a4a08);
 }
 
 .score,
@@ -104,23 +106,23 @@ body {
 }
 
 .score {
-  margin-top: -4px;
-  font-size: 2.15rem;
+  margin-top: -2px;
+  font-size: 1.2rem;
   line-height: 1;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
   color: var(--gold);
-  text-shadow: 0 4px 0 #b86a08, 0 7px 0 rgba(0, 0, 0, 0.28);
+  -webkit-text-stroke-width: 3px;
+  text-shadow: 0 3px 0 #b86a08, 0 5px 0 rgba(0, 0, 0, 0.28);
 }
 
-.level-block {
-  position: absolute;
-  right: 0;
-  top: 8px;
+.hud-center {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
 }
 
 .level-row {
@@ -139,16 +141,17 @@ body {
 }
 
 .level-btn {
-  font-size: 1.35rem;
+  font-size: 2.05rem;
   letter-spacing: 0.02em;
-  padding: 2px 4px;
+  padding: 0 2px;
+  line-height: 1;
   text-shadow: 0 3px 0 #3a1a78;
 }
 
 .chev {
-  width: 26px;
-  height: 32px;
-  font-size: 1.7rem;
+  width: 34px;
+  height: 40px;
+  font-size: 2.35rem;
   line-height: 1;
   color: #fff;
   padding: 0;
@@ -159,13 +162,33 @@ body {
 }
 
 .moves {
-  font-size: 0.92rem;
+  margin-top: 2px;
+  font-size: 1.28rem;
   color: #fff;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.03em;
   -webkit-text-stroke: 3px var(--ink);
   paint-order: stroke fill;
   text-shadow: 0 2px 0 #241038;
+}
+
+.hint-note {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 2px);
+  transform: translateX(-50%);
+  margin: 0;
+  white-space: nowrap;
+  font-size: 1.05rem;
+  color: #ffe14a;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 #241038;
+  pointer-events: none;
+}
+
+.hint-note[hidden] {
+  display: none;
 }
 
 .moves .stars {
@@ -297,19 +320,35 @@ body {
 }
 
 .controls {
+  --pad: 74px;
+  position: relative;
   flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding-top: 2px;
+  justify-content: center;
+  padding-top: 4px;
+  min-height: calc(var(--pad) * 3 + 36px);
 }
 
-.control-row {
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  gap: 12px;
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--pad));
+  grid-template-areas:
+    ". up ."
+    "left . right"
+    ". down .";
+  column-gap: 8px;
+  row-gap: 16px;
+}
+
+.dpad-up { grid-area: up; }
+.dpad-down { grid-area: down; }
+.dpad-left { grid-area: left; }
+.dpad-right { grid-area: right; }
+
+.retry-btn {
+  position: absolute;
+  right: 0;
+  bottom: 0;
 }
 
 .arcade-btn {
@@ -358,13 +397,23 @@ body {
   --lip: #0c8a58;
 }
 
+.arcade-btn--hint {
+  --face: #ffcf3a;
+  --face-hot: #fff6b0;
+  --lip: #c47a00;
+  justify-self: start;
+}
+
 .arcade-face {
   position: relative;
-  width: 86px;
-  height: 58px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
+  width: var(--pad, 74px);
+  height: calc(var(--pad, 74px) - 4px);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   border: 3px solid var(--ink);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 38%),
@@ -375,18 +424,20 @@ body {
     0 10px 0 var(--ink),
     0 14px 16px rgba(0, 0, 0, 0.35);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  text-shadow:
+    0 2px 0 var(--ink),
+    2px 0 0 var(--ink),
+    -2px 0 0 var(--ink);
 }
 
-.arcade-btn--lg .arcade-face {
-  width: 108px;
-  height: 66px;
-  border-radius: 22px;
-}
-
-.arcade-btn--sm .arcade-face {
-  width: 78px;
-  height: 50px;
-  border-radius: 16px;
+.arcade-face--round {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  font-size: 2.05rem;
 }
 
 .arcade-btn:active .arcade-face {
@@ -397,33 +448,53 @@ body {
     0 3px 0 var(--ink);
 }
 
-.arcade-label {
-  font-size: 1.15rem;
-  letter-spacing: 0.03em;
+.face-caption {
+  font-size: 0.78rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
   color: #fff;
   text-shadow:
-    0 2px 0 var(--ink),
-    2px 0 0 var(--ink),
-    -2px 0 0 var(--ink),
-    0 -1px 0 var(--ink),
-    0 4px 0 #120818;
+    0 1px 0 rgba(0, 0, 0, 0.35),
+    0 2px 0 var(--ink);
 }
 
 .arrow {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   display: block;
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.25));
 }
 
-.arrow--lg {
-  width: 36px;
-  height: 36px;
+.arcade-face--round .arrow {
+  width: 24px;
+  height: 24px;
 }
 
-.arrow--sm {
-  width: 26px;
-  height: 26px;
+.arcade-face--round .face-caption {
+  font-size: 0.62rem;
+  margin-top: -1px;
+}
+
+@keyframes hint-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 -6px 0 rgba(0, 0, 0, 0.12),
+      0 7px 0 var(--lip),
+      0 10px 0 var(--ink),
+      0 0 0 0 rgba(255, 241, 120, 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 -6px 0 rgba(0, 0, 0, 0.12),
+      0 7px 0 var(--lip),
+      0 10px 0 var(--ink),
+      0 0 0 7px rgba(255, 236, 120, 0.72);
+  }
+}
+
+.arcade-btn.is-hint .arcade-face {
+  animation: hint-glow 0.75s ease-in-out infinite;
 }
 
 .sr-only {
@@ -527,44 +598,44 @@ body {
 
 @media (max-height: 740px) {
   .topbar {
-    height: 74px;
+    min-height: 78px;
+    grid-template-columns: 52px minmax(0, 1fr) 52px;
   }
 
   .crown {
-    width: 58px;
-    height: 42px;
+    width: 38px;
+    height: 28px;
   }
 
   .score {
-    font-size: 1.55rem;
-    -webkit-text-stroke-width: 4px;
+    font-size: 1rem;
   }
 
   .level-btn {
-    font-size: 1.1rem;
+    font-size: 1.6rem;
   }
 
-  .arcade-face {
-    width: 72px;
-    height: 46px;
+  .chev {
+    width: 28px;
+    font-size: 1.85rem;
   }
 
-  .arcade-btn--lg .arcade-face {
-    width: 90px;
-    height: 52px;
-  }
-
-  .arcade-btn--sm .arcade-face {
-    width: 66px;
-    height: 42px;
-  }
-
-  .arcade-label {
-    font-size: 0.9rem;
+  .moves {
+    font-size: 1.05rem;
   }
 
   .controls {
-    gap: 2px;
+    --pad: 62px;
+  }
+
+  .arcade-face--round {
+    width: 52px;
+    height: 52px;
+    font-size: 1.7rem;
+  }
+
+  .face-caption {
+    font-size: 0.68rem;
   }
 }
 
@@ -574,6 +645,15 @@ body {
   #dialog-close,
   .stage-list button {
     transition: none;
+  }
+
+  .arcade-btn.is-hint .arcade-face {
+    animation: none;
+    box-shadow:
+      inset 0 -6px 0 rgba(0, 0, 0, 0.12),
+      0 7px 0 var(--lip),
+      0 10px 0 var(--ink),
+      0 0 0 6px rgba(255, 236, 120, 0.85);
   }
 
   .pop-star {

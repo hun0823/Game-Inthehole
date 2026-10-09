@@ -5,9 +5,19 @@ const DIRS = {
   right: { dr: 0, dc: 1 },
 };
 
-function cloneGrid(grid) {
-  return grid.map((row) => row.slice());
-}
+const DIR_LIST = [
+  { name: "up", dr: -1, dc: 0 },
+  { name: "down", dr: 1, dc: 0 },
+  { name: "left", dr: 0, dc: -1 },
+  { name: "right", dr: 0, dc: 1 },
+];
+
+const DIR_INDEX = { up: 0, down: 1, left: 2, right: 3 };
+
+const COLOR_BIT = { red: 1, blue: 2, green: 4, purple: 8 };
+
+const POW3 = [1];
+for (let i = 1; i < 16; i++) POW3.push(POW3[i - 1] * 3);
 
 function emptyH(size) {
   return Array.from({ length: size - 1 }, () => Array(size).fill(false));
@@ -23,6 +33,139 @@ function emptyColorH(size) {
 
 function emptyColorV(size) {
   return Array.from({ length: size }, () => Array(size - 1).fill(null));
+}
+
+function prepareBoard(level) {
+  const n = level.size;
+  const glass = [];
+  const glassIndex = new Map();
+  const addGlass = (axis, grid) => {
+    if (!grid) return;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        if (!grid[r][c]) continue;
+        glassIndex.set(`${axis}:${r}:${c}`, glass.length);
+        glass.push({ axis, r, c });
+      }
+    }
+  };
+  addGlass("h", level.hGlass);
+  addGlass("v", level.vGlass);
+
+  const buttons = (level.buttons || []).map((b) => ({
+    row: b.row,
+    col: b.col,
+    bit: COLOR_BIT[b.color] || 1,
+    color: b.color,
+  }));
+
+  const leave = DIR_LIST.map((dir) => {
+    const table = new Array(n * n);
+    for (let r = 0; r < n; r++) {
+      for (let c = 0; c < n; c++) {
+        const nr = r + dir.dr;
+        const nc = c + dir.dc;
+        if (nr < 0 || nc < 0 || nr >= n || nc >= n) {
+          table[r * n + c] = null;
+          continue;
+        }
+        let axis;
+        let er;
+        let ec;
+        if (dir.name === "right") {
+          axis = "v";
+          er = r;
+          ec = c;
+        } else if (dir.name === "left") {
+          axis = "v";
+          er = r;
+          ec = nc;
+        } else if (dir.name === "down") {
+          axis = "h";
+          er = r;
+          ec = c;
+        } else {
+          axis = "h";
+          er = nr;
+          ec = c;
+        }
+        const wall = axis === "h" ? level.hWalls[er][ec] : level.vWalls[er][ec];
+        const colorName = axis === "h" ? level.hColored[er][ec] : level.vColored[er][ec];
+        const gi = glassIndex.get(`${axis}:${er}:${ec}`);
+        table[r * n + c] = {
+          wall: !!wall,
+          colorBit: colorName ? COLOR_BIT[colorName] || 1 : 0,
+          glassIndex: gi === undefined ? -1 : gi,
+        };
+      }
+    }
+    return table;
+  });
+
+  return {
+    n,
+    glass,
+    buttons,
+    leave,
+    holeR: level.hole[0],
+    holeC: level.hole[1],
+  };
+}
+
+// First unactivated button on this cell, matching tryActivateButton.
+function activateAt(board, r, c, act) {
+  for (const btn of board.buttons) {
+    if (btn.row !== r || btn.col !== c) continue;
+    if (act & btn.bit) continue;
+    return act | btn.bit;
+  }
+  return act;
+}
+
+// One tilt. Shared by the live board and the hint search.
+// A tilt counts only when the ball moves or glass takes a hit. A button
+// under the ball opens during that tilt. Pressing without tilting is separate.
+function slide(board, r, c, dirIndex, gstate, act) {
+  const dir = DIR_LIST[dirIndex];
+  const table = board.leave[dirIndex];
+  const n = board.n;
+  let newAct = activateAt(board, r, c, act);
+  const path = [[r, c]];
+  const broken = [];
+  let moved = false;
+
+  while (true) {
+    const info = table[r * n + c];
+    if (!info || info.wall) break;
+    if (info.colorBit && (newAct & info.colorBit) === 0) break;
+    if (info.glassIndex >= 0) {
+      const base = POW3[info.glassIndex];
+      const st = Math.floor(gstate / base) % 3;
+      if (st === 0) {
+        gstate += base;
+        moved = true;
+        break;
+      }
+      if (st === 1) {
+        gstate += base;
+        broken.push(board.glass[info.glassIndex]);
+      }
+    }
+    r += dir.dr;
+    c += dir.dc;
+    path.push([r, c]);
+    moved = true;
+    newAct = activateAt(board, r, c, newAct);
+    if (r === board.holeR && c === board.holeC) {
+      return { r, c, gstate, act: newAct, moved: true, won: true, path, broken };
+    }
+  }
+
+  return { r, c, gstate, act: newAct, moved, won: false, path, broken };
+}
+
+function stateKey(r, c, gstate, act, n) {
+  return ((gstate * 32 + act) * n + r) * n + c;
 }
 
 export class Game {
@@ -48,6 +191,8 @@ export class Game {
     this.hole = [...level.hole];
     this.moves = 0;
     this.won = false;
+    this.board = prepareBoard(level);
+    this.hintCache = new Map();
   }
 
   reset() {
@@ -58,53 +203,39 @@ export class Game {
     return r === this.hole[0] && c === this.hole[1];
   }
 
-  // Solid wall on the edge crossed by leaving (r, c) in direction. Borders count as walls.
-  isWallBlocked(r, c, direction) {
-    const { dr, dc } = DIRS[direction];
-    const nr = r + dr;
-    const nc = c + dc;
-
-    if (nr < 0 || nc < 0 || nr >= this.rows || nc >= this.cols) return true;
-
-    if (direction === "right") return this.vWalls[r][c];
-    if (direction === "left") return this.vWalls[r][nc];
-    if (direction === "down") return this.hWalls[r][c];
-    if (direction === "up") return this.hWalls[nr][c];
-
-    return true;
+  packGlass() {
+    let state = 0;
+    const glass = this.board.glass;
+    for (let i = 0; i < glass.length; i++) {
+      const pane = glass[i];
+      const grid = pane.axis === "h" ? this.hGlass : this.vGlass;
+      const stress = pane.axis === "h" ? this.hGlassStressed : this.vGlassStressed;
+      let digit = 0;
+      if (!grid[pane.r][pane.c]) digit = 2;
+      else if (stress[pane.r][pane.c]) digit = 1;
+      state += digit * POW3[i];
+    }
+    return state;
   }
 
-  isColoredBlocked(r, c, direction) {
-    const { dr, dc } = DIRS[direction];
-    const nr = r + dr;
-    const nc = c + dc;
-    if (nr < 0 || nc < 0 || nr >= this.rows || nc >= this.cols) return false;
-
-    let color = null;
-    if (direction === "right") color = this.vColored[r][c];
-    else if (direction === "left") color = this.vColored[r][nc];
-    else if (direction === "down") color = this.hColored[r][c];
-    else if (direction === "up") color = this.hColored[nr][c];
-
-    return color != null && !this.activatedColors.has(color);
+  writeGlass(gstate) {
+    const glass = this.board.glass;
+    for (let i = 0; i < glass.length; i++) {
+      const pane = glass[i];
+      const grid = pane.axis === "h" ? this.hGlass : this.vGlass;
+      const stress = pane.axis === "h" ? this.hGlassStressed : this.vGlassStressed;
+      const digit = Math.floor(gstate / POW3[i]) % 3;
+      grid[pane.r][pane.c] = digit !== 2;
+      stress[pane.r][pane.c] = digit === 1;
+    }
   }
 
-  isSolidBlocked(r, c, direction) {
-    return this.isWallBlocked(r, c, direction) || this.isColoredBlocked(r, c, direction);
-  }
-
-  glassEdge(r, c, direction) {
-    const { dr, dc } = DIRS[direction];
-    const nr = r + dr;
-    const nc = c + dc;
-    if (nr < 0 || nc < 0 || nr >= this.rows || nc >= this.cols) return null;
-
-    if (direction === "right" && this.vGlass[r][c]) return { kind: "v", r, c };
-    if (direction === "left" && this.vGlass[r][nc]) return { kind: "v", r, c: nc };
-    if (direction === "down" && this.hGlass[r][c]) return { kind: "h", r, c };
-    if (direction === "up" && this.hGlass[nr][c]) return { kind: "h", r: nr, c };
-
-    return null;
+  packAct() {
+    let act = 0;
+    for (const btn of this.board.buttons) {
+      if (this.activatedColors.has(btn.color)) act |= btn.bit;
+    }
+    return act;
   }
 
   tryActivateButton() {
@@ -131,113 +262,18 @@ export class Game {
     if (this.won) {
       return { path: [this.ball.slice()], moved: false, won: true, glassBroken: [] };
     }
-
-    const hGlass = cloneGrid(this.hGlass);
-    const vGlass = cloneGrid(this.vGlass);
-    const hStress = cloneGrid(this.hGlassStressed);
-    const vStress = cloneGrid(this.vGlassStressed);
-    const hCol = cloneGrid(this.hColored);
-    const vCol = cloneGrid(this.vColored);
-    const activated = new Set(this.activatedColors);
-
-    const tryActivateAt = (ballPos) => {
-      for (const btn of this.buttons) {
-        if (ballPos[0] !== btn.row || ballPos[1] !== btn.col) continue;
-        if (activated.has(btn.color)) continue;
-        activated.add(btn.color);
-        for (let r = 0; r < hCol.length; r++)
-          for (let c = 0; c < hCol[0].length; c++)
-            if (hCol[r][c] === btn.color) hCol[r][c] = null;
-        for (let r = 0; r < vCol.length; r++)
-          for (let c = 0; c < vCol[0].length; c++)
-            if (vCol[r][c] === btn.color) vCol[r][c] = null;
-        return true;
-      }
-      return false;
-    };
-
-    const isBlocked = (r, c) => {
-      if (this.isWallBlocked(r, c, direction)) return true;
-      const { dr, dc } = DIRS[direction];
-      const nr = r + dr;
-      const nc = c + dc;
-      if (nr < 0 || nc < 0 || nr >= this.rows || nc >= this.cols) return false;
-      let color = null;
-      if (direction === "right") color = vCol[r][c];
-      else if (direction === "left") color = vCol[r][nc];
-      else if (direction === "down") color = hCol[r][c];
-      else if (direction === "up") color = hCol[nr][c];
-      return color != null && !activated.has(color);
-    };
-
-    const glassAt = (r, c) => {
-      const { dr, dc } = DIRS[direction];
-      const nr = r + dr;
-      const nc = c + dc;
-      if (nr < 0 || nc < 0 || nr >= this.rows || nc >= this.cols) return null;
-      if (direction === "right" && vGlass[r][c]) return { kind: "v", r, c };
-      if (direction === "left" && vGlass[r][nc]) return { kind: "v", r, c: nc };
-      if (direction === "down" && hGlass[r][c]) return { kind: "h", r, c };
-      if (direction === "up" && hGlass[nr][c]) return { kind: "h", r: nr, c };
-      return null;
-    };
-
-    const { dr, dc } = DIRS[direction];
-    const path = [this.ball.slice()];
-    const glassBroken = [];
-    let [r, c] = this.ball;
-    let moved = false;
-
-    // Keep stress/breaks on the live board, same as GameSimulation.SimulateTilt.
-    const commitGlass = () => {
-      this.hGlass = hGlass;
-      this.vGlass = vGlass;
-      this.hGlassStressed = hStress;
-      this.vGlassStressed = vStress;
-    };
-
-    tryActivateAt([r, c]);
-
-    while (true) {
-      if (isBlocked(r, c)) break;
-
-      const edge = glassAt(r, c);
-      if (edge) {
-        if (edge.kind === "h") {
-          if (hStress[edge.r][edge.c]) {
-            hGlass[edge.r][edge.c] = false;
-            hStress[edge.r][edge.c] = false;
-            glassBroken.push(edge);
-          } else {
-            hStress[edge.r][edge.c] = true;
-            moved = true;
-            break;
-          }
-        } else if (vStress[edge.r][edge.c]) {
-          vGlass[edge.r][edge.c] = false;
-          vStress[edge.r][edge.c] = false;
-          glassBroken.push(edge);
-        } else {
-          vStress[edge.r][edge.c] = true;
-          moved = true;
-          break;
-        }
-      }
-
-      r += dr;
-      c += dc;
-      path.push([r, c]);
-      moved = true;
-      tryActivateAt([r, c]);
-
-      if (this.isHole(r, c)) {
-        commitGlass();
-        return { path, moved, won: true, glassBroken };
-      }
+    const dirIndex = DIR_INDEX[direction];
+    if (dirIndex === undefined) {
+      return { path: [this.ball.slice()], moved: false, won: false, glassBroken: [] };
     }
-
-    commitGlass();
-    return { path, moved, won: false, glassBroken };
+    const result = slide(this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct());
+    this.writeGlass(result.gstate);
+    return {
+      path: result.path,
+      moved: result.moved,
+      won: result.won,
+      glassBroken: result.broken.map((edge) => ({ kind: edge.axis, r: edge.r, c: edge.c })),
+    };
   }
 
   applyTiltResult(path, won, moved) {
@@ -262,5 +298,67 @@ export class Game {
     if (!this.tryActivateButton()) return false;
     this.moves += 1;
     return true;
+  }
+
+  // Next optimal action from the current ball, glass, and gate state.
+  // "up" | "down" | "left" | "right" | "press", or null if none within the cap.
+  // Hints are unlimited; each call is cached by state.
+  nextMove(limit = 40) {
+    if (this.won) return null;
+    const board = this.board;
+    const n = board.n;
+    const sr = this.ball[0];
+    const sc = this.ball[1];
+    if (sr === board.holeR && sc === board.holeC) return null;
+    const g0 = this.packGlass();
+    const a0 = this.packAct();
+    const startKey = stateKey(sr, sc, g0, a0, n);
+    if (this.hintCache.has(startKey)) return this.hintCache.get(startKey);
+
+    const parent = new Map();
+    parent.set(startKey, null);
+    const queue = [[sr, sc, g0, a0, 0]];
+    let answer = null;
+
+    for (let qi = 0; qi < queue.length; qi++) {
+      const [r, c, gstate, act, depth] = queue[qi];
+      if (depth >= limit) continue;
+      const here = stateKey(r, c, gstate, act, n);
+
+      const pressBit = activateAt(board, r, c, act) ^ act;
+      if (pressBit) {
+        const nextAct = act | pressBit;
+        const key = stateKey(r, c, gstate, nextAct, n);
+        if (!parent.has(key)) {
+          parent.set(key, { prev: here, action: "press" });
+          queue.push([r, c, gstate, nextAct, depth + 1]);
+        }
+      }
+
+      for (let dirIndex = 0; dirIndex < DIR_LIST.length; dirIndex++) {
+        const result = slide(board, r, c, dirIndex, gstate, act);
+        if (!result.moved) continue;
+        const key = stateKey(result.r, result.c, result.gstate, result.act, n);
+        if (result.won) {
+          let action = DIR_LIST[dirIndex].name;
+          let cursor = here;
+          while (parent.get(cursor)) {
+            const link = parent.get(cursor);
+            action = link.action;
+            cursor = link.prev;
+          }
+          answer = action;
+          qi = queue.length;
+          break;
+        }
+        if (!parent.has(key)) {
+          parent.set(key, { prev: here, action: DIR_LIST[dirIndex].name });
+          queue.push([result.r, result.c, result.gstate, result.act, depth + 1]);
+        }
+      }
+    }
+
+    this.hintCache.set(startKey, answer);
+    return answer;
   }
 }

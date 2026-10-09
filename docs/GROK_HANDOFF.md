@@ -34,6 +34,8 @@
 - **생성:** `python3 tools/generate_edge_levels.py`
 - **50 스테이지:** 2×2~7×7, 31–40 유리, 41–50 색 게이트·버튼 (자세한 건 `GAME_DESIGN_REFERENCE.md`)
 - **별·이동 한도:** `par` = BFS 최적 기울임(버튼 프레스 포함). HUD `moves/par`. 게임오버는 `par + 3`.
+- **힌트:** HUD 왼쪽 `?` 는 무제한. `Game.nextMove()` 가 현재 공·유리 스트레스·게이트 상태에서 같은 `slide` 로 BFS 해 다음 최적 행동(기울임 또는 press)을 낸다. 40수 안에 없으면 Retry.
+- **조작:** 스테이지·별은 HUD 중앙. 기울임은 하단 동일 크기 D-pad. Retry 는 오른쪽 아래 원형 버튼.
 
 ### 레벨 포맷 — 엣지 벽
 
