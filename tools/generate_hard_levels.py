@@ -329,6 +329,7 @@ def make_level(level_id: int, used_layouts, used_solutions):
 
 
 def main():
+    raise SystemExit("Retired pillar generator. Run tools/generate_edge_levels.py")
     used_layouts = set()
     used_solutions = set()
     levels = [make_level(i, used_layouts, used_solutions) for i in range(1, LEVEL_COUNT + 1)]

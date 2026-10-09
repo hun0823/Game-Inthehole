@@ -1,218 +1,281 @@
 {
-  "version": 7,
+  "version": 8,
   "levelCount": 50,
+  "wallModel": "edges",
   "levels": [
     {
       "id": 1,
-      "name": "튜토리얼",
+      "name": "First tilt",
       "size": 2,
-      "pillars": [],
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        }
+      ],
+      "vWalls": [],
       "ball": {
-        "row": 0,
+        "row": 1,
         "col": 0
       },
       "hole": {
-        "row": 1,
+        "row": 0,
         "col": 1
       },
       "par": 2
     },
     {
       "id": 2,
-      "name": "첫 장애물",
+      "name": "One corner",
       "size": 3,
-      "pillars": [
+      "hWalls": [
         {
           "row": 0,
-          "col": 2
-        },
+          "col": 1
+        }
+      ],
+      "vWalls": [
         {
-          "row": 2,
+          "row": 0,
           "col": 1
         }
       ],
       "ball": {
         "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 2,
         "col": 2
       },
-      "par": 4
+      "hole": {
+        "row": 1,
+        "col": 0
+      },
+      "par": 3
     },
     {
       "id": 3,
-      "name": "우회 입문",
+      "name": "Side step",
       "size": 3,
-      "pillars": [
+      "hWalls": [
         {
           "row": 0,
-          "col": 0
+          "col": 2
         },
         {
           "row": 1,
-          "col": 2
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 1
         }
       ],
       "ball": {
-        "row": 2,
+        "row": 1,
         "col": 0
       },
       "hole": {
-        "row": 0,
+        "row": 2,
         "col": 2
       },
-      "par": 4
+      "par": 3
     },
     {
       "id": 4,
-      "name": "지그재그",
+      "name": "Zigzag",
       "size": 3,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 0,
+          "row": 1,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
           "col": 1
         },
         {
           "row": 2,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 2
-      },
-      "par": 5
-    },
-    {
-      "id": 5,
-      "name": "코너 샷",
-      "size": 3,
-      "pillars": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 2,
-        "col": 0
-      },
-      "par": 5
-    },
-    {
-      "id": 6,
-      "name": "3×3 숙련",
-      "size": 3,
-      "pillars": [
-        {
-          "row": 0,
           "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
         }
       ],
       "ball": {
-        "row": 2,
+        "row": 1,
         "col": 2
       },
       "hole": {
-        "row": 0,
-        "col": 0
+        "row": 2,
+        "col": 1
       },
       "par": 4
     },
     {
-      "id": 7,
-      "name": "4×4 데뷔",
-      "size": 4,
-      "pillars": [
+      "id": 5,
+      "name": "Switchback",
+      "size": 3,
+      "hWalls": [
         {
           "row": 1,
           "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
         },
         {
           "row": 2,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 3,
           "col": 0
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 3
+        "row": 1,
+        "col": 0
       },
       "hole": {
-        "row": 3,
+        "row": 2,
+        "col": 1
+      },
+      "par": 4
+    },
+    {
+      "id": 6,
+      "name": "Three turns",
+      "size": 3,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 0
+      },
+      "hole": {
+        "row": 2,
+        "col": 2
+      },
+      "par": 5
+    },
+    {
+      "id": 7,
+      "name": "Wider board",
+      "size": 4,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 2,
         "col": 3
       },
       "par": 5
     },
     {
       "id": 8,
-      "name": "대각 우회",
+      "name": "Long slide",
       "size": 4,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 3,
-          "col": 3
+          "row": 0,
+          "col": 1
         },
         {
-          "row": 1,
+          "row": 0,
           "col": 2
         },
         {
+          "row": 1,
+          "col": 1
+        },
+        {
           "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
           "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
         }
       ],
       "ball": {
         "row": 3,
-        "col": 0
+        "col": 3
       },
       "hole": {
         "row": 0,
-        "col": 0
+        "col": 1
       },
       "par": 5
     },
     {
       "id": 9,
-      "name": "긴 순환",
+      "name": "Elbow",
       "size": 4,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
         {
           "row": 1,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
           "col": 0
         },
         {
-          "row": 0,
-          "col": 2
+          "row": 1,
+          "col": 1
         },
         {
           "row": 1,
@@ -220,24 +283,72 @@
         },
         {
           "row": 3,
-          "col": 2
+          "col": 1
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
         "row": 3,
         "col": 3
+      },
+      "hole": {
+        "row": 2,
+        "col": 0
       },
       "par": 6
     },
     {
       "id": 10,
-      "name": "십자로",
+      "name": "Double bend",
       "size": 4,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 0
+      },
+      "hole": {
+        "row": 3,
+        "col": 2
+      },
+      "par": 6
+    },
+    {
+      "id": 11,
+      "name": "Detour",
+      "size": 4,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
         {
           "row": 1,
           "col": 0
@@ -245,130 +356,114 @@
         {
           "row": 3,
           "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 2
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 3
-      },
-      "hole": {
-        "row": 3,
-        "col": 0
-      },
-      "par": 6
-    },
-    {
-      "id": 11,
-      "name": "양끝 트랩",
-      "size": 4,
-      "pillars": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 3,
+        "row": 1,
         "col": 0
       },
       "hole": {
-        "row": 0,
+        "row": 3,
         "col": 3
       },
       "par": 6
     },
     {
       "id": 12,
-      "name": "S 라인",
+      "name": "Pocket",
       "size": 4,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
         {
           "row": 0,
-          "col": 3
-        },
-        {
-          "row": 3,
           "col": 1
         },
         {
           "row": 1,
           "col": 0
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 3,
-        "col": 0
-      },
-      "par": 8
-    },
-    {
-      "id": 13,
-      "name": "빽빽한 길",
-      "size": 4,
-      "pillars": [
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 0,
-          "col": 2
         },
         {
           "row": 1,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
           "col": 0
         }
       ],
       "ball": {
         "row": 3,
-        "col": 3
+        "col": 0
       },
       "hole": {
+        "row": 1,
+        "col": 2
+      },
+      "par": 7
+    },
+    {
+      "id": 13,
+      "name": "S curve",
+      "size": 4,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 0
+        }
+      ],
+      "ball": {
         "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 2,
         "col": 0
       },
       "par": 7
     },
     {
       "id": 14,
-      "name": "4×4 숙련",
+      "name": "Loop",
       "size": 4,
-      "pillars": [
+      "hWalls": [
         {
           "row": 0,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 2
+          "col": 1
         },
         {
           "row": 1,
@@ -376,35 +471,51 @@
         },
         {
           "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
           "col": 2
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 2
+        "row": 1,
+        "col": 1
       },
       "hole": {
-        "row": 0,
-        "col": 0
+        "row": 3,
+        "col": 2
       },
-      "par": 5
+      "par": 7
     },
     {
       "id": 15,
-      "name": "장거리",
+      "name": "Far hole",
       "size": 4,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
         {
           "row": 0,
-          "col": 3
+          "col": 0
         },
         {
           "row": 0,
@@ -412,59 +523,11 @@
         },
         {
           "row": 1,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 1
-      },
-      "hole": {
-        "row": 3,
-        "col": 2
-      },
-      "par": 6
-    },
-    {
-      "id": 16,
-      "name": "이중 우회",
-      "size": 4,
-      "pillars": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 3
-      },
-      "hole": {
-        "row": 1,
-        "col": 1
-      },
-      "par": 7
-    },
-    {
-      "id": 17,
-      "name": "미로 입구",
-      "size": 4,
-      "pillars": [
-        {
-          "row": 0,
           "col": 0
         },
         {
           "row": 2,
-          "col": 3
+          "col": 0
         },
         {
           "row": 3,
@@ -472,79 +535,83 @@
         }
       ],
       "ball": {
-        "row": 1,
-        "col": 0
-      },
-      "hole": {
-        "row": 3,
-        "col": 3
-      },
-      "par": 7
-    },
-    {
-      "id": 18,
-      "name": "최종 4×4",
-      "size": 4,
-      "pillars": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 2
-      },
-      "hole": {
         "row": 2,
         "col": 0
       },
-      "par": 6
+      "hole": {
+        "row": 3,
+        "col": 3
+      },
+      "par": 7
     },
     {
-      "id": 19,
-      "name": "악마의 코스",
+      "id": 16,
+      "name": "Tight lane",
       "size": 4,
-      "pillars": [
+      "hWalls": [
         {
           "row": 0,
           "col": 3
         },
         {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 0,
+          "row": 1,
           "col": 0
         },
         {
-          "row": 3,
-          "col": 3
+          "row": 1,
+          "col": 1
         },
         {
           "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
           "col": 1
+        }
+      ],
+      "ball": {
+        "row": 3,
+        "col": 3
+      },
+      "hole": {
+        "row": 1,
+        "col": 0
+      },
+      "par": 8
+    },
+    {
+      "id": 17,
+      "name": "Two elbows",
+      "size": 4,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
         }
       ],
       "ball": {
@@ -552,18 +619,94 @@
         "col": 1
       },
       "hole": {
+        "row": 2,
+        "col": 3
+      },
+      "par": 8
+    },
+    {
+      "id": 18,
+      "name": "Maze",
+      "size": 4,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 3
+      },
+      "hole": {
         "row": 0,
         "col": 2
       },
-      "par": 6
+      "par": 8
+    },
+    {
+      "id": 19,
+      "name": "Last four",
+      "size": 4,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 0,
+        "col": 1
+      },
+      "par": 8
     },
     {
       "id": 20,
-      "name": "5×5 데뷔",
+      "name": "Five debut",
       "size": 5,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 4,
+          "row": 0,
           "col": 2
         },
         {
@@ -571,13 +714,47 @@
           "col": 3
         },
         {
+          "row": 0,
+          "col": 4
+        },
+        {
           "row": 2,
           "col": 0
         },
         {
-          "row": 3,
-          "col": 4
+          "row": 2,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
         },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 2
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 8
+    },
+    {
+      "id": 21,
+      "name": "Cross",
+      "size": 5,
+      "hWalls": [
         {
           "row": 1,
           "col": 2
@@ -585,30 +762,66 @@
         {
           "row": 2,
           "col": 2
+        },
+        {
+          "row": 3,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 2
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 0
+        "row": 2,
+        "col": 4
       },
       "hole": {
-        "row": 0,
-        "col": 4
+        "row": 4,
+        "col": 1
       },
       "par": 9
     },
     {
-      "id": 21,
-      "name": "대각 끝",
+      "id": 22,
+      "name": "Long way",
       "size": 5,
-      "pillars": [
+      "hWalls": [
         {
           "row": 0,
           "col": 1
         },
         {
+          "row": 0,
+          "col": 2
+        },
+        {
           "row": 3,
           "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 1
         },
         {
           "row": 1,
@@ -616,127 +829,119 @@
         },
         {
           "row": 2,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 4,
-        "col": 4
-      },
-      "hole": {
-        "row": 0,
-        "col": 0
-      },
-      "par": 10
-    },
-    {
-      "id": 22,
-      "name": "롱 코너",
-      "size": 5,
-      "pillars": [
+          "col": 2
+        },
         {
           "row": 3,
-          "col": 3
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
         },
         {
           "row": 4,
           "col": 2
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 4
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 4
+        "row": 1,
+        "col": 2
       },
       "hole": {
         "row": 4,
-        "col": 0
+        "col": 3
       },
       "par": 9
     },
     {
       "id": 23,
-      "name": "중앙 돌파",
+      "name": "Center",
       "size": 5,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
         {
           "row": 2,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 0,
           "col": 0
         },
         {
           "row": 3,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
           "col": 3
         },
         {
           "row": 1,
-          "col": 0
+          "col": 2
         },
         {
           "row": 1,
-          "col": 4
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 0
+        "row": 0,
+        "col": 3
       },
       "hole": {
-        "row": 2,
+        "row": 4,
         "col": 4
       },
       "par": 10
     },
     {
       "id": 24,
-      "name": "5×5 숙련",
+      "name": "Five clear",
       "size": 5,
-      "pillars": [
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
+      "hWalls": [
         {
           "row": 2,
           "col": 0
         },
         {
-          "row": 0,
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
           "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
         }
       ],
       "ball": {
@@ -744,56 +949,58 @@
         "col": 0
       },
       "hole": {
-        "row": 0,
+        "row": 3,
         "col": 4
       },
       "par": 10
     },
     {
       "id": 25,
-      "name": "6×6 데뷔",
+      "name": "Six debut",
       "size": 6,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 2
+        },
         {
           "row": 4,
           "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
         },
         {
-          "row": 5,
-          "col": 3
+          "row": 1,
+          "col": 1
         },
         {
-          "row": 3,
+          "row": 1,
           "col": 2
         },
         {
           "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
           "col": 1
         },
         {
           "row": 3,
-          "col": 0
+          "col": 3
         },
         {
-          "row": 0,
-          "col": 4
+          "row": 4,
+          "col": 3
         },
         {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 0,
-          "col": 1
+          "row": 5,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 0
+        "row": 1,
+        "col": 2
       },
       "hole": {
         "row": 5,
@@ -803,9 +1010,31 @@
     },
     {
       "id": 26,
-      "name": "와이드 보드",
+      "name": "Wide detour",
       "size": 6,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
         {
           "row": 2,
           "col": 4
@@ -815,116 +1044,16 @@
           "col": 0
         },
         {
-          "row": 4,
+          "row": 3,
           "col": 1
         },
         {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 0,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 5
-      },
-      "par": 11
-    },
-    {
-      "id": 27,
-      "name": "역대각",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
           "row": 4,
-          "col": 2
-        },
-        {
-          "row": 1,
           "col": 4
         },
         {
           "row": 5,
           "col": 1
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 5
-      },
-      "hole": {
-        "row": 5,
-        "col": 0
-      },
-      "par": 11
-    },
-    {
-      "id": 28,
-      "name": "섬 우회",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 0
         }
       ],
       "ball": {
@@ -932,39 +1061,189 @@
         "col": 0
       },
       "hole": {
-        "row": 4,
+        "row": 1,
         "col": 5
       },
       "par": 11
     },
     {
-      "id": 29,
-      "name": "최종 6×6",
+      "id": 27,
+      "name": "Islands",
       "size": 6,
-      "pillars": [
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
+      "hWalls": [
         {
           "row": 0,
           "col": 0
         },
         {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
           "row": 4,
           "col": 1
         },
         {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
           "row": 5,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 5,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 2
+      },
+      "par": 11
+    },
+    {
+      "id": 28,
+      "name": "Far corner",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
           "col": 5
         },
         {
           "row": 3,
           "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 3,
+        "col": 1
+      },
+      "hole": {
+        "row": 1,
+        "col": 5
+      },
+      "par": 12
+    },
+    {
+      "id": 29,
+      "name": "Six maze",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 4,
+        "col": 0
+      },
+      "hole": {
+        "row": 1,
+        "col": 3
+      },
+      "par": 12
+    },
+    {
+      "id": 30,
+      "name": "Wall master",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 4
         },
         {
           "row": 0,
@@ -972,11 +1251,489 @@
         },
         {
           "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 3
+      },
+      "hole": {
+        "row": 2,
+        "col": 0
+      },
+      "par": 12
+    },
+    {
+      "id": 31,
+      "name": "First glass",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 5,
+        "col": 5
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 11,
+      "glassV": [
+        {
+          "row": 4,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "name": "Crack it",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
           "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 3,
+        "col": 0
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "glassH": [
+        {
+          "row": 1,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "name": "Two panes",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 0
+      },
+      "hole": {
+        "row": 2,
+        "col": 3
+      },
+      "par": 12,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 4
+        }
+      ],
+      "glassV": [
+        {
+          "row": 5,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Glass bend",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 4,
+        "col": 3
+      },
+      "hole": {
+        "row": 0,
+        "col": 5
+      },
+      "par": 13,
+      "glassH": [
+        {
+          "row": 2,
+          "col": 4
+        }
+      ],
+      "glassV": [
+        {
+          "row": 4,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "name": "Brittle lane",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
         },
         {
           "row": 5,
           "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 3
+      },
+      "hole": {
+        "row": 5,
+        "col": 0
+      },
+      "par": 13,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "glassV": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Glass six",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 5
+      },
+      "hole": {
+        "row": 5,
+        "col": 1
+      },
+      "par": 14,
+      "glassV": [
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Seven glass",
+      "size": 7,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 4
+        },
+        {
+          "row": 6,
+          "col": 4
         }
       ],
       "ball": {
@@ -985,459 +1742,35 @@
       },
       "hole": {
         "row": 0,
-        "col": 3
-      },
-      "par": 11
-    },
-    {
-      "id": 30,
-      "name": "그랜드 마스터",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 3
-      },
-      "hole": {
-        "row": 5,
         "col": 5
       },
-      "par": 12
-    },
-    {
-      "id": 31,
-      "name": "유리 입문",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 5,
-        "col": 5
-      },
-      "glassV": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 4
-        }
-      ],
-      "par": 9
-    },
-    {
-      "id": 32,
-      "name": "첫 균열",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 5
-      },
+      "par": 13,
       "glassV": [
         {
           "row": 3,
-          "col": 3
-        }
-      ],
-      "par": 8
-    },
-    {
-      "id": 33,
-      "name": "두 번 밀기",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 0,
-          "col": 4
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 5
-      },
-      "hole": {
-        "row": 5,
-        "col": 0
-      },
-      "glassH": [
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 5
-        }
-      ],
-      "glassV": [
-        {
-          "row": 4,
-          "col": 4
-        }
-      ],
-      "par": 4
-    },
-    {
-      "id": 34,
-      "name": "유리 지그재그",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 2,
-        "col": 0
-      },
-      "hole": {
-        "row": 3,
-        "col": 5
-      },
-      "glassH": [
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 0
-        }
-      ],
-      "par": 6
-    },
-    {
-      "id": 35,
-      "name": "취약한 길",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 5
-      },
-      "hole": {
-        "row": 0,
-        "col": 0
-      },
-      "glassH": [
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 0
-        }
-      ],
-      "glassV": [
-        {
-          "row": 1,
-          "col": 1
-        }
-      ],
-      "par": 9
-    },
-    {
-      "id": 36,
-      "name": "6×6 유리숙련",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 1
-      },
-      "hole": {
-        "row": 4,
-        "col": 4
-      },
-      "glassH": [
-        {
-          "row": 3,
           "col": 2
         },
         {
           "row": 0,
-          "col": 3
-        }
-      ],
-      "glassV": [
-        {
-          "row": 4,
-          "col": 3
-        }
-      ],
-      "par": 8
-    },
-    {
-      "id": 37,
-      "name": "7×7 유리 데뷔",
-      "size": 7,
-      "pillars": [
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 6
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 6,
-          "col": 4
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 6,
-        "col": 6
-      },
-      "glassH": [
-        {
-          "row": 1,
           "col": 0
         }
-      ],
-      "glassV": [
-        {
-          "row": 0,
-          "col": 0
-        }
-      ],
-      "par": 7
+      ]
     },
     {
       "id": 38,
-      "name": "얇은 방벽",
+      "name": "Thin pane",
       "size": 7,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 5,
-          "col": 5
+          "row": 0,
+          "col": 1
         },
         {
-          "row": 3,
-          "col": 5
+          "row": 1,
+          "col": 6
         },
         {
-          "row": 3,
+          "row": 2,
           "col": 0
         },
         {
@@ -1445,60 +1778,80 @@
           "col": 6
         },
         {
-          "row": 6,
-          "col": 5
+          "row": 3,
+          "col": 1
         },
         {
           "row": 5,
+          "col": 6
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
           "col": 0
         },
         {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 1
+          "row": 2,
+          "col": 0
         },
         {
           "row": 3,
-          "col": 4
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 1
+        },
+        {
+          "row": 6,
+          "col": 0
         }
       ],
       "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
         "row": 6,
         "col": 0
       },
-      "hole": {
-        "row": 0,
-        "col": 6
-      },
-      "glassH": [
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 1
-        }
-      ],
+      "par": 14,
       "glassV": [
         {
-          "row": 0,
+          "row": 5,
           "col": 5
+        },
+        {
+          "row": 0,
+          "col": 1
         }
-      ],
-      "par": 9
+      ]
     },
     {
       "id": 39,
-      "name": "연쇄 파쇄",
+      "name": "Three cracks",
       "size": 7,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 6,
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
           "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 0,
+          "col": 6
+        },
+        {
+          "row": 1,
+          "col": 5
         },
         {
           "row": 2,
@@ -1506,323 +1859,445 @@
         },
         {
           "row": 3,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
           "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
+          "col": 4
         },
         {
-          "row": 5,
-          "col": 3
+          "row": 4,
+          "col": 0
         },
         {
-          "row": 0,
+          "row": 4,
           "col": 4
         },
         {
           "row": 5,
-          "col": 5
-        },
-        {
-          "row": 6,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 2
+          "col": 4
         }
       ],
       "ball": {
-        "row": 3,
+        "row": 5,
         "col": 0
       },
       "hole": {
-        "row": 3,
-        "col": 6
+        "row": 0,
+        "col": 4
       },
+      "par": 15,
       "glassH": [
         {
-          "row": 0,
-          "col": 3
+          "row": 2,
+          "col": 5
         },
         {
           "row": 1,
-          "col": 3
+          "col": 1
         }
       ],
       "glassV": [
         {
-          "row": 2,
+          "row": 0,
           "col": 3
-        },
-        {
-          "row": 4,
-          "col": 1
         }
-      ],
-      "par": 7
+      ]
     },
     {
       "id": 40,
-      "name": "유리 그랜드마스터",
+      "name": "Glass master",
       "size": 7,
-      "pillars": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 6,
-          "col": 4
-        },
+      "hWalls": [
         {
           "row": 1,
           "col": 6
         },
         {
-          "row": 6,
+          "row": 2,
           "col": 0
         },
         {
           "row": 3,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 6,
-        "col": 6
-      },
-      "hole": {
-        "row": 0,
-        "col": 0
-      },
-      "glassH": [
+          "col": 0
+        },
         {
           "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 6
+        },
+        {
+          "row": 4,
           "col": 2
         },
         {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
           "row": 3,
-          "col": 0
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 6,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 3
+      },
+      "hole": {
+        "row": 5,
+        "col": 0
+      },
+      "par": 15,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 6
+        },
+        {
+          "row": 2,
+          "col": 6
         }
       ],
       "glassV": [
         {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 5,
-          "col": 5
+          "row": 6,
+          "col": 4
         }
-      ],
-      "par": 7
+      ]
     },
     {
       "id": 41,
-      "name": "빨간 스위치",
+      "name": "Red gate",
       "size": 6,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 5,
+          "row": 2,
           "col": 0
         },
         {
-          "row": 4,
-          "col": 5
-        },
-        {
-          "row": 1,
+          "row": 2,
           "col": 3
         },
         {
-          "row": 1,
-          "col": 0
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
         },
         {
           "row": 0,
-          "col": 5
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 5,
+        "row": 1,
         "col": 5
       },
+      "hole": {
+        "row": 4,
+        "col": 1
+      },
+      "par": 14,
       "coloredH": [
         {
           "row": 3,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 2,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 2,
           "col": 0,
-          "color": "red"
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 5,
-          "col": 4,
           "color": "red"
         },
         {
           "row": 3,
-          "col": 4,
+          "col": 1,
           "color": "red"
         }
       ],
       "buttons": [
         {
           "row": 2,
-          "col": 3,
+          "col": 5,
           "color": "red"
         }
-      ],
-      "par": 12
+      ]
     },
     {
       "id": 42,
-      "name": "벽이 막는다",
+      "name": "Press first",
       "size": 6,
-      "pillars": [
-        {
-          "row": 5,
-          "col": 4
-        },
+      "hWalls": [
         {
           "row": 0,
-          "col": 3
+          "col": 0
         },
         {
           "row": 1,
-          "col": 3
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
         },
         {
           "row": 2,
-          "col": 3
+          "col": 0
         },
         {
           "row": 4,
-          "col": 4
+          "col": 1
         },
         {
           "row": 4,
           "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
         },
         {
           "row": 1,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 5
-      },
-      "coloredH": [
+          "col": 1
+        },
         {
           "row": 1,
-          "col": 0,
-          "color": "red"
+          "col": 4
         },
         {
           "row": 2,
-          "col": 5,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 0
+      },
+      "hole": {
+        "row": 4,
+        "col": 4
+      },
+      "par": 14,
+      "coloredV": [
+        {
+          "row": 3,
+          "col": 1,
           "color": "red"
         },
         {
           "row": 4,
-          "col": 0,
-          "color": "red"
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 3,
-          "col": 4,
+          "col": 1,
           "color": "red"
         },
         {
-          "row": 0,
-          "col": 4,
+          "row": 5,
+          "col": 1,
           "color": "red"
         }
       ],
       "buttons": [
         {
-          "row": 4,
-          "col": 1,
+          "row": 5,
+          "col": 0,
           "color": "red"
         }
-      ],
-      "par": 13
+      ]
     },
     {
       "id": 43,
-      "name": "버튼 먼저",
+      "name": "The button",
       "size": 6,
-      "pillars": [
+      "hWalls": [
         {
           "row": 1,
-          "col": 1
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
         },
         {
           "row": 3,
-          "col": 0
+          "col": 3
         },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 5,
+          "col": 4
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 4
+      },
+      "hole": {
+        "row": 1,
+        "col": 5
+      },
+      "par": 15,
+      "coloredV": [
+        {
+          "row": 0,
+          "col": 4,
+          "color": "red"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "color": "red"
+        }
+      ],
+      "buttons": [
+        {
+          "row": 5,
+          "col": 4,
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Around",
+      "size": 6,
+      "hWalls": [
         {
           "row": 0,
           "col": 1
         },
         {
-          "row": 2,
+          "row": 1,
           "col": 5
         },
         {
           "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
           "col": 2
         },
         {
-          "row": 1,
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
           "col": 0
         },
         {
-          "row": 1,
-          "col": 4
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 0
         },
         {
           "row": 5,
@@ -1831,87 +2306,79 @@
       ],
       "ball": {
         "row": 0,
-        "col": 5
+        "col": 0
       },
       "hole": {
         "row": 5,
-        "col": 0
+        "col": 3
       },
-      "coloredH": [
-        {
-          "row": 4,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 4,
-          "col": 4,
-          "color": "red"
-        }
-      ],
+      "par": 15,
       "coloredV": [
         {
-          "row": 4,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 4,
+          "row": 0,
           "col": 0,
           "color": "red"
         },
         {
-          "row": 2,
-          "col": 1,
-          "color": "red"
-        },
-        {
-          "row": 5,
-          "col": 3,
+          "row": 1,
+          "col": 0,
           "color": "red"
         }
       ],
       "buttons": [
         {
-          "row": 2,
+          "row": 5,
           "col": 0,
           "color": "red"
         }
-      ],
-      "par": 19
+      ]
     },
     {
-      "id": 44,
-      "name": "우회로",
+      "id": 45,
+      "name": "Locked lane",
       "size": 6,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 5,
-          "col": 5
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 4
         },
         {
           "row": 2,
-          "col": 5
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
         },
         {
           "row": 2,
           "col": 4
         },
         {
-          "row": 0,
+          "row": 2,
           "col": 5
-        },
+        }
+      ],
+      "vWalls": [
         {
-          "row": 1,
+          "row": 0,
           "col": 3
         },
         {
-          "row": 3,
-          "col": 0
+          "row": 1,
+          "col": 2
         },
         {
-          "row": 5,
-          "col": 1
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 3
         }
       ],
       "ball": {
@@ -1919,140 +2386,68 @@
         "col": 0
       },
       "hole": {
-        "row": 3,
-        "col": 5
+        "row": 5,
+        "col": 1
       },
+      "par": 16,
       "coloredH": [
-        {
-          "row": 0,
-          "col": 1,
-          "color": "red"
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 5,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 0,
-          "col": 1,
-          "color": "red"
-        },
-        {
-          "row": 3,
-          "col": 3,
-          "color": "red"
-        }
-      ],
-      "buttons": [
-        {
-          "row": 1,
-          "col": 4,
-          "color": "red"
-        }
-      ],
-      "par": 14
-    },
-    {
-      "id": 45,
-      "name": "이중 차단",
-      "size": 6,
-      "pillars": [
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
         {
           "row": 2,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 5
-      },
-      "hole": {
-        "row": 0,
-        "col": 0
-      },
-      "coloredH": [
-        {
-          "row": 0,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 0,
           "col": 0,
           "color": "red"
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 5,
-          "col": 1,
-          "color": "red"
         },
         {
           "row": 2,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 2,
-          "color": "red"
-        },
-        {
-          "row": 0,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 4,
-          "col": 2,
+          "col": 1,
           "color": "red"
         }
       ],
       "buttons": [
         {
-          "row": 3,
-          "col": 3,
+          "row": 0,
+          "col": 4,
           "color": "red"
         }
-      ],
-      "par": 18
+      ]
     },
     {
       "id": 46,
-      "name": "6×6 스위치",
+      "name": "Switch six",
       "size": 6,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 5,
+          "row": 1,
           "col": 0
         },
         {
-          "row": 0,
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
           "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
         },
         {
           "row": 2,
@@ -2063,23 +2458,105 @@
           "col": 3
         },
         {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 4
+      },
+      "hole": {
+        "row": 5,
+        "col": 1
+      },
+      "par": 16,
+      "coloredH": [
+        {
           "row": 2,
-          "col": 4
+          "col": 0,
+          "color": "red"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "color": "red"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "color": "red"
+        }
+      ],
+      "buttons": [
+        {
+          "row": 1,
+          "col": 3,
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "name": "Seven gate",
+      "size": 7,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 5
         },
         {
           "row": 5,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 1
+          "col": 2
         },
         {
           "row": 5,
           "col": 3
         },
         {
+          "row": 5,
+          "col": 4
+        },
+        {
+          "row": 5,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 6
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
           "row": 1,
+          "col": 5
+        },
+        {
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 5,
+          "col": 4
+        },
+        {
+          "row": 6,
           "col": 4
         }
       ],
@@ -2088,263 +2565,222 @@
         "col": 1
       },
       "hole": {
-        "row": 4,
-        "col": 4
-      },
-      "coloredV": [
-        {
-          "row": 2,
-          "col": 1,
-          "color": "red"
-        },
-        {
-          "row": 4,
-          "col": 1,
-          "color": "red"
-        },
-        {
-          "row": 2,
-          "col": 2,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 1,
-          "color": "red"
-        }
-      ],
-      "buttons": [
-        {
-          "row": 4,
-          "col": 5,
-          "color": "red"
-        }
-      ],
-      "par": 15
-    },
-    {
-      "id": 47,
-      "name": "7×7 버튼 데뷔",
-      "size": 7,
-      "pillars": [
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 6
-        },
-        {
-          "row": 6,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 4
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
         "row": 6,
-        "col": 6
+        "col": 2
       },
+      "par": 16,
       "coloredH": [
         {
-          "row": 2,
-          "col": 2,
-          "color": "red"
-        },
-        {
-          "row": 3,
-          "col": 5,
-          "color": "red"
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 2,
-          "col": 1,
-          "color": "red"
-        },
-        {
-          "row": 0,
-          "col": 4,
+          "row": 5,
+          "col": 0,
           "color": "red"
         },
         {
           "row": 5,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 3,
-          "col": 2,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 2,
+          "col": 1,
           "color": "red"
         }
       ],
       "buttons": [
         {
-          "row": 6,
-          "col": 4,
+          "row": 5,
+          "col": 5,
           "color": "red"
         }
-      ],
-      "par": 21
+      ]
     },
     {
       "id": 48,
-      "name": "긴 우회",
+      "name": "Two colors",
       "size": 7,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 2,
-          "col": 6
-        },
-        {
-          "row": 1,
+          "row": 0,
           "col": 3
         },
         {
           "row": 0,
-          "col": 2
+          "col": 4
         },
         {
-          "row": 4,
-          "col": 1
+          "row": 0,
+          "col": 5
         },
         {
-          "row": 2,
+          "row": 0,
+          "col": 6
+        },
+        {
+          "row": 1,
           "col": 0
         },
         {
-          "row": 5,
-          "col": 1
+          "row": 4,
+          "col": 3
         },
         {
-          "row": 5,
+          "row": 4,
           "col": 4
         },
         {
           "row": 4,
-          "col": 2
+          "col": 5
         },
         {
-          "row": 5,
+          "row": 4,
           "col": 6
         }
       ],
-      "ball": {
-        "row": 6,
-        "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 6
-      },
-      "coloredH": [
+      "vWalls": [
         {
           "row": 1,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 0,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 0,
-          "col": 1,
-          "color": "red"
+          "col": 2
         },
         {
           "row": 1,
-          "col": 2,
-          "color": "red"
-        }
-      ],
-      "coloredV": [
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 5
+        },
         {
           "row": 4,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 3,
-          "col": 3,
-          "color": "red"
+          "col": 3
         }
       ],
-      "buttons": [
+      "ball": {
+        "row": 0,
+        "col": 3
+      },
+      "hole": {
+        "row": 5,
+        "col": 2
+      },
+      "par": 17,
+      "coloredH": [
         {
           "row": 0,
           "col": 0,
           "color": "red"
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "color": "red"
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "color": "red"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "color": "blue"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "color": "blue"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "color": "blue"
         }
       ],
-      "par": 16
+      "buttons": [
+        {
+          "row": 0,
+          "col": 2,
+          "color": "red"
+        },
+        {
+          "row": 4,
+          "col": 6,
+          "color": "blue"
+        }
+      ]
     },
     {
       "id": 49,
-      "name": "스위치 연쇄",
+      "name": "Blue after red",
       "size": 7,
-      "pillars": [
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
         {
           "row": 3,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
           "col": 3
         },
         {
           "row": 1,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 6
-        },
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 6,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 4,
           "col": 2
         },
         {
-          "row": 6,
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
           "col": 4
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 3
+        },
+        {
+          "row": 6,
+          "col": 3
         }
       ],
       "ball": {
@@ -2352,152 +2788,159 @@
         "col": 0
       },
       "hole": {
-        "row": 3,
+        "row": 0,
         "col": 6
       },
-      "coloredH": [
-        {
-          "row": 5,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 6,
-          "color": "red"
-        },
-        {
-          "row": 4,
-          "col": 1,
-          "color": "red"
-        }
-      ],
+      "par": 18,
       "coloredV": [
         {
           "row": 4,
-          "col": 4,
+          "col": 2,
           "color": "red"
         },
         {
-          "row": 3,
-          "col": 5,
+          "row": 5,
+          "col": 2,
           "color": "red"
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "color": "red"
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "color": "blue"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "color": "blue"
         }
       ],
       "buttons": [
         {
-          "row": 5,
-          "col": 4,
+          "row": 0,
+          "col": 1,
           "color": "red"
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "color": "blue"
         }
-      ],
-      "par": 15
+      ]
     },
     {
       "id": 50,
-      "name": "버튼 마스터",
+      "name": "Gate master",
       "size": 7,
-      "pillars": [
+      "hWalls": [
         {
-          "row": 2,
-          "col": 2
+          "row": 1,
+          "col": 4
         },
         {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 6,
-          "col": 0
+          "row": 3,
+          "col": 4
         },
         {
           "row": 4,
+          "col": 6
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 1,
           "col": 5
         },
         {
           "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
           "col": 4
         },
         {
-          "row": 1,
-          "col": 6
+          "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 5
         },
         {
           "row": 6,
           "col": 4
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 1
         }
       ],
       "ball": {
         "row": 6,
-        "col": 6
+        "col": 2
       },
       "hole": {
-        "row": 0,
-        "col": 0
+        "row": 1,
+        "col": 6
       },
-      "coloredH": [
+      "par": 18,
+      "coloredV": [
         {
-          "row": 2,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 2,
-          "col": 1,
+          "row": 3,
+          "col": 4,
           "color": "red"
         },
         {
           "row": 4,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 1,
+          "col": 4,
           "color": "red"
         },
         {
           "row": 5,
-          "col": 1,
+          "col": 4,
           "color": "red"
-        }
-      ],
-      "coloredV": [
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "color": "blue"
+        },
         {
           "row": 5,
           "col": 5,
-          "color": "red"
+          "color": "blue"
         },
         {
-          "row": 5,
-          "col": 1,
-          "color": "red"
+          "row": 6,
+          "col": 5,
+          "color": "blue"
         }
       ],
       "buttons": [
         {
-          "row": 0,
-          "col": 6,
+          "row": 1,
+          "col": 4,
           "color": "red"
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "color": "blue"
         }
-      ],
-      "par": 20
+      ]
     }
   ]
 }

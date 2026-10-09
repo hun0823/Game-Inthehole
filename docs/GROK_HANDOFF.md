@@ -1,14 +1,17 @@
 # Grok Handoff — Rollin' Board / InTheHole
 
-> **갱신:** 2026-06-07  
+> **갱신:** 2026-10-09  
 > Cursor Agent 세션에서 Grok으로 이어가기 위한 **단일 컨텍스트 문서**.
+
+**현재 기준:** 플레이 가능한 빌드는 **웹 앱**이다. `index.html` + `js/board3d.js`(Three.js) + `js/game.js`. GitHub Pages 워크플로: `.github/workflows/pages.yml`.  
+**Unity (`unity/InTheHole`)는 일시 중지**이며 레벨 포맷이 어긋나 있다. Unity를 고치거나 `unity/`를 갱신하지 말 것. 규칙의 단일 소스는 `js/game.js`다.
 
 ---
 
 ## 1. 한 줄 정의
 
 **테이블을 기울여 공을 구멍에 넣는** 세로(9:16) 모바일 브레인 퍼즐.  
-**출시 빌드 = Unity** (`unity/InTheHole`). 웹(`index.html`)은 프로토타입.
+**프라이머리 빌드 = 웹** (Three.js, GitHub Pages). Unity는 일시 중지.
 
 ---
 
@@ -25,11 +28,27 @@
 
 ## 3. 코어 로직 (절대 분기 금지)
 
-- **단일 시뮬:** `Assets/Scripts/Core/GameSimulation.cs` (웹 `js/game.js`와 동기)
-- **스테이지:** `shared/levels.json` → Unity `Resources/Levels/`
-- **검증:** `InTheHole → Validate All Levels (BFS)` 또는 `tools/` Python BFS
-- **50 스테이지:** 2×2~7×7, 31–40 유리, 41–50 색 벽·버튼 (자세한 건 `GAME_DESIGN_REFERENCE.md`)
-- **별·이동 한도:** `par` = BFS 최적 기울임; HUD `이동 n / limit`
+- **단일 시뮬:** `js/game.js`. Unity `GameSimulation.cs`는 예전 기둥(pillar) 모델 기준이라 **동기 깨짐**.
+- **스테이지:** `shared/levels.json` (version 8, edge walls) → `tools/sync_js_levels.py` → `js/levels.js`
+- **검증:** `python3 tools/validate_levels.py` (BFS, `tools/tilt_solver.py` = `js/game.js` 규칙)
+- **생성:** `python3 tools/generate_edge_levels.py`
+- **50 스테이지:** 2×2~7×7, 31–40 유리, 41–50 색 게이트·버튼 (자세한 건 `GAME_DESIGN_REFERENCE.md`)
+- **별·이동 한도:** `par` = BFS 최적 기울임(버튼 프레스 포함). HUD `moves/par`. 게임오버는 `par + 3`.
+
+### 레벨 포맷 — 엣지 벽
+
+모든 칸은 바닥이다. 벽은 칸을 막지 않고 **인접 칸 사이 변**에 선다. 유리·색 게이트와 같은 좌표.
+
+| 필드 | 의미 |
+|------|------|
+| `hWalls[]` | `{row, col}` — `row` 행과 `row+1` 행 사이, `col` 열 (`0 ≤ row < size-1`) |
+| `vWalls[]` | `{row, col}` — `col` 열과 `col+1` 열 사이, `row` 행 (`0 ≤ col < size-1`) |
+| `glassH` / `glassV` | 같은 좌표. 1타: 금 가고 정지. 2타: 파괴 후 통과 |
+| `coloredH` / `coloredV` | `{row, col, color}`. 해당 색 버튼을 밟거나 누르기 전에는 통과 불가 |
+| `buttons[]` | `{row, col, color}` |
+| `ball`, `hole`, `par` | 시작·구멍·최적 기울임 수 |
+
+`pillars`(막힌 칸 → 네 변으로 확장)는 **제거**했다. 그 모델은 칸 안을 도달 불가로 만들고 벽이 박스처럼 보였다. L/T/직선은 변을 이어 붙인 보석 막대다.
 
 ---
 

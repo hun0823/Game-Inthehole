@@ -151,6 +151,7 @@ def search_one(lid, used_layouts, used_solutions, iters):
 
 
 def main():
+    raise SystemExit("Retired pillar generator. Run tools/generate_edge_levels.py")
     root = Path(__file__).resolve().parents[1]
     data = json.loads((root / "shared/levels.json").read_text(encoding="utf-8"))
     used_layouts = {layout_fingerprint(lv) for lv in data["levels"] if lv["id"] <= 30}

@@ -220,6 +220,7 @@ def write_stages(stages):
 
 
 def main():
+    raise SystemExit("Retired pillar generator. Run tools/generate_edge_levels.py")
     import argparse
 
     ap = argparse.ArgumentParser()

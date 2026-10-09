@@ -1,7 +1,8 @@
 # In the Hole — 게임 설계 메모 (개발 참고용)
 
-> **갱신:** 2026-05-31  
-> 이 문서는 기획·Unity 개발·밸런스 작업 시 **단일 참고 문서**입니다.
+> **갱신:** 2026-10-09  
+> 이 문서는 기획·밸런스 작업 시 **단일 참고 문서**입니다.  
+> **프라이머리 빌드 = 웹** (`js/game.js`, Three.js, GitHub Pages). Unity는 일시 중지이며 레벨 포맷과 어긋나 있다.
 
 ---
 
@@ -66,8 +67,8 @@
 | `gridSize` | N×N | N 증가 (분기·시야 부담) |
 | `optimalMoves` | 최적(또는 검증된) 최소 기울임 수 | 값 증가 |
 | `playerMoves` / `optimalMoves` | 플레이어 실제 이동 / 최적 | 1에 가까울수록 빡셈 (별 3개 기준) |
-| `wallDensity` | 엣지 벽 수 / 가능한 엣지 수 | 증가 |
-| `pillarCount` | 막힌 칸(기둥) 수 | 증가 |
+| `wallDensity` | 엣지 벽 수 / 가능한 내부 엣지 수 `2·N·(N-1)` | 증가 |
+| `edgeCount` | 가로·세로 벽 변의 개수 (기둥 칸 수는 폐기) | 증가 |
 | `branching` | 한 상태에서 유효한 기울임 방향 수 평균 | 감소 시 막막함 ↑ |
 | `deadEndRisk` | 한 번 잘못 굴리면 복구 불가 경로 비율 | 증가 |
 | `specialTileRatio` | 유리·워프 등 특수 칸 비율 | 증가 (규칙 추가) |
@@ -103,20 +104,39 @@
 - **월드 4 (5 only):** 종합 + 유리벽 튜토리얼  
 - 이후 6×6~: 특수 타일·워프
 
-### 2.6 레벨 데이터 스키마 확장 (예정)
+### 2.6 레벨 데이터 스키마 (엣지 벽, `shared/levels.json` version 8)
+
+모든 칸은 바닥이다. 벽·유리·색 게이트는 **칸과 칸 사이의 변**이다.  
+`pillars`(막힌 칸을 네 변으로 펼치던 모델)는 제거했다. 그 방식은 칸 내부를 못 들어가게 하고 벽이 박스 모양이 되었다.
+
+- `hWalls[].{row,col}` — `row`와 `row+1` 사이, 열 `col` (`row < size-1`)
+- `vWalls[].{row,col}` — `col`과 `col+1` 사이, 행 `row` (`col < size-1`)
+- 유리(`glassH`/`glassV`)와 색 게이트(`coloredH`/`coloredV`)는 **같은 좌표**
+- 이어 붙인 변은 L / T / 직선 보석 막대가 된다. 한 칸의 네 변을 모두 막지 않는다.
+- `par` = BFS 최적 기울임 수 (버튼 프레스 1회는 이동 1). 이동 한도는 HUD의 `par`, 실패는 `par+3`
+- 웹이 이 파일을 읽는다. Unity `Resources/Levels`는 옛 pillar JSON이라 **out of sync**
+
+형식 예시(실제 스테이지 덤프 아님):
 
 ```json
 {
   "id": 42,
-  "size": 5,
-  "pillars": [{ "row": 1, "col": 2 }],
-  "glassWalls": [{ "edge": "h", "r": 0, "c": 1, "hits": 0 }],
-  "warps": [],
+  "name": "Press first",
+  "size": 6,
+  "hWalls": [{ "row": 2, "col": 0 }, { "row": 2, "col": 1 }],
+  "vWalls": [{ "row": 1, "col": 3 }],
+  "glassH": [],
+  "glassV": [],
+  "coloredH": [{ "row": 3, "col": 2, "color": "red" }],
+  "coloredV": [{ "row": 4, "col": 1, "color": "red" }],
+  "buttons": [{ "row": 1, "col": 1, "color": "red" }],
   "ball": { "row": 0, "col": 0 },
-  "hole": { "row": 4, "col": 4 },
-  "meta": { "targetMoves": 8, "world": 3, "tags": ["intro-glass"] }
+  "hole": { "row": 5, "col": 5 },
+  "par": 14
 }
 ```
+
+빈 유리·색·버튼 배열은 파일에서 생략해도 된다. 로더는 없으면 빈 격자로 본다.
 
 ---
 
@@ -261,3 +281,4 @@
 | 날짜 | 내용 |
 |------|------|
 | 2026-05-31 | 최초 작성 — 레퍼런스, 5×5, 난이도 변수, 유리벽, 메타, PvP |
+| 2026-10-09 | 레벨 포맷을 엣지 벽(`hWalls`/`vWalls`)으로 교체. pillar 폐기. 웹이 프라이머리 빌드, Unity 일시 중지 |

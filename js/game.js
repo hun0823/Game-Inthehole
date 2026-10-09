@@ -58,7 +58,8 @@ export class Game {
     return r === this.hole[0] && c === this.hole[1];
   }
 
-  isPillarBlocked(r, c, direction) {
+  // Solid wall on the edge crossed by leaving (r, c) in direction. Borders count as walls.
+  isWallBlocked(r, c, direction) {
     const { dr, dc } = DIRS[direction];
     const nr = r + dr;
     const nc = c + dc;
@@ -89,7 +90,7 @@ export class Game {
   }
 
   isSolidBlocked(r, c, direction) {
-    return this.isPillarBlocked(r, c, direction) || this.isColoredBlocked(r, c, direction);
+    return this.isWallBlocked(r, c, direction) || this.isColoredBlocked(r, c, direction);
   }
 
   glassEdge(r, c, direction) {
@@ -156,7 +157,7 @@ export class Game {
     };
 
     const isBlocked = (r, c) => {
-      if (this.isPillarBlocked(r, c, direction)) return true;
+      if (this.isWallBlocked(r, c, direction)) return true;
       const { dr, dc } = DIRS[direction];
       const nr = r + dr;
       const nc = c + dc;

@@ -586,11 +586,20 @@ const colored = [];
       return mesh;
     };
 
-    for (const run of edgeRuns(level.hWalls)) {
-      addEdge("h", run.r, run.c, "wall", wallColor(run.r, run.c, "h"), run.length);
+    // One gem per edge so lines, L, and T shapes are segments, not a boxed cell.
+    if (level.hWalls) {
+      for (let r = 0; r < level.hWalls.length; r++) {
+        for (let c = 0; c < level.hWalls[r].length; c++) {
+          if (level.hWalls[r][c]) addEdge("h", r, c, "wall", wallColor(r, c, "h"));
+        }
+      }
     }
-    for (const run of edgeRuns(level.vWalls)) {
-      addEdge("v", run.r, run.c, "wall", wallColor(run.r, run.c, "v"), run.length);
+    if (level.vWalls) {
+      for (let r = 0; r < level.vWalls.length; r++) {
+        for (let c = 0; c < level.vWalls[r].length; c++) {
+          if (level.vWalls[r][c]) addEdge("v", r, c, "wall", wallColor(r, c, "v"));
+        }
+      }
     }
 
     if (game.hGlass) {
