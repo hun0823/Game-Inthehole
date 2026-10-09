@@ -187,6 +187,14 @@ export class Game {
     let [r, c] = this.ball;
     let moved = false;
 
+    // Keep stress/breaks on the live board, same as GameSimulation.SimulateTilt.
+    const commitGlass = () => {
+      this.hGlass = hGlass;
+      this.vGlass = vGlass;
+      this.hGlassStressed = hStress;
+      this.vGlassStressed = vStress;
+    };
+
     tryActivateAt([r, c]);
 
     while (true) {
@@ -222,17 +230,19 @@ export class Game {
       tryActivateAt([r, c]);
 
       if (this.isHole(r, c)) {
+        commitGlass();
         return { path, moved, won: true, glassBroken };
       }
     }
 
+    commitGlass();
     return { path, moved, won: false, glassBroken };
   }
 
   applyTiltResult(path, won, moved) {
     let spent = false;
-    if (moved && path.length > 1) {
-      this.ball = path[path.length - 1].slice();
+    if (moved) {
+      if (path.length > 1) this.ball = path[path.length - 1].slice();
       spent = true;
     }
     for (const cell of path) {
