@@ -127,9 +127,28 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+const overlayStars = document.getElementById("overlay-stars");
+
+function showClearStars(count) {
+  overlayStars.hidden = false;
+  const stars = overlayStars.querySelectorAll(".clear-star");
+  stars.forEach((el) => el.classList.remove("is-on"));
+  requestAnimationFrame(() => {
+    stars.forEach((el, i) => {
+      if (i < count) el.classList.add("is-on");
+    });
+  });
+}
+
+function hideClearStars() {
+  overlayStars.hidden = true;
+  overlayStars.querySelectorAll(".clear-star").forEach((el) => el.classList.remove("is-on"));
+}
+
 function showGameOver() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
+  hideClearStars();
   overlay.classList.remove("hidden");
   overlayTitle.textContent = "Out of moves";
   overlayMsg.textContent = par > 0 ? `Lvl. ${level.id} · ${game.moves}/${par}` : `Lvl. ${level.id}`;
@@ -164,7 +183,8 @@ function showWin(stars) {
   spawnClearStars();
   overlay.classList.remove("hidden");
   overlayTitle.textContent = "Cleared!";
-  overlayMsg.textContent = `Lvl. ${level.id} · ${game.moves}/${par} · ${starsText(stars)}`;
+  overlayMsg.textContent = `Lvl. ${level.id} · ${game.moves}/${par}`;
+  showClearStars(stars);
   overlayBtn.textContent = stageIndex < LEVELS.length - 1 ? "Next stage" : "From the start";
   overlayBtn.onclick = () => nextStage();
 }
@@ -172,6 +192,7 @@ function showWin(stars) {
 function hideOverlay() {
   overlay.classList.add("hidden");
   overlay.querySelectorAll(".pop-star").forEach((el) => el.remove());
+  hideClearStars();
 }
 
 function handleAfterMove(won) {
@@ -203,22 +224,44 @@ function handleAfterMove(won) {
 function showHint() {
   if (animating || game.won || gameOver) return;
   clearHintUi();
-  const move = game.nextMove();
-  if (!move) {
+  const route = game.hintRoute();
+  if (!route) {
     document.getElementById("btn-reset").classList.add("is-hint");
     hintNote.hidden = false;
     hintNote.textContent = "No path — Retry";
     return;
   }
+  const move = route.action;
   if (move === "press") {
-    view.showHint("press", game.ball[0], game.ball[1]);
+    view.showHint("press", game.ball[0], game.ball[1], route);
     hintNote.hidden = false;
     hintNote.textContent = "Press the switch";
     return;
   }
-  view.showHint(move, game.ball[0], game.ball[1]);
+  view.showHint(move, game.ball[0], game.ball[1], route);
   const btn = document.querySelector(`.arcade-btn[data-dir="${move}"]`);
   if (btn) btn.classList.add("is-hint");
+}
+
+function snapshotGlass(state) {
+  return {
+    hs: state.hGlassStressed.map((row) => row.slice()),
+    vs: state.vGlassStressed.map((row) => row.slice()),
+  };
+}
+
+function cracksSince(before, state) {
+  const out = [];
+  const scan = (axis, prev, stress, alive) => {
+    for (let r = 0; r < stress.length; r++) {
+      for (let c = 0; c < stress[r].length; c++) {
+        if (stress[r][c] && !(prev[r] && prev[r][c]) && alive[r][c]) out.push({ axis, r, c });
+      }
+    }
+  };
+  scan("h", before.hs, state.hGlassStressed, state.hGlass);
+  scan("v", before.vs, state.vGlassStressed, state.vGlass);
+  return out;
 }
 
 async function handleButtonPress(row, col) {
@@ -228,9 +271,9 @@ async function handleButtonPress(row, col) {
   if (!game.pressButton()) return;
   animating = true;
   view.dipButton(row, col);
-  view.sync(game, { ready: false });
+  view.sync(game, { ready: false, animateGates: true });
   updateHud();
-  await wait(160);
+  await wait(280);
   animating = false;
   handleAfterMove(game.won);
 }
@@ -238,20 +281,23 @@ async function handleButtonPress(row, col) {
 async function handleTilt(dir) {
   if (animating || game.won || gameOver) return;
   clearHintUi();
-  const { path, moved, won } = game.simulateTilt(dir);
+  const glassBefore = snapshotGlass(game);
+  const { path, moved, won, glassBroken } = game.simulateTilt(dir);
+  const cracked = cracksSince(glassBefore, game);
   view.nudge(dir);
   if (!moved) {
-    view.bump(1);
-    await wait(280);
+    view.bump(0.45);
+    await wait(240);
     view.nudge(null);
     return;
   }
   animating = true;
   game.applyTiltResult(path, won, moved);
-  view.sync(game, { ready: false });
+  view.sync(game, { ready: false, skipGlass: true, skipGates: true });
+  view.armGateOpen(game);
   updateHud();
-  await view.roll(path, dir, won);
-  if (!won) view.bump(path.length > 1 ? 0.32 : 0.7);
+  await view.roll(path, dir, won, { cracked, broken: glassBroken });
+  if (!won) view.bump(path.length > 1 ? 0.16 : 0.32);
   view.nudge(null);
   if (won) {
     view.celebrate(path[path.length - 1]);
@@ -355,6 +401,11 @@ document.addEventListener("keydown", (e) => {
   if (key === "n") {
     e.preventDefault();
     if (!animating) nextStage();
+    return;
+  }
+  if (key === "?") {
+    e.preventDefault();
+    showHint();
     return;
   }
   const dir = KEY_MAP[e.key] || KEY_MAP[key];

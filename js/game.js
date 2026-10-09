@@ -304,6 +304,39 @@ export class Game {
   // "up" | "down" | "left" | "right" | "press", or null if none within the cap.
   // Hints are unlimited; each call is cached by state.
   nextMove(limit = 40) {
+    const route = this.hintRoute(limit);
+    return route ? route.action : null;
+  }
+
+  // Full remaining optimal route from the current state.
+  // cells follows every square of each slide; stops are where a slide ends.
+  // Read-only replay of slide(). Does not change rules or board state.
+  hintRoute(limit = 40) {
+    const actions = this._hintActions(limit);
+    if (!actions) return null;
+    let r = this.ball[0];
+    let c = this.ball[1];
+    let gstate = this.packGlass();
+    let act = this.packAct();
+    const cells = [[r, c]];
+    const stops = [[r, c]];
+    for (const action of actions) {
+      if (action === "press") {
+        act = activateAt(this.board, r, c, act);
+        continue;
+      }
+      const result = slide(this.board, r, c, DIR_INDEX[action], gstate, act);
+      for (let i = 1; i < result.path.length; i++) cells.push(result.path[i].slice());
+      r = result.r;
+      c = result.c;
+      gstate = result.gstate;
+      act = result.act;
+      stops.push([r, c]);
+    }
+    return { action: actions[0], actions, cells, stops };
+  }
+
+  _hintActions(limit) {
     if (this.won) return null;
     const board = this.board;
     const n = board.n;
@@ -340,14 +373,15 @@ export class Game {
         if (!result.moved) continue;
         const key = stateKey(result.r, result.c, result.gstate, result.act, n);
         if (result.won) {
-          let action = DIR_LIST[dirIndex].name;
+          const actions = [DIR_LIST[dirIndex].name];
           let cursor = here;
           while (parent.get(cursor)) {
             const link = parent.get(cursor);
-            action = link.action;
+            actions.push(link.action);
             cursor = link.prev;
           }
-          answer = action;
+          actions.reverse();
+          answer = actions;
           qi = queue.length;
           break;
         }
