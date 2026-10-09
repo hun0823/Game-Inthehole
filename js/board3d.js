@@ -569,6 +569,8 @@ export function createView(canvas) {
   const HEADING = { right: 0, left: Math.PI, down: -Math.PI / 2, up: Math.PI / 2 };
   const fxGroup = new THREE.Group();
   const goalGroup = new THREE.Group();
+  fxGroup.frustumCulled = false;
+  goalGroup.frustumCulled = false;
   rig.add(fxGroup, goalGroup);
   const decalGeo = new THREE.CircleGeometry(0.18, 12);
   const decals = Array.from({ length: DECALS }, () => {
@@ -577,18 +579,18 @@ export function createView(canvas) {
       new THREE.MeshBasicMaterial({
         color: 0x16110e,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.85,
         depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: -4,
-        polygonOffsetUnits: -4,
+        side: THREE.DoubleSide,
       })
     );
     mesh.rotation.x = -Math.PI / 2;
     mesh.renderOrder = 2;
+    mesh.frustumCulled = false;
     const group = new THREE.Group();
     group.add(mesh);
     group.visible = false;
+    group.frustumCulled = false;
     fxGroup.add(group);
     return { group, mesh, life: 0, max: 1, base: 0.7, kind: "tire" };
   });
@@ -598,22 +600,37 @@ export function createView(canvas) {
   trailGeo.setAttribute("position", new THREE.BufferAttribute(trailPos, 3));
   trailGeo.setAttribute("color", new THREE.BufferAttribute(trailCol, 3));
   const trailMat = new THREE.PointsMaterial({
-    size: 0.32,
+    size: 0.46,
     map: makeSoftDot(),
     transparent: true,
     depthWrite: false,
     vertexColors: true,
     sizeAttenuation: true,
   });
+  const treadMap = paintTex(128, (g, s) => {
+    g.clearRect(0, 0, s, s);
+    g.fillStyle = "rgba(20, 12, 8, 0.94)";
+    g.beginPath();
+    g.roundRect(4, 6, s - 8, s - 12, 14);
+    g.fill();
+    g.strokeStyle = "rgba(120, 104, 86, 0.95)";
+    g.lineWidth = 8;
+    for (let x = 24; x < s - 8; x += 28) {
+      g.beginPath();
+      g.moveTo(x, 12);
+      g.lineTo(x, s - 12);
+      g.stroke();
+    }
+  });
   const trailPoints = new THREE.Points(trailGeo, trailMat);
   trailPoints.renderOrder = 3;
+  trailPoints.frustumCulled = false;
   fxGroup.add(trailPoints);
   const trails = Array.from({ length: TRAIL_N }, () => ({
     x: 0, y: -40, z: 0, vy: 0, life: 0, max: 1, r: 1, g: 1, b: 1,
   }));
   for (let i = 0; i < TRAIL_N; i++) trailPos[i * 3 + 1] = -50;
   let stamp = 0;
-  let scorchN = 0;
   let holeCell = null;
   let pinT = 0;
   const pins = [];
@@ -824,7 +841,6 @@ export function createView(canvas) {
 
   function clearFx() {
     stamp = 0;
-    scorchN = 0;
     for (const d of decals) {
       d.life = 0;
       d.group.visible = false;
@@ -844,25 +860,30 @@ export function createView(canvas) {
     slot.life = kind === "scorch" ? 3 : kind === "tire" ? 2.4 : 1.6;
     slot.max = slot.life;
     const mat = slot.mesh.material;
+    const nextMap = kind === "tire" ? treadMap : null;
+    if (mat.map !== nextMap) {
+      mat.map = nextMap;
+      mat.needsUpdate = true;
+    }
     if (kind === "tire") {
-      mat.color.setHex(0x16110e);
-      slot.base = 0.72;
-      slot.mesh.scale.set(2.7, 0.58, 1);
+      mat.color.setHex(0xffffff);
+      slot.base = 0.95;
+      slot.mesh.scale.set(2.6, 1.45, 1);
       slot.group.rotation.y = HEADING[dir] || 0;
     } else if (kind === "splat") {
       mat.color.setHex(0x2fbf3e);
       slot.base = 0.8;
-      const s = 0.9 + Math.random() * 0.45;
-      slot.mesh.scale.set(s, s * (0.8 + Math.random() * 0.35), 1);
+      const s = 1.05 + Math.random() * 0.45;
+      slot.mesh.scale.set(s, s * (0.85 + Math.random() * 0.3), 1);
       slot.group.rotation.y = Math.random() * Math.PI;
     } else {
       mat.color.setHex(0x1a0c08);
-      slot.base = 0.75;
-      slot.mesh.scale.set(1.55, 0.9, 1);
+      slot.base = 0.8;
+      slot.mesh.scale.set(2.15, 1.7, 1);
       slot.group.rotation.y = HEADING[dir] || 0;
     }
     mat.opacity = slot.base;
-    slot.group.position.set(x, BOARD_TOP + 0.036, z);
+    slot.group.position.set(x, BOARD_TOP + 0.05, z);
     slot.group.visible = true;
   }
 
@@ -871,9 +892,9 @@ export function createView(canvas) {
     for (const p of trails) if (p.life < slot.life) slot = p;
     slot.x = x + (Math.random() - 0.5) * 0.1;
     slot.z = z + (Math.random() - 0.5) * 0.1;
-    slot.y = kind === "flame" ? BALL_Y - 0.02 : BOARD_TOP + 0.22;
-    slot.vy = kind === "flame" ? 0.7 + Math.random() * 0.45 : 0.2;
-    slot.life = kind === "flame" ? 0.48 : 0.6;
+    slot.y = kind === "flame" ? BOARD_TOP + 0.28 : BOARD_TOP + 0.24;
+    slot.vy = kind === "flame" ? 0.85 + Math.random() * 0.35 : 0.18;
+    slot.life = kind === "flame" ? 0.7 : 0.65;
     slot.max = slot.life;
     if (kind === "flame") {
       slot.r = 1;
@@ -889,20 +910,31 @@ export function createView(canvas) {
   function dropTrail(x, z, dir, traveled) {
     const kind = equipped.trail;
     if (!kind || traveled <= 0) return;
-    stamp += traveled;
-    const gap = kind === "tire" ? 0.34 : kind === "splat" ? 0.3 : 0.18;
-    if (stamp < gap) return;
-    stamp -= gap;
-    const back = kind === "tire" ? 0.22 : 0.12;
-    const ox = dir === "right" ? -back : dir === "left" ? back : 0;
-    const oz = dir === "down" ? -back : dir === "up" ? back : 0;
-    if (kind === "tire") spawnDecal(x + ox, z + oz, dir, "tire");
-    else if (kind === "splat") spawnDecal(x + ox, z + oz, dir, "splat");
-    else if (kind === "sparkle") spawnPoint(x + ox, z + oz, "sparkle");
+    const gap = kind === "tire" ? 0.22 : kind === "splat" ? 0.24 : 0.18;
+    const dx = dir === "right" ? traveled : dir === "left" ? -traveled : 0;
+    const dz = dir === "down" ? traveled : dir === "up" ? -traveled : 0;
+    const x0 = x - dx;
+    const z0 = z - dz;
+    let cursor = gap - stamp;
+    if (cursor > traveled) {
+      stamp += traveled;
+      return;
+    }
+    while (cursor <= traveled + 1e-4) {
+      const t = Math.min(1, cursor / traveled);
+      layMark(kind, x0 + dx * t, z0 + dz * t, dir);
+      cursor += gap;
+    }
+    stamp = Math.max(0, traveled - (cursor - gap));
+  }
+
+  function layMark(kind, x, z, dir) {
+    if (kind === "tire") spawnDecal(x, z, dir, "tire");
+    else if (kind === "splat") spawnDecal(x, z, dir, "splat");
+    else if (kind === "sparkle") spawnPoint(x, z, "sparkle");
     else if (kind === "flame") {
-      spawnPoint(x + ox, z + oz, "flame");
-      scorchN += 1;
-      if (scorchN % 2 === 0) spawnDecal(x + ox, z + oz, dir, "scorch");
+      spawnPoint(x, z, "flame");
+      spawnDecal(x, z, dir, "scorch");
     }
   }
 
@@ -959,6 +991,7 @@ export function createView(canvas) {
     for (const [x, z] of spots) {
       const pin = new THREE.Group();
       pin.position.set(x, BOARD_TOP, z);
+      pin.scale.setScalar(1.35);
       const body = new THREE.Mesh(pinBodyGeo, pinWhite);
       body.position.y = 0.16;
       const neck = new THREE.Mesh(pinNeckGeo, pinRed);
@@ -1916,7 +1949,7 @@ export function createView(canvas) {
       if (rollJob) stepRoll(rollJob, dt);
       if (rollJob && !sinkJob && equipped.motion === "bounce") {
         const hop = Math.abs(Math.sin(rollJob.t * Math.PI * 6));
-        ballRoot.position.y = BALL_Y + hop * 0.22;
+        ballRoot.position.y = BALL_Y + hop * 0.32;
       }
       if (rollJob && !sinkJob && equipped.motion === "wobble") {
         const w = Math.sin(time * 22);
