@@ -494,6 +494,8 @@ body {
 }
 
 .arcade-btn.is-hint .arcade-face {
+  outline: 4px solid #ffe14a;
+  outline-offset: 4px;
   animation: hint-glow 0.75s ease-in-out infinite;
 }
 

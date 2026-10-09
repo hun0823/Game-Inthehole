@@ -761,7 +761,7 @@ const colored = [];
       return;
     }
     const p = cellXZ(row, col);
-    const rot = { up: Math.PI, down: 0, left: Math.PI / 2, right: -Math.PI / 2 };
+    const rot = { up: Math.PI, down: 0, left: -Math.PI / 2, right: Math.PI / 2 };
     hintGroup.rotation.y = rot[action] || 0;
     hintBaseY = 1.32;
     hintGroup.position.set(p.x, hintBaseY, p.z);
