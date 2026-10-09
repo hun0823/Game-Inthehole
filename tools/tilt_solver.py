@@ -84,6 +84,29 @@ def prepare(level):
                     table[r * n + c] = ("h", nr, c)
         leave.append(table)
 
+    def cells(key):
+        return [(e["row"], e["col"]) for e in level.get(key) or []]
+
+    ice = set(cells("ice"))
+    sand = set(cells("sand"))
+    collapse = cells("collapse")
+    one_ways = {}
+    for edge in level.get("oneWay") or []:
+        one_ways[(edge["axis"], edge["row"], edge["col"])] = edge["dir"]
+    teleport = {}
+    for pair in level.get("teleports") or []:
+        a = (pair["a"]["row"], pair["a"]["col"])
+        b = (pair["b"]["row"], pair["b"]["col"])
+        teleport[a] = b
+        teleport[b] = a
+    shifters = []
+    for shifter in level.get("shifters") or []:
+        home = shifter["home"]
+        alt = shifter["alt"]
+        shifters.append((
+            (home["axis"], home["row"], home["col"]),
+            (alt["axis"], alt["row"], alt["col"]),
+        ))
     return {
         "n": n,
         "h_mask": h_mask,
@@ -96,6 +119,13 @@ def prepare(level):
         "ball": (level["ball"]["row"], level["ball"]["col"]),
         "hole": (level["hole"]["row"], level["hole"]["col"]),
         "gcount": len(glass),
+        "ice": ice,
+        "sand": sand,
+        "collapse_index": {cell: 1 << i for i, cell in enumerate(collapse)},
+        "one_ways": one_ways,
+        "teleport": teleport,
+        "shifters": shifters,
+        "special": bool(ice or sand or collapse or one_ways or teleport or shifters),
     }
 
 
@@ -126,20 +156,82 @@ def _activate(board, r, c, act, allow_mask):
     return act
 
 
-def tilt(board, r, c, dir_i, gstate, act, allow_mask):
-    """One tilt. Returns (nr, nc, gstate, act, spent, won)."""
+def _shifter_blocks(board, edge, phase):
+    if edge is None:
+        return False
+    for home, alt in board["shifters"]:
+        if (alt if phase & 1 else home) == edge:
+            return True
+    return False
+
+
+def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0):
+    """One tilt.
+
+    Returns (nr, nc, gstate, act, spent, won, collapse, phase, path).
+    `spent` is true when the ball moved or glass took a hit. A button that
+    opens only because the ball is carried onto it is included in `act`;
+    opening a button without moving does not spend the tilt (press does that).
+
+    Ice, sand, teleports, one-ways, crumbling floors, and shifting walls match
+    the comments on slide() in js/game.js. Boards without those use the
+    original slide-until-blocked rule.
+    """
     n = board["n"]
     hole = board["hole"]
-    dr, dc = DIRS[dir_i][1], DIRS[dir_i][2]
+    name, dr, dc = DIRS[dir_i]
     table = board["leave"][dir_i]
     new_act = _activate(board, r, c, act, allow_mask)
+    path = [(r, c)]
     moved = False
-    while True:
+
+    def done(won):
+        next_phase = phase ^ 1 if board["shifters"] and moved else phase
+        return r, c, gstate, new_act, moved, won, collapse, next_phase, path
+
+    if not board["special"]:
+        while True:
+            edge = table[r * n + c]
+            if _wall_at(board, edge):
+                break
+            bit = board["colored"].get(edge) if edge is not None else None
+            if bit and not (new_act & bit):
+                break
+            if edge is not None:
+                gi = board["glass_index"].get(edge)
+                if gi is not None:
+                    st = _glass_digit(gstate, gi)
+                    if st == 0:
+                        gstate = _set_digit(gstate, gi, 1)
+                        moved = True
+                        break
+                    if st == 1:
+                        gstate = _set_digit(gstate, gi, 2)
+            r += dr
+            c += dc
+            path.append((r, c))
+            moved = True
+            new_act = _activate(board, r, c, new_act, allow_mask)
+            if (r, c) == hole:
+                return done(True)
+        return done(False)
+
+    ice_run = (r, c) in board["ice"]
+    limit = n * n * 6
+    for _ in range(limit):
         edge = table[r * n + c]
         if _wall_at(board, edge):
             break
         bit = board["colored"].get(edge) if edge is not None else None
         if bit and not (new_act & bit):
+            break
+        if edge is not None and board["one_ways"].get(edge) not in (None, name):
+            break
+        if _shifter_blocks(board, edge, phase):
+            break
+        nr, nc = r + dr, c + dc
+        cell_bit = board["collapse_index"].get((nr, nc))
+        if cell_bit and collapse & cell_bit:
             break
         if edge is not None:
             gi = board["glass_index"].get(edge)
@@ -148,17 +240,42 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask):
                 if st == 0:
                     gstate = _set_digit(gstate, gi, 1)
                     moved = True
-                    break
-                if st == 1:
+                    if (r, c) not in board["ice"]:
+                        break
+                elif st == 1:
                     gstate = _set_digit(gstate, gi, 2)
-        r += dr
-        c += dc
+        hop = board["teleport"].get((nr, nc))
+        dest_r, dest_c = nr, nc
+        via = None
+        if hop:
+            exit_bit = board["collapse_index"].get(hop)
+            if exit_bit and collapse & exit_bit:
+                break
+            via = (nr, nc)
+            dest_r, dest_c = hop
+        prev_bit = board["collapse_index"].get((r, c))
+        if prev_bit:
+            collapse |= prev_bit
         moved = True
+        if via:
+            path.append(via)
+        r, c = dest_r, dest_c
+        path.append((r, c))
         new_act = _activate(board, r, c, new_act, allow_mask)
         if (r, c) == hole:
-            return r, c, gstate, new_act, True, True
-    spent = moved or new_act != act
-    return r, c, gstate, new_act, spent, False
+            return done(True)
+        if (r, c) in board["sand"]:
+            break
+        now_ice = (r, c) in board["ice"]
+        if ice_run and not now_ice:
+            break
+        if now_ice:
+            ice_run = True
+    if moved:
+        rest_bit = board["collapse_index"].get((r, c))
+        if rest_bit:
+            collapse |= rest_bit
+    return done(False)
 
 
 def solve(level, max_moves=40, allow_mask=None):
@@ -179,7 +296,7 @@ def _solve_board(board, max_moves, allow_mask):
     hole_r, hole_c = board["hole"]
     if (br, bc) == (hole_r, hole_c):
         return ()
-    start = (br * n + bc, 0, 0)
+    start = (br * n + bc, 0, 0, 0, 0)
     parent = {start: (None, None)}
     q = deque([(start, 0)])
     buttons = board["buttons"]
@@ -187,21 +304,22 @@ def _solve_board(board, max_moves, allow_mask):
         state, depth = q.popleft()
         if depth >= max_moves:
             continue
-        pos, gstate, act = state
+        pos, gstate, act, collapse, phase = state
         r, c = divmod(pos, n)
         if buttons and allow_mask:
             for brr, bcc, bit in buttons:
                 if r == brr and c == bcc and (bit & allow_mask) and not (act & bit):
-                    nxt = (pos, gstate, act | bit)
+                    nxt = (pos, gstate, act | bit, collapse, phase)
                     if nxt not in parent:
                         parent[nxt] = (state, "press")
                         q.append((nxt, depth + 1))
         for dir_i, (name, _dr, _dc) in enumerate(DIRS):
-            nr, nc, ng, na, spent, won = tilt(board, r, c, dir_i, gstate, act, allow_mask)
-            if not spent:
+            nr, nc, ng, na, moved, won, ncoll, nphase, _path = tilt(
+                board, r, c, dir_i, gstate, act, allow_mask, collapse, phase
+            )
+            if not moved:
                 continue
             if won:
-                # reconstruct including this tilt
                 moves = [name]
                 cur = state
                 while parent[cur][0] is not None:
@@ -211,7 +329,7 @@ def _solve_board(board, max_moves, allow_mask):
                     cur = prev
                 moves.reverse()
                 return tuple(moves)
-            nxt = (nr * n + nc, ng, na)
+            nxt = (nr * n + nc, ng, na, ncoll, nphase)
             if nxt not in parent:
                 parent[nxt] = (state, name)
                 q.append((nxt, depth + 1))
@@ -233,6 +351,8 @@ def play(level, moves, allow_mask=None):
     r, c = board["ball"]
     gstate = 0
     act = 0
+    collapse = 0
+    phase = 0
     broken = set()
     won = (r, c) == board["hole"] and not moves
     for action in moves:
@@ -243,7 +363,9 @@ def play(level, moves, allow_mask=None):
             act = _activate(board, r, c, act, allow_mask)
             continue
         dir_i = next(i for i, (name, _, _) in enumerate(DIRS) if name == action)
-        r, c, gstate, act, _spent, won = tilt(board, r, c, dir_i, gstate, act, allow_mask)
+        r, c, gstate, act, _moved, won, collapse, phase, _path = tilt(
+            board, r, c, dir_i, gstate, act, allow_mask, collapse, phase
+        )
         for i in range(board["gcount"]):
             if _glass_digit(before, i) != 2 and _glass_digit(gstate, i) == 2:
                 broken.add(i)
@@ -257,10 +379,10 @@ def glass_broken_on(level, moves):
         return 0
     r, c = board["ball"]
     gstate = 0
-    act = (1 << len(COLOR_IDS)) - 1
-    # follow moves with buttons allowed
-    allow = act
     act = 0
+    allow = (1 << len(COLOR_IDS)) - 1
+    collapse = 0
+    phase = 0
     broken = set()
     for action in moves:
         if action == "press":
@@ -268,7 +390,9 @@ def glass_broken_on(level, moves):
             continue
         dir_i = next(i for i, (name, _, _) in enumerate(DIRS) if name == action)
         before = gstate
-        r, c, gstate, act, spent, won = tilt(board, r, c, dir_i, gstate, act, allow)
+        r, c, gstate, act, _moved, won, collapse, phase, _path = tilt(
+            board, r, c, dir_i, gstate, act, allow, collapse, phase
+        )
         for i in range(board["gcount"]):
             if _glass_digit(before, i) != 2 and _glass_digit(gstate, i) == 2:
                 broken.add(i)
@@ -284,38 +408,27 @@ def edges_crossed(level, moves):
     gstate = 0
     act = 0
     allow = (1 << len(COLOR_IDS)) - 1
+    collapse = 0
+    phase = 0
     crossed = []
-    n = board["n"]
     for action in moves:
         if action == "press":
             act = _activate(board, r, c, act, allow)
             continue
         dir_i = next(i for i, (name, _, _) in enumerate(DIRS) if name == action)
-        dr, dc = DIRS[dir_i][1], DIRS[dir_i][2]
-        table = board["leave"][dir_i]
-        new_act = _activate(board, r, c, act, allow)
-        while True:
-            edge = table[r * n + c]
-            if _wall_at(board, edge):
-                break
-            bit = board["colored"].get(edge) if edge is not None else None
-            if bit and not (new_act & bit):
-                break
-            if edge is not None:
-                gi = board["glass_index"].get(edge)
-                if gi is not None:
-                    st = _glass_digit(gstate, gi)
-                    if st == 0:
-                        gstate = _set_digit(gstate, gi, 1)
-                        break
-                    if st == 1:
-                        gstate = _set_digit(gstate, gi, 2)
-            crossed.append(edge)
-            r += dr
-            c += dc
-            new_act = _activate(board, r, c, new_act, allow)
-            if (r, c) == board["hole"]:
-                act = new_act
-                return crossed
-        act = new_act
+        _nr, _nc, gstate, act, _moved, won, collapse, phase, path = tilt(
+            board, r, c, dir_i, gstate, act, allow, collapse, phase
+        )
+        for i in range(1, len(path)):
+            a = path[i - 1]
+            b = path[i]
+            if abs(a[0] - b[0]) + abs(a[1] - b[1]) != 1:
+                continue
+            if a[0] != b[0]:
+                crossed.append(("h", min(a[0], b[0]), a[1]))
+            else:
+                crossed.append(("v", a[0], min(a[1], b[1])))
+        r, c = path[-1]
+        if won:
+            break
     return crossed

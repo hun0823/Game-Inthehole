@@ -8,6 +8,7 @@ adjacent cells. par is the BFS tilt count from tools/tilt_solver.py (js/game.js)
 import json
 import random
 import sys
+import time
 from pathlib import Path
 
 from tilt_solver import edges_crossed, play, solve
@@ -16,75 +17,78 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "shared/levels.json"
 
 # id, size, par, kind, glass_n, colors
-# kind: wall | glass | gate
+# kind: wall | glass | mixed
+# Boards start at 3×3. Pars sit above the previous curve.
+# 41–50 are mixed: glass panes and colored gates on the same board.
 SPEC = [
-    (1, 2, 2, "wall", 0, []),
-    (2, 3, 3, "wall", 0, []),
-    (3, 3, 3, "wall", 0, []),
-    (4, 3, 4, "wall", 0, []),
-    (5, 3, 4, "wall", 0, []),
-    (6, 3, 5, "wall", 0, []),
-    (7, 4, 5, "wall", 0, []),
-    (8, 4, 5, "wall", 0, []),
-    (9, 4, 6, "wall", 0, []),
-    (10, 4, 6, "wall", 0, []),
-    (11, 4, 6, "wall", 0, []),
-    (12, 4, 7, "wall", 0, []),
-    (13, 4, 7, "wall", 0, []),
-    (14, 4, 7, "wall", 0, []),
-    (15, 4, 7, "wall", 0, []),
-    (16, 4, 8, "wall", 0, []),
-    (17, 4, 8, "wall", 0, []),
-    (18, 4, 8, "wall", 0, []),
-    (19, 4, 8, "wall", 0, []),
-    (20, 5, 8, "wall", 0, []),
-    (21, 5, 9, "wall", 0, []),
-    (22, 5, 9, "wall", 0, []),
-    (23, 5, 10, "wall", 0, []),
-    (24, 5, 10, "wall", 0, []),
-    (25, 6, 10, "wall", 0, []),
-    (26, 6, 11, "wall", 0, []),
-    (27, 6, 11, "wall", 0, []),
-    (28, 6, 12, "wall", 0, []),
-    (29, 6, 12, "wall", 0, []),
-    (30, 6, 12, "wall", 0, []),
-    (31, 6, 11, "glass", 1, []),
-    (32, 6, 12, "glass", 1, []),
-    (33, 6, 12, "glass", 2, []),
-    (34, 6, 13, "glass", 2, []),
-    (35, 6, 13, "glass", 2, []),
-    (36, 6, 14, "glass", 2, []),
-    (37, 7, 13, "glass", 2, []),
-    (38, 7, 14, "glass", 2, []),
-    (39, 7, 15, "glass", 3, []),
-    (40, 7, 15, "glass", 3, []),
-    (41, 6, 14, "gate", 0, ["red"]),
-    (42, 6, 14, "gate", 0, ["red"]),
-    (43, 6, 15, "gate", 0, ["red"]),
-    (44, 6, 15, "gate", 0, ["red"]),
-    (45, 6, 16, "gate", 0, ["red"]),
-    (46, 6, 16, "gate", 0, ["red"]),
-    (47, 7, 16, "gate", 0, ["red"]),
-    (48, 7, 17, "gate", 0, ["red", "blue"]),
-    (49, 7, 18, "gate", 0, ["red", "blue"]),
-    (50, 7, 18, "gate", 0, ["red", "blue"]),
+    (1, 3, 4, "wall", 0, []),
+    (2, 3, 4, "wall", 0, []),
+    (3, 3, 5, "wall", 0, []),
+    (4, 3, 5, "wall", 0, []),
+    (5, 3, 6, "wall", 0, []),
+    (6, 3, 6, "wall", 0, []),
+    (7, 4, 7, "wall", 0, []),
+    (8, 4, 7, "wall", 0, []),
+    (9, 4, 8, "wall", 0, []),
+    (10, 4, 8, "wall", 0, []),
+    (11, 4, 8, "wall", 0, []),
+    (12, 4, 9, "wall", 0, []),
+    (13, 4, 9, "wall", 0, []),
+    (14, 4, 9, "wall", 0, []),
+    (15, 4, 10, "wall", 0, []),
+    (16, 4, 10, "wall", 0, []),
+    (17, 4, 10, "wall", 0, []),
+    (18, 4, 11, "wall", 0, []),
+    (19, 5, 11, "wall", 0, []),
+    (20, 5, 11, "wall", 0, []),
+    (21, 5, 12, "wall", 0, []),
+    (22, 5, 12, "wall", 0, []),
+    (23, 5, 13, "wall", 0, []),
+    (24, 5, 13, "wall", 0, []),
+    (25, 6, 13, "wall", 0, []),
+    (26, 6, 14, "wall", 0, []),
+    (27, 6, 14, "wall", 0, []),
+    (28, 6, 15, "wall", 0, []),
+    (29, 6, 15, "wall", 0, []),
+    (30, 6, 16, "wall", 0, []),
+    (31, 6, 15, "glass", 1, []),
+    (32, 6, 15, "glass", 1, []),
+    (33, 6, 16, "glass", 2, []),
+    (34, 6, 16, "glass", 2, []),
+    (35, 6, 17, "glass", 2, []),
+    (36, 6, 17, "glass", 3, []),
+    (37, 7, 17, "glass", 2, []),
+    (38, 7, 18, "glass", 2, []),
+    (39, 7, 18, "glass", 3, []),
+    (40, 7, 19, "glass", 3, []),
+    (41, 6, 18, "mixed", 1, ["red"]),
+    (42, 6, 19, "mixed", 1, ["red"]),
+    (43, 6, 19, "mixed", 2, ["red"]),
+    (44, 6, 20, "mixed", 2, ["red"]),
+    (45, 7, 19, "mixed", 1, ["red"]),
+    (46, 7, 20, "mixed", 2, ["red"]),
+    (47, 7, 20, "mixed", 2, ["red"]),
+    (48, 7, 20, "mixed", 1, ["red", "blue"]),
+    (49, 7, 21, "mixed", 1, ["red", "blue"]),
+    (50, 7, 21, "mixed", 2, ["red", "blue"]),
 ]
 
 NAMES = {
-    1: "First tilt", 2: "One corner", 3: "Side step", 4: "Zigzag", 5: "Switchback",
-    6: "Three turns", 7: "Wider board", 8: "Long slide", 9: "Elbow", 10: "Double bend",
-    11: "Detour", 12: "Pocket", 13: "S curve", 14: "Loop", 15: "Far hole",
-    16: "Tight lane", 17: "Two elbows", 18: "Maze", 19: "Last four", 20: "Five debut",
-    21: "Cross", 22: "Long way", 23: "Center", 24: "Five clear", 25: "Six debut",
+    1: "Corner", 2: "Side step", 3: "Switchback", 4: "Three turns", 5: "Pocket",
+    6: "Zigzag", 7: "Elbow", 8: "Long slide", 9: "Wider board", 10: "Double bend",
+    11: "Detour", 12: "S curve", 13: "Loop", 14: "Far hole", 15: "Tight lane",
+    16: "Two elbows", 17: "Maze", 18: "Last lane", 19: "Five debut", 20: "Cross",
+    21: "Long way", 22: "Center", 23: "Five clear", 24: "Deep five", 25: "Six debut",
     26: "Wide detour", 27: "Islands", 28: "Far corner", 29: "Six maze", 30: "Wall master",
     31: "First glass", 32: "Crack it", 33: "Two panes", 34: "Glass bend", 35: "Brittle lane",
     36: "Glass six", 37: "Seven glass", 38: "Thin pane", 39: "Three cracks", 40: "Glass master",
-    41: "Red gate", 42: "Press first", 43: "The button", 44: "Around", 45: "Locked lane",
-    46: "Switch six", 47: "Seven gate", 48: "Two colors", 49: "Blue after red", 50: "Gate master",
+    41: "Glass gate", 42: "Crack and press", 43: "Red and glass", 44: "Two panes shut",
+    45: "Locked glass", 46: "Seven mix", 47: "Shatter switch", 48: "Two colors",
+    49: "Blue after red", 50: "Gate master",
 }
 
-MIN_EDGES = {2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6}
-MAX_EDGES = {2: 3, 3: 8, 4: 14, 5: 20, 6: 26, 7: 32}
+MIN_EDGES = {3: 2, 4: 4, 5: 5, 6: 6, 7: 7}
+MAX_EDGES = {3: 8, 4: 16, 5: 22, 6: 28, 7: 34}
 
 
 def edge_objs(pairs):
@@ -369,7 +373,8 @@ def glass_ok(level, target, glass_n):
 
 def search_walls(sid, n, target, rng, strict, used):
     motifs = 1 if n <= 3 else 2 if n <= 5 else 3
-    for _ in range(900 if n <= 5 else 1400):
+    attempts = 700 if n <= 4 else 1100 if n <= 5 else 1600
+    for _ in range(attempts):
         ball, hole = far_pairs(n, rng)[0]
         H, V = set(), set()
         if rng.random() < 0.85:
@@ -538,6 +543,82 @@ def search_gate(sid, n, target, colors, rng, strict, used):
     return None
 
 
+def mixed_ok(level, target, glass_n, colors):
+    moves = solve(level, max_moves=target)
+    if not moves or len(moves) != target:
+        return False
+    won, broken = play(level, moves)
+    if not won or broken < glass_n:
+        return False
+    bare = dict(level)
+    bare["glassH"] = []
+    bare["glassV"] = []
+    base = solve(bare, max_moves=target)
+    if base is None or len(base) >= target:
+        return False
+    return gates_required(level, colors)
+
+
+def search_mixed(sid, n, target, glass_n, colors, rng, strict, used):
+    """A colored-gate puzzle whose optimal path also has to break glass."""
+    from itertools import combinations
+
+    gate_targets = [target - glass_n]
+    if target - glass_n - 1 >= 6:
+        gate_targets.append(target - glass_n - 1)
+    for gate_tgt in gate_targets:
+        tries = 240 if n <= 6 else 320
+        for _ in range(tries):
+            built = fence_layout(n, colors, rng)
+            if not built:
+                continue
+            _orient, colored, locked, buttons, ball, hole = built
+            H = {(r, c) for axis, r, c in locked if axis == "h"}
+            V = {(r, c) for axis, r, c in locked if axis == "v"}
+            forbid = {(axis, r, c) for axis, r, c, _col in colored}
+            seed_motifs(n, rng, H, V, forbid | set(locked), 2)
+            found = climb(
+                n, ball, hole, gate_tgt, rng, H, V, locked, forbid,
+                colored=colored, buttons=buttons, strict=strict,
+            )
+            if not found:
+                continue
+            H, V, base_moves = found
+            gate_lv = make_level(
+                sid, n, NAMES[sid], gate_tgt, ball, hole, H, V,
+                colored=colored, buttons=buttons,
+            )
+            if not gates_required(gate_lv, colors):
+                continue
+            crossed = []
+            seen_e = set()
+            for edge in edges_crossed(gate_lv, base_moves):
+                if edge and edge not in seen_e and edge not in forbid:
+                    seen_e.add(edge)
+                    crossed.append(edge)
+            if len(crossed) < glass_n:
+                continue
+            rng.shuffle(crossed)
+            combos = list(combinations(crossed[:12], glass_n))
+            rng.shuffle(combos)
+            for combo in combos[:36]:
+                lv = make_level(
+                    sid, n, NAMES[sid], target, ball, hole, H, V,
+                    glass=combo, colored=colored, buttons=buttons,
+                )
+                if not mixed_ok(lv, target, glass_n, colors):
+                    continue
+                fp = (
+                    n, ball, hole, tuple(sorted(H)), tuple(sorted(V)),
+                    tuple(sorted(combo)), tuple(sorted(forbid)), tuple(sorted(buttons)),
+                )
+                if fp in used:
+                    continue
+                used.add(fp)
+                return lv
+    return None
+
+
 def build_one(spec, rng, used):
     sid, n, target, kind, glass_n, colors = spec
     if kind == "wall":
@@ -550,6 +631,11 @@ def build_one(spec, rng, used):
         if lv is None:
             lv = search_glass(sid, n, target, glass_n, rng, False, used)
         return lv
+    if kind == "mixed":
+        lv = search_mixed(sid, n, target, glass_n, colors, rng, True, used)
+        if lv is None:
+            lv = search_mixed(sid, n, target, glass_n, colors, rng, False, used)
+        return lv
     lv = search_gate(sid, n, target, colors, rng, True, used)
     if lv is None:
         lv = search_gate(sid, n, target, colors, rng, False, used)
@@ -561,9 +647,10 @@ def main():
     used = set()
     levels = []
     for spec in SPEC:
+        started = time.time()
         lv = build_one(spec, rng, used)
         if lv is None:
-            print(f"FAILED stage {spec[0]}", file=sys.stderr)
+            print(f"FAILED stage {spec[0]} after {time.time() - started:.1f}s", file=sys.stderr)
             sys.exit(1)
         # par is what the solver measured; keep the authored target only if it matched
         moves = solve(lv, max_moves=lv["par"])
@@ -575,10 +662,10 @@ def main():
         print(
             f"  {lv['id']:2}  {lv['size']}×{lv['size']}  par={lv['par']:2}  "
             f"walls={len(lv['hWalls'])+len(lv['vWalls']):2}  glass={glass}  "
-            f"btn={len(lv.get('buttons') or [])}  {lv['name']}",
+            f"btn={len(lv.get('buttons') or [])}  {lv['name']}  {time.time() - started:.1f}s",
             flush=True,
         )
-    data = {"version": 8, "levelCount": 50, "wallModel": "edges", "levels": levels}
+    data = {"version": 9, "levelCount": 50, "wallModel": "edges", "levels": levels}
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {OUT}")
 
