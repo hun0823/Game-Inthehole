@@ -714,6 +714,229 @@ body {
   }
 }
 
+.how-badge {
+  position: absolute;
+  z-index: 6;
+  left: 40px;
+  top: 64px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 2px 8px 1px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(180deg, #fff3a0 0%, #ffb423 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.7),
+    0 3px 0 #9a3d08;
+  -webkit-text-stroke: 3px #6a3010;
+  paint-order: stroke fill;
+}
+
+.how-badge[hidden] {
+  display: none;
+}
+
+.lesson {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 45%, rgba(18, 8, 40, 0.18), rgba(6, 8, 24, 0.62));
+}
+
+.lesson[hidden] {
+  display: none;
+}
+
+.lesson-card p {
+  margin-bottom: 0.55rem;
+  line-height: 1.25;
+}
+
+.lesson-replay {
+  margin-top: 0;
+  font-size: 0.92rem;
+  color: #6a3010;
+}
+
+.lesson-art {
+  position: relative;
+  height: 128px;
+  margin: 0.15rem 0 0.75rem;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 3px solid var(--ink);
+  background:
+    linear-gradient(90deg, rgba(120, 78, 40, 0.18) 1px, transparent 1px) 0 0 / 22px 100%,
+    linear-gradient(#e6c48a, #c9955a);
+  box-shadow: inset 0 0 0 7px #8d5a30;
+}
+
+.toy-ball {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  margin-left: -13px;
+  margin-top: -13px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 32%, #f3d7a4, #d7a15a 42%, #a86a32 78%);
+  box-shadow: inset -4px -5px 0 rgba(90, 48, 16, 0.28), 0 3px 0 rgba(0, 0, 0, 0.25);
+  z-index: 3;
+}
+
+.toy-pane {
+  position: absolute;
+  top: 22px;
+  bottom: 22px;
+  left: 46%;
+  width: 14px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgba(220, 250, 255, 0.95), rgba(120, 210, 230, 0.72));
+  border: 2px solid #1a4a58;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  z-index: 2;
+}
+
+.toy-crack {
+  position: absolute;
+  inset: 4px 2px;
+  opacity: 0;
+  background:
+    linear-gradient(115deg, transparent 42%, #fff 43%, #fff 48%, transparent 49%),
+    linear-gradient(68deg, transparent 46%, #e8fbff 47%, #e8fbff 52%, transparent 53%);
+}
+
+.toy-shard {
+  position: absolute;
+  width: 8px;
+  height: 10px;
+  border-radius: 2px;
+  background: rgba(210, 245, 255, 0.95);
+  border: 1px solid #1a4a58;
+  opacity: 0;
+  z-index: 4;
+}
+
+.toy-wall,
+.toy-switch {
+  position: absolute;
+  z-index: 2;
+  border: 2px solid #6a1020;
+  background: repeating-linear-gradient(
+    -32deg,
+    #ff4d5a 0 6px,
+    #fff6e4 6px 10px
+  );
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.toy-wall {
+  width: 18px;
+  height: 78px;
+  left: 58%;
+  top: 24px;
+  border-radius: 6px;
+  transform-origin: center bottom;
+}
+
+.toy-switch {
+  width: 28px;
+  height: 16px;
+  left: 50%;
+  margin-left: -14px;
+  bottom: 18px;
+  border-radius: 8px;
+}
+
+.toy-glass .toy-ball {
+  top: 50%;
+  animation: toy-glass-ball 4.2s ease-in-out infinite;
+}
+
+.toy-glass .toy-pane {
+  animation: toy-glass-pane 4.2s ease-in-out infinite;
+}
+
+.toy-glass .toy-crack {
+  animation: toy-glass-crack 4.2s ease-in-out infinite;
+}
+
+.toy-glass .toy-shard {
+  top: 46%;
+  left: 48%;
+  animation: toy-shard 4.2s ease-in-out infinite;
+}
+
+.toy-glass .toy-shard:nth-child(3) { animation-delay: 0s; }
+.toy-glass .toy-shard:nth-child(4) { --sx: 16px; --sy: -18px; }
+.toy-glass .toy-shard:nth-child(5) { --sx: -14px; --sy: 12px; }
+.toy-glass .toy-shard:nth-child(6) { --sx: 18px; --sy: 8px; }
+
+.toy-gate .toy-ball,
+.toy-mix .toy-ball {
+  left: 50%;
+  animation: toy-gate-ball 3.8s ease-in-out infinite;
+}
+
+.toy-gate .toy-wall,
+.toy-mix .toy-wall {
+  animation: toy-gate-wall 3.8s ease-in-out infinite;
+}
+
+.toy-mix .toy-pane {
+  left: 28%;
+  animation: toy-glass-pane 3.8s ease-in-out infinite;
+}
+
+.toy-mix .toy-crack {
+  animation: toy-glass-crack 3.8s ease-in-out infinite;
+}
+
+@keyframes toy-glass-ball {
+  0%, 8% { left: 22%; }
+  20%, 48% { left: 38%; }
+  64% { left: 44%; }
+  78%, 90% { left: 74%; }
+  100% { left: 22%; }
+}
+
+@keyframes toy-glass-pane {
+  0%, 62% { opacity: 1; transform: none; }
+  74%, 90% { opacity: 0; transform: scale(1.08); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes toy-glass-crack {
+  0%, 16% { opacity: 0; }
+  22%, 64% { opacity: 1; }
+  74%, 100% { opacity: 0; }
+}
+
+@keyframes toy-shard {
+  0%, 64% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  72% { opacity: 1; }
+  88% { opacity: 0; transform: translate(var(--sx, -18px), var(--sy, -20px)) rotate(40deg); }
+  100% { opacity: 0; }
+}
+
+@keyframes toy-gate-ball {
+  0%, 10% { top: 28%; }
+  32%, 78% { top: 68%; }
+  100% { top: 28%; }
+}
+
+@keyframes toy-gate-wall {
+  0%, 34% { transform: scaleY(1); opacity: 1; }
+  48%, 78% { transform: scaleY(0.06); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arcade-face,
   .overlay-card button,
@@ -740,5 +963,28 @@ body {
     animation: none;
     transform: scale(1);
     opacity: 1;
+  }
+
+  .toy-ball,
+  .toy-pane,
+  .toy-crack,
+  .toy-shard,
+  .toy-wall {
+    animation: none;
+  }
+
+  .toy-crack {
+    opacity: 1;
+  }
+
+  .toy-gate .toy-ball,
+  .toy-mix .toy-ball {
+    top: 68%;
+  }
+
+  .toy-gate .toy-wall,
+  .toy-mix .toy-wall {
+    transform: scaleY(0.06);
+    opacity: 0;
   }
 }

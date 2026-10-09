@@ -19,6 +19,7 @@
       <button type="button" id="btn-hint" class="arcade-btn arcade-btn--hint" aria-label="Hint">
         <span class="arcade-face arcade-face--round">?</span>
       </button>
+      <button type="button" id="btn-lesson" class="how-badge" hidden>How?</button>
       <div class="hud-center">
         <div class="level-row">
           <button type="button" id="btn-prev" class="chev" aria-label="Previous stage">‹</button>
@@ -65,6 +66,15 @@
 
     <main class="board-wrap">
       <canvas id="playfield" class="playfield" aria-label="Game board"></canvas>
+      <div id="lesson" class="lesson" hidden>
+        <div class="overlay-card lesson-card">
+          <h2 id="lesson-title">Glass</h2>
+          <div id="lesson-art" class="lesson-art" aria-hidden="true"></div>
+          <p id="lesson-body"></p>
+          <p class="lesson-replay">Tap How? by the question mark to see this again.</p>
+          <button id="lesson-btn" type="button">Got it</button>
+        </div>
+      </div>
       <div id="overlay" class="overlay hidden">
         <div class="overlay-card">
           <h2 id="overlay-title">Cleared!</h2>
@@ -124,7 +134,7 @@
         </span>
       </button>
     </nav>
-    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. Hints are unlimited. R resets the stage. N loads the next stage.</p>
+    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. How? replays the lesson for a new mechanic. Hints are unlimited. R resets the stage. N loads the next stage.</p>
   </div>
 
   <dialog id="stage-dialog">

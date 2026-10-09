@@ -5,6 +5,7 @@ import { createView } from "./board3d.js";
 
 const STORAGE_KEY = "inthehole_cleared";
 const STORAGE_STARS_PREFIX = "inthehole_stars_";
+const STORAGE_LESSONS = "inthehole_lessons";
 
 const skyEl = document.getElementById("sky");
 const boardWrapEl = document.querySelector(".board-wrap");
@@ -19,6 +20,12 @@ const overlayBtn = document.getElementById("overlay-btn");
 const stageDialog = document.getElementById("stage-dialog");
 const stageList = document.getElementById("stage-list");
 const hintNote = document.getElementById("hint-note");
+const lessonEl = document.getElementById("lesson");
+const lessonTitle = document.getElementById("lesson-title");
+const lessonArt = document.getElementById("lesson-art");
+const lessonBody = document.getElementById("lesson-body");
+const lessonBtn = document.getElementById("lesson-btn");
+const lessonButton = document.getElementById("btn-lesson");
 
 const view = createView(playfieldEl);
 
@@ -26,6 +33,128 @@ let stageIndex = 0;
 let game = new Game(LEVELS[0]);
 let animating = false;
 let gameOver = false;
+let lessonOpen = false;
+let lessonQueue = [];
+
+const LESSON_COPY = {
+  glass: {
+    title: "Glass",
+    body: "The first hit cracks the pane and stops the ball. Hit it again and it shatters, and the ball rolls through.",
+  },
+  gates: {
+    title: "Switches",
+    body: "Roll onto the button. The wall with the same pattern sinks open. Until you do, that wall blocks the ball.",
+  },
+  mixed: {
+    title: "Glass and switches",
+    body: "This board has both. Crack the glass on the second hit, and press the matching button, or the way stays shut.",
+  },
+};
+
+function rowHas(grid) {
+  return grid.some((row) => row.some(Boolean));
+}
+
+function hasGlass(level) {
+  return rowHas(level.hGlass) || rowHas(level.vGlass);
+}
+
+function hasGates(level) {
+  return (level.buttons || []).length > 0;
+}
+
+function lessonsOn(level) {
+  const glass = hasGlass(level);
+  const gates = hasGates(level);
+  if (glass && gates) return ["glass", "gates", "mixed"];
+  if (glass) return ["glass"];
+  if (gates) return ["gates"];
+  return [];
+}
+
+let debuts = null;
+function debutIndex() {
+  if (debuts) return debuts;
+  debuts = {};
+  LEVELS.forEach((lv, i) => {
+    if (debuts.glass == null && hasGlass(lv)) debuts.glass = i;
+    if (debuts.gates == null && hasGates(lv)) debuts.gates = i;
+    if (debuts.mixed == null && hasGlass(lv) && hasGates(lv)) debuts.mixed = i;
+  });
+  return debuts;
+}
+
+function seenLessons() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_LESSONS) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberLesson(id) {
+  const seen = seenLessons();
+  if (seen.includes(id)) return;
+  seen.push(id);
+  localStorage.setItem(STORAGE_LESSONS, JSON.stringify(seen));
+}
+
+function artHtml(id) {
+  if (id === "glass") {
+    return `<div class="toy toy-glass"><span class="toy-ball"></span><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-shard"></span><span class="toy-shard"></span><span class="toy-shard"></span><span class="toy-shard"></span></div>`;
+  }
+  if (id === "gates") {
+    return `<div class="toy toy-gate"><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`;
+  }
+  return `<div class="toy toy-mix"><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`;
+}
+
+function showLessonCard(id) {
+  const copy = LESSON_COPY[id];
+  lessonTitle.textContent = copy.title;
+  lessonBody.textContent = copy.body;
+  lessonArt.innerHTML = artHtml(id);
+  lessonEl.hidden = false;
+  lessonOpen = true;
+}
+
+function hideLesson() {
+  lessonEl.hidden = true;
+  lessonOpen = false;
+  lessonQueue = [];
+  lessonArt.innerHTML = "";
+}
+
+function playLessonQueue(ids) {
+  lessonQueue = ids.filter((id) => LESSON_COPY[id]);
+  if (!lessonQueue.length) {
+    hideLesson();
+    return;
+  }
+  showLessonCard(lessonQueue[0]);
+}
+
+function ackLesson() {
+  const id = lessonQueue[0];
+  if (id) rememberLesson(id);
+  lessonQueue.shift();
+  if (lessonQueue.length) showLessonCard(lessonQueue[0]);
+  else hideLesson();
+}
+
+function updateLessonButton() {
+  lessonButton.hidden = lessonsOn(LEVELS[stageIndex]).length === 0;
+}
+
+function maybeAutoLesson() {
+  const first = debutIndex();
+  const seen = new Set(seenLessons());
+  const ids = ["glass", "gates", "mixed"].filter((id) => first[id] === stageIndex && !seen.has(id));
+  if (ids.length) playLessonQueue(ids);
+  else hideLesson();
+  updateLessonButton();
+}
 
 function gameOverAt(par) {
   return par > 0 ? par + 3 : Number.POSITIVE_INFINITY;
@@ -222,7 +351,7 @@ function handleAfterMove(won) {
 }
 
 function showHint() {
-  if (animating || game.won || gameOver) return;
+  if (lessonOpen || animating || game.won || gameOver) return;
   clearHintUi();
   const route = game.hintRoute();
   if (!route) {
@@ -265,7 +394,7 @@ function cracksSince(before, state) {
 }
 
 async function handleButtonPress(row, col) {
-  if (animating || game.won || gameOver) return;
+  if (lessonOpen || animating || game.won || gameOver) return;
   if (game.ball[0] !== row || game.ball[1] !== col) return;
   clearHintUi();
   if (!game.pressButton()) return;
@@ -279,7 +408,7 @@ async function handleButtonPress(row, col) {
 }
 
 async function handleTilt(dir) {
-  if (animating || game.won || gameOver) return;
+  if (lessonOpen || animating || game.won || gameOver) return;
   clearHintUi();
   const glassBefore = snapshotGlass(game);
   const { path, moved, won, glassBroken } = game.simulateTilt(dir);
@@ -325,6 +454,7 @@ function loadStage(index) {
   const hash = `#${LEVELS[stageIndex].id}`;
   if (location.hash !== hash || location.search) history.replaceState(null, "", hash);
   renderBoard();
+  maybeAutoLesson();
 }
 
 function nextStage() {
@@ -333,7 +463,7 @@ function nextStage() {
 }
 
 function resetStage() {
-  if (animating) return;
+  if (lessonOpen || animating) return;
   game.reset();
   gameOver = false;
   hideOverlay();
@@ -367,13 +497,19 @@ document.querySelectorAll(".arcade-btn[data-dir]").forEach((btn) => {
 
 document.getElementById("btn-reset").addEventListener("click", () => resetStage());
 document.getElementById("btn-hint").addEventListener("click", () => showHint());
+lessonButton.addEventListener("click", () => {
+  if (lessonOpen || animating) return;
+  playLessonQueue(lessonsOn(LEVELS[stageIndex]));
+});
+lessonBtn.addEventListener("click", () => ackLesson());
 document.getElementById("btn-prev").addEventListener("click", () => {
-  if (!animating) loadStage(stageIndex - 1);
+  if (!lessonOpen && !animating) loadStage(stageIndex - 1);
 });
 document.getElementById("btn-next").addEventListener("click", () => {
-  if (!animating) loadStage(stageIndex + 1);
+  if (!lessonOpen && !animating) loadStage(stageIndex + 1);
 });
 document.getElementById("btn-select").addEventListener("click", () => {
+  if (lessonOpen) return;
   buildStageList();
   stageDialog.showModal();
 });
@@ -400,11 +536,17 @@ document.addEventListener("keydown", (e) => {
   }
   if (key === "n") {
     e.preventDefault();
-    if (!animating) nextStage();
+    if (!lessonOpen && !animating) nextStage();
     return;
   }
   if (key === "?") {
     e.preventDefault();
+    if (lessonOpen) return;
+    const lessons = lessonsOn(LEVELS[stageIndex]);
+    if (e.shiftKey && lessons.length) {
+      playLessonQueue(lessons);
+      return;
+    }
     showHint();
     return;
   }
@@ -416,7 +558,7 @@ document.addEventListener("keydown", (e) => {
 
 let pointer = null;
 playfieldEl.addEventListener("pointerdown", (e) => {
-  if (stageDialog.open || !overlay.classList.contains("hidden")) return;
+  if (lessonOpen || stageDialog.open || !overlay.classList.contains("hidden")) return;
   pointer = { x: e.clientX, y: e.clientY, id: e.pointerId };
   playfieldEl.setPointerCapture?.(e.pointerId);
 });
@@ -425,7 +567,7 @@ playfieldEl.addEventListener("pointerup", (e) => {
   const dx = e.clientX - pointer.x;
   const dy = e.clientY - pointer.y;
   pointer = null;
-  if (animating) return;
+  if (lessonOpen || animating) return;
   if (Math.hypot(dx, dy) < 28) {
     const hit = view.pick(e.clientX, e.clientY);
     if (hit) handleButtonPress(hit.row, hit.col);
@@ -450,7 +592,7 @@ document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("gesturechange", (e) => e.preventDefault());
 
 window.addEventListener("hashchange", () => {
-  if (animating) return;
+  if (lessonOpen || animating) return;
   const idx = indexFromLocation();
   if (idx !== stageIndex) loadStage(idx);
 });

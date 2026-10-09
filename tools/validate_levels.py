@@ -147,6 +147,10 @@ def validate(data):
                 errors.append(f"id {i} recorded solution does not reach the hole")
             if par != lv.get("par"):
                 errors.append(f"id {i} par {lv.get('par')} != BFS {par}")
+            if n < 3:
+                errors.append(f"id {i} board is smaller than 3×3")
+            if par < 4:
+                errors.append(f"id {i} trivial par {par}")
             if i <= 30 and (lv.get("glassH") or lv.get("glassV") or lv.get("buttons")):
                 errors.append(f"id {i} should be walls only")
             if 31 <= i <= 40:
@@ -162,8 +166,17 @@ def validate(data):
                 if bare_moves is None or len(bare_moves) >= par:
                     errors.append(f"id {i} glass does not add tilts")
             if 41 <= i <= 50:
-                if not lv.get("buttons") or lv.get("glassH") or lv.get("glassV"):
-                    errors.append(f"id {i} expected colored gates and no glass")
+                glass_n = len(lv.get("glassH") or []) + len(lv.get("glassV") or [])
+                if glass_n < 1 or not lv.get("buttons"):
+                    errors.append(f"id {i} expected glass and colored gates together")
+                if broken < 1:
+                    errors.append(f"id {i} optimal path never breaks glass")
+                bare = dict(lv)
+                bare["glassH"] = []
+                bare["glassV"] = []
+                bare_moves = solve(bare, max_moves=40)
+                if bare_moves is None or len(bare_moves) >= par:
+                    errors.append(f"id {i} glass does not add tilts")
                 if not button_required(lv, max_moves=40):
                     errors.append(f"id {i} solvable without its button")
                 full = (1 << len(COLOR_IDS)) - 1
@@ -171,8 +184,6 @@ def validate(data):
                 for bit in bits:
                     if solve(lv, max_moves=40, allow_mask=full ^ bit) is not None:
                         errors.append(f"id {i} color bit {bit} is not required")
-            if i > 1 and par < 3:
-                errors.append(f"id {i} trivial par {par}")
             if prev_par and par + 2 < prev_par:
                 errors.append(f"id {i} par {par} drops more than 1 from {prev_par}")
             prev_par = par
