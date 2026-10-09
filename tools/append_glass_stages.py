@@ -216,6 +216,7 @@ def make_level(level_id, used_layouts, used_solutions):
 
 
 def main():
+    raise SystemExit("Retired pillar generator. Run tools/generate_edge_levels.py")
     root = Path(__file__).resolve().parents[1]
     src = root / "shared/levels.json"
     data = json.loads(src.read_text(encoding="utf-8"))

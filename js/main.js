@@ -18,6 +18,7 @@ const overlayMsg = document.getElementById("overlay-msg");
 const overlayBtn = document.getElementById("overlay-btn");
 const stageDialog = document.getElementById("stage-dialog");
 const stageList = document.getElementById("stage-list");
+const hintNote = document.getElementById("hint-note");
 
 const view = createView(playfieldEl);
 
@@ -108,7 +109,15 @@ function updateHud() {
   movesLabel.innerHTML = `<span class="move-num">${ratio}</span> · <span class="stars">${stars}</span>`;
 }
 
+function clearHintUi() {
+  view.clearHint();
+  document.querySelectorAll(".is-hint").forEach((el) => el.classList.remove("is-hint"));
+  hintNote.hidden = true;
+  hintNote.textContent = "";
+}
+
 function renderBoard() {
+  clearHintUi();
   view.resize();
   view.setStage(LEVELS[stageIndex], game);
   updateHud();
@@ -191,9 +200,31 @@ function handleAfterMove(won) {
   showWin(stars);
 }
 
+function showHint() {
+  if (animating || game.won || gameOver) return;
+  clearHintUi();
+  const move = game.nextMove();
+  if (!move) {
+    document.getElementById("btn-reset").classList.add("is-hint");
+    hintNote.hidden = false;
+    hintNote.textContent = "No path — Retry";
+    return;
+  }
+  if (move === "press") {
+    view.showHint("press", game.ball[0], game.ball[1]);
+    hintNote.hidden = false;
+    hintNote.textContent = "Press the switch";
+    return;
+  }
+  view.showHint(move, game.ball[0], game.ball[1]);
+  const btn = document.querySelector(`.arcade-btn[data-dir="${move}"]`);
+  if (btn) btn.classList.add("is-hint");
+}
+
 async function handleButtonPress(row, col) {
   if (animating || game.won || gameOver) return;
   if (game.ball[0] !== row || game.ball[1] !== col) return;
+  clearHintUi();
   if (!game.pressButton()) return;
   animating = true;
   view.dipButton(row, col);
@@ -206,6 +237,7 @@ async function handleButtonPress(row, col) {
 
 async function handleTilt(dir) {
   if (animating || game.won || gameOver) return;
+  clearHintUi();
   const { path, moved, won } = game.simulateTilt(dir);
   view.nudge(dir);
   if (!moved) {
@@ -288,6 +320,7 @@ document.querySelectorAll(".arcade-btn[data-dir]").forEach((btn) => {
 });
 
 document.getElementById("btn-reset").addEventListener("click", () => resetStage());
+document.getElementById("btn-hint").addEventListener("click", () => showHint());
 document.getElementById("btn-prev").addEventListener("click", () => {
   if (!animating) loadStage(stageIndex - 1);
 });

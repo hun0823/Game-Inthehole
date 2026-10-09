@@ -7,7 +7,7 @@ const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "g
 const GEM_HEX = { red: 0xff3b4e, blue: 0x2f7dff, green: 0x1ed760, purple: 0xc44dff };
 const BALL_R = 0.36;
 const BALL_Y = 0.5 + BALL_R;
-const REST_X = 0.16;
+const REST_X = 0.045;
 const WALL_T = 0.3;
 const WALL_H = 0.52;
 const WALL_Y = 0.66;
@@ -420,36 +420,75 @@ const colored = [];
   }
 
   function frameCamera() {
-    const span = n * STEP + 1.55;
     const w = canvas.clientWidth || 300;
     const h = canvas.clientHeight || 300;
     const aspect = w / Math.max(1, h);
-    const fov = 27;
+    const fov = 28;
     camera.fov = fov;
     camera.aspect = aspect;
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-    const fit = Math.max(span / 2 / Math.tan(vFov / 2), span / 2 / Math.tan(hFov / 2)) * 1.12;
-    const aim = new THREE.Vector3(0, 0.92, 1).normalize().multiplyScalar(fit);
-    camera.position.copy(aim);
-    camera.lookAt(0, 0.05, 0);
+    // Outer mint frame. Fitted the same way for every grid size.
+    const half = (n - 1) * STEP / 2 + CELL / 2 + 0.55;
+    // 72° off the table: cells stay nearly square, frame and gem sides still read.
+    const elev = THREE.MathUtils.degToRad(72);
+    const sinE = Math.sin(elev);
+    const cosE = Math.cos(elev);
+    const fill = 0.96;
+    const distW = half / (fill * Math.tan(hFov / 2)) + half * cosE;
+    const distH = (half * sinE) / (fill * Math.tan(vFov / 2)) + half * cosE;
+    const dist = Math.max(distW, distH);
+    const lookY = 0.18;
+    camera.position.set(0, lookY + dist * sinE, dist * cosE);
+    camera.lookAt(0, lookY, 0);
     camera.updateProjectionMatrix();
-    const s = span * 0.72;
+    const span = n * STEP + 1.55;
+    const s = span * 0.85;
     key.shadow.camera.left = -s;
     key.shadow.camera.right = s;
     key.shadow.camera.top = s;
     key.shadow.camera.bottom = -s;
-    key.shadow.camera.near = 2;
-    key.shadow.camera.far = fit * 4;
+    key.shadow.camera.near = 1;
+    key.shadow.camera.far = dist * 3;
     key.shadow.camera.updateProjectionMatrix();
     blob.scale.set(span * 0.78, span * 0.55, 1);
-    blob.position.z = span * 0.06;
+    blob.position.z = span * 0.04;
   }
+
+  const hintMat = new THREE.MeshBasicMaterial({
+    color: 0xfff6bf,
+    transparent: true,
+    opacity: 0.96,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const hintHaloMat = new THREE.MeshBasicMaterial({
+    color: 0xffe14a,
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  const hintGroup = new THREE.Group();
+  hintGroup.visible = false;
+  hintGroup.renderOrder = 4;
+  const hintShaft = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.07, 0.52), hintMat);
+  hintShaft.position.set(0, 0, 0.55);
+  const hintHead = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.42, 4), hintMat);
+  hintHead.rotation.x = Math.PI / 2;
+  hintHead.position.set(0, 0, 0.98);
+  const hintHalo = new THREE.Mesh(new THREE.CircleGeometry(0.42, 24), hintHaloMat);
+  hintHalo.rotation.x = -Math.PI / 2;
+  hintHalo.position.set(0, -0.08, 0.7);
+  hintGroup.add(hintShaft, hintHead, hintHalo);
+  rig.add(hintGroup);
+  let hintBaseY = 1.32;
 
   function clearRig() {
     for (let i = rig.children.length - 1; i >= 0; i--) {
       const child = rig.children[i];
-      if (child === ballRoot || child === sparks) continue;
+      if (child === ballRoot || child === sparks || child === hintGroup) continue;
       rig.remove(child);
     }
     buttons.length = 0;
@@ -475,6 +514,7 @@ const colored = [];
       sinkJob = null;
     }
     n = level.size;
+    clearHint();
     clearRig();
     const half = (n - 1) * STEP / 2 + CELL / 2;
     const t = 0.55;
@@ -586,11 +626,20 @@ const colored = [];
       return mesh;
     };
 
-    for (const run of edgeRuns(level.hWalls)) {
-      addEdge("h", run.r, run.c, "wall", wallColor(run.r, run.c, "h"), run.length);
+    // One gem per edge so lines, L, and T shapes are segments, not a boxed cell.
+    if (level.hWalls) {
+      for (let r = 0; r < level.hWalls.length; r++) {
+        for (let c = 0; c < level.hWalls[r].length; c++) {
+          if (level.hWalls[r][c]) addEdge("h", r, c, "wall", wallColor(r, c, "h"));
+        }
+      }
     }
-    for (const run of edgeRuns(level.vWalls)) {
-      addEdge("v", run.r, run.c, "wall", wallColor(run.r, run.c, "v"), run.length);
+    if (level.vWalls) {
+      for (let r = 0; r < level.vWalls.length; r++) {
+        for (let c = 0; c < level.vWalls[r].length; c++) {
+          if (level.vWalls[r][c]) addEdge("v", r, c, "wall", wallColor(r, c, "v"));
+        }
+      }
     }
 
     if (game.hGlass) {
@@ -682,7 +731,7 @@ const colored = [];
   }
 
   function nudge(dir) {
-    const map = { up: [-0.42, 0], down: [0.42, 0], left: [0, 0.42], right: [0, -0.42] };
+    const map = { up: [-0.5, 0], down: [0.5, 0], left: [0, 0.5], right: [0, -0.5] };
     const t = dir && map[dir] ? map[dir] : [0, 0];
     spring.tx = t[0];
     spring.tz = t[1];
@@ -694,6 +743,29 @@ const colored = [];
     shake = Math.min(1.2, shake + 0.55 * amount);
     squash = 0.72;
     squashV = 3.5;
+  }
+
+  function clearHint() {
+    hintGroup.visible = false;
+    for (const mesh of buttons) mesh.userData.hint = false;
+  }
+
+  function showHint(action, row, col) {
+    clearHint();
+    if (action === "press") {
+      for (const mesh of buttons) {
+        if (mesh.userData.row === row && mesh.userData.col === col && !mesh.userData.spent) {
+          mesh.userData.hint = true;
+        }
+      }
+      return;
+    }
+    const p = cellXZ(row, col);
+    const rot = { up: Math.PI, down: 0, left: -Math.PI / 2, right: Math.PI / 2 };
+    hintGroup.rotation.y = rot[action] || 0;
+    hintBaseY = 1.32;
+    hintGroup.position.set(p.x, hintBaseY, p.z);
+    hintGroup.visible = true;
   }
 
   function dipButton(row, col) {
@@ -822,8 +894,8 @@ const colored = [];
           if (done.intoHole) {
             sink(done.path[done.path.length - 1], done.token).then(done.resolve);
           } else {
-            spring.vx += done.dir === "down" ? 1.2 : done.dir === "up" ? -1.2 : 0;
-            spring.vz += done.dir === "left" ? 1.2 : done.dir === "right" ? -1.2 : 0;
+            spring.vx += done.dir === "down" ? 1.45 : done.dir === "up" ? -1.45 : 0;
+            spring.vz += done.dir === "left" ? 1.45 : done.dir === "right" ? -1.45 : 0;
             done.resolve();
           }
         }
@@ -871,13 +943,24 @@ const colored = [];
     partGeo.attributes.position.needsUpdate = true;
     partGeo.attributes.color.needsUpdate = true;
 
+    if (hintGroup.visible) {
+      const bob = Math.sin(time * 5.5);
+      hintGroup.position.y = hintBaseY + bob * 0.06;
+      const s = 1 + bob * 0.05;
+      hintGroup.scale.set(s, s, s);
+      hintMat.opacity = 0.78 + bob * 0.2;
+    }
+
     for (const mesh of buttons) {
       const dip = mesh.userData.dip || 0;
       if (dip > 0) mesh.userData.dip = Math.max(0, dip - dt * 3);
-      const pulse = mesh.userData.ready ? 1 + Math.sin(time * 6) * 0.08 : 1;
+      const readyPulse = mesh.userData.ready ? 1 + Math.sin(time * 6) * 0.08 : 1;
+      const hintPulse = mesh.userData.hint ? 1.12 + Math.sin(time * 8) * 0.14 : 1;
       const press = 1 - (mesh.userData.dip || 0) * 0.25;
-      mesh.scale.set(pulse, press, pulse);
+      mesh.scale.set(readyPulse * hintPulse, press, readyPulse * hintPulse);
       if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY - (mesh.userData.dip || 0) * 0.12;
+      if (mesh.userData.hint) mesh.material.emissiveIntensity = 0.55 + Math.sin(time * 8) * 0.4;
+      else if (!mesh.userData.spent) mesh.material.emissiveIntensity = 0.12;
     }
 
     renderer.render(scene, camera);
@@ -888,5 +971,5 @@ const colored = [];
   }
   requestAnimationFrame(frame);
 
-  return { resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall };
+  return { resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint };
 }

@@ -6,9 +6,9 @@ from pathlib import Path
 from validate_levels import solve_level
 
 ROOT = Path(__file__).resolve().parents[1]
+# Unity is paused and still on the pillar format. Only the web level file is live.
 PATHS = [
     ROOT / "shared/levels.json",
-    ROOT / "unity/InTheHole/Assets/Resources/Levels/levels.json",
 ]
 
 

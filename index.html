@@ -16,6 +16,18 @@
   <canvas id="sky" class="sky" aria-hidden="true"></canvas>
   <div class="app">
     <header class="topbar">
+      <button type="button" id="btn-hint" class="arcade-btn arcade-btn--hint" aria-label="Hint">
+        <span class="arcade-face arcade-face--round">?</span>
+      </button>
+      <div class="hud-center">
+        <div class="level-row">
+          <button type="button" id="btn-prev" class="chev" aria-label="Previous stage">‹</button>
+          <button type="button" id="btn-select" class="level-btn">Lvl. 1</button>
+          <button type="button" id="btn-next" class="chev" aria-label="Next stage">›</button>
+        </div>
+        <div id="moves-label" class="moves"></div>
+        <p id="hint-note" class="hint-note" hidden></p>
+      </div>
       <div class="score-block">
         <svg class="crown" viewBox="0 0 96 70" aria-hidden="true">
           <defs>
@@ -49,14 +61,6 @@
         </svg>
         <div id="score-label" class="score">0</div>
       </div>
-      <div class="level-block">
-        <div class="level-row">
-          <button type="button" id="btn-prev" class="chev" aria-label="Previous stage">‹</button>
-          <button type="button" id="btn-select" class="level-btn">Lvl. 1</button>
-          <button type="button" id="btn-next" class="chev" aria-label="Next stage">›</button>
-        </div>
-        <div id="moves-label" class="moves"></div>
-      </div>
     </header>
 
     <main class="board-wrap">
@@ -71,53 +75,51 @@
     </main>
 
     <nav class="controls" aria-label="Tilt the board">
-      <div class="control-row">
-        <button type="button" class="arcade-btn arcade-btn--blue" data-dir="left">
+      <div class="dpad">
+        <button type="button" class="arcade-btn arcade-btn--gold dpad-up" data-dir="up">
+          <span class="arcade-face">
+            <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
+              <polygon points="32,12 54,48 10,48" fill="#fff"/>
+            </svg>
+            <span class="face-caption">Up</span>
+          </span>
+        </button>
+        <button type="button" class="arcade-btn arcade-btn--blue dpad-left" data-dir="left">
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
               <polygon points="16,32 46,12 46,52" fill="#fff"/>
             </svg>
+            <span class="face-caption">Left</span>
           </span>
-          <span class="arcade-label">Left</span>
         </button>
-        <button type="button" class="arcade-btn arcade-btn--gold arcade-btn--lg" data-dir="up">
-          <span class="arcade-face">
-            <svg class="arrow arrow--lg" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="32,12 54,48 10,48" fill="#fff"/>
-            </svg>
-          </span>
-          <span class="arcade-label">Up</span>
-        </button>
-        <button type="button" class="arcade-btn arcade-btn--pink" data-dir="right">
+        <button type="button" class="arcade-btn arcade-btn--pink dpad-right" data-dir="right">
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
               <polygon points="48,32 18,12 18,52" fill="#fff"/>
             </svg>
+            <span class="face-caption">Right</span>
           </span>
-          <span class="arcade-label">Right</span>
         </button>
-      </div>
-      <div class="control-row control-row--sub">
-        <button type="button" class="arcade-btn arcade-btn--purple arcade-btn--sm" data-dir="down">
+        <button type="button" class="arcade-btn arcade-btn--purple dpad-down" data-dir="down">
           <span class="arcade-face">
-            <svg class="arrow arrow--sm" viewBox="0 0 64 64" aria-hidden="true">
+            <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
               <polygon points="32,52 10,16 54,16" fill="#fff"/>
             </svg>
+            <span class="face-caption">Down</span>
           </span>
-          <span class="arcade-label">Down</span>
-        </button>
-        <button type="button" class="arcade-btn arcade-btn--mint arcade-btn--sm" id="btn-reset">
-          <span class="arcade-face">
-            <svg class="arrow arrow--sm" viewBox="0 0 64 64" aria-hidden="true">
-              <path d="M44 22a16 16 0 1 0 2 14" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
-              <path d="M44 14v10h-10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <span class="arcade-label">Retry</span>
         </button>
       </div>
+      <button type="button" class="arcade-btn arcade-btn--mint retry-btn" id="btn-reset" aria-label="Retry">
+        <span class="arcade-face arcade-face--round">
+          <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
+            <path d="M44 22a16 16 0 1 0 2 14" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+            <path d="M44 14v10h-10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="face-caption">Retry</span>
+        </span>
+      </button>
     </nav>
-    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. R resets the stage. N loads the next stage.</p>
+    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. Hints are unlimited. R resets the stage. N loads the next stage.</p>
   </div>
 
   <dialog id="stage-dialog">

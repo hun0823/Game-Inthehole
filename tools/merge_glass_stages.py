@@ -15,6 +15,7 @@ OUT_PATHS = [
 
 
 def main():
+    raise SystemExit("Retired pillar generator. Run tools/generate_edge_levels.py")
     base_path = ROOT / "shared/levels.json"
     data = json.loads(base_path.read_text(encoding="utf-8"))
     base = [lv for lv in data["levels"] if lv["id"] <= 30]
