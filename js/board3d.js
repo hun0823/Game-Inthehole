@@ -7,7 +7,10 @@ const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "g
 const GEM_HEX = { red: 0xff3b4e, blue: 0x2f7dff, green: 0x1ed760, purple: 0xc44dff };
 const BALL_R = 0.36;
 const BALL_Y = 0.5 + BALL_R;
-const REST_X = 0.36;
+const REST_X = 0.16;
+const WALL_T = 0.3;
+const WALL_H = 0.52;
+const WALL_Y = 0.66;
 
 const geos = new Map();
 function roundGeo(w, h, d, seg = 2, rad = 0.12) {
@@ -108,29 +111,51 @@ function makeBlobMap() {
   return tex;
 }
 
-function pillarColor(r, c) {
-  return GEM_CYCLE[(r * 3 + c * 5) % GEM_CYCLE.length];
+function wallColor(r, c, axis) {
+  const nudge = axis === "v" ? 1 : 0;
+  return GEM_CYCLE[(r * 2 + c * 3 + nudge) % GEM_CYCLE.length];
 }
 
-function findPillars(level) {
-  const n = level.size;
-  const out = [];
-  for (let r = 0; r < n; r++) {
-    for (let c = 0; c < n; c++) {
-      if (r === level.hole[0] && c === level.hole[1]) continue;
-      const up = r === 0 || level.hWalls[r - 1][c];
-      const down = r === n - 1 || level.hWalls[r][c];
-      const left = c === 0 || level.vWalls[r][c - 1];
-      const right = c === n - 1 || level.vWalls[r][c];
-      const has =
-        (r > 0 && level.hWalls[r - 1][c]) ||
-        (r < n - 1 && level.hWalls[r][c]) ||
-        (c > 0 && level.vWalls[r][c - 1]) ||
-        (c < n - 1 && level.vWalls[r][c]);
-      if (up && down && left && right && has) out.push({ r, c, color: pillarColor(r, c) });
+function edgeRuns(grid) {
+  const runs = [];
+  if (!grid || !grid.length || !grid[0]) return runs;
+  const rows = grid.length;
+  const cols = grid[0].length;
+  const horizontal = cols === rows + 1;
+  if (horizontal) {
+    for (let r = 0; r < rows; r++) {
+      let c = 0;
+      while (c < cols) {
+        const value = grid[r][c];
+        if (!value) {
+          c += 1;
+          continue;
+        }
+        const color = typeof value === "string" ? value : null;
+        const start = c;
+        c += 1;
+        while (c < cols && grid[r][c] && (color == null || grid[r][c] === color)) c += 1;
+        runs.push({ axis: "h", r, c: start, length: c - start, color });
+      }
+    }
+    return runs;
+  }
+  for (let c = 0; c < cols; c++) {
+    let r = 0;
+    while (r < rows) {
+      const value = grid[r][c];
+      if (!value) {
+        r += 1;
+        continue;
+      }
+      const color = typeof value === "string" ? value : null;
+      const start = r;
+      r += 1;
+      while (r < rows && grid[r][c] && (color == null || grid[r][c] === color)) r += 1;
+      runs.push({ axis: "v", r: start, c, length: r - start, color });
     }
   }
-  return out;
+  return runs;
 }
 
 export function createView(canvas) {
@@ -145,7 +170,7 @@ export function createView(canvas) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.12;
+  renderer.toneMappingExposure = 1.02;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 80);
@@ -192,25 +217,28 @@ export function createView(canvas) {
     metalness: 0.02,
   });
   const plinthMat = new THREE.MeshPhysicalMaterial({
-    color: 0x7dffe4,
-    roughness: 0.32,
+    color: 0x3ddec0,
+    roughness: 0.38,
     metalness: 0.02,
-    clearcoat: 0.65,
-    clearcoatRoughness: 0.22,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.35,
+    envMapIntensity: 0.45,
   });
   const frameMat = new THREE.MeshPhysicalMaterial({
-    color: 0x2ed6a8,
-    roughness: 0.26,
-    metalness: 0.05,
-    clearcoat: 0.85,
-    clearcoatRoughness: 0.16,
+    color: 0x0eae78,
+    roughness: 0.4,
+    metalness: 0.04,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.4,
+    envMapIntensity: 0.4,
   });
   const frameTopMat = new THREE.MeshPhysicalMaterial({
-    color: 0xd9fff2,
-    roughness: 0.2,
-    metalness: 0.02,
-    clearcoat: 1,
-    clearcoatRoughness: 0.08,
+    color: 0x1cc99a,
+    roughness: 0.32,
+    metalness: 0.03,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.3,
+    envMapIntensity: 0.45,
   });
   const outlineMat = new THREE.MeshBasicMaterial({ color: 0x1a1028, side: THREE.BackSide });
   const ballMat = new THREE.MeshPhysicalMaterial({
@@ -223,12 +251,12 @@ export function createView(canvas) {
     envMapIntensity: 1.15,
   });
   const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0xbff7ff,
-    roughness: 0.05,
+    color: 0x7af4ff,
+    roughness: 0.08,
     metalness: 0.0,
     transmission: 0,
     transparent: true,
-    opacity: 0.55,
+    opacity: 0.72,
     clearcoat: 1,
     clearcoatRoughness: 0.05,
     depthWrite: false,
@@ -253,11 +281,14 @@ export function createView(canvas) {
         vec2 p = vUv * 2.0 - 1.0;
         float r = length(p);
         float a = atan(p.y, p.x);
-        float band = sin(a * 4.0 - r * 16.0 + uTime * 4.0);
-        float arm = smoothstep(-0.2, 0.85, band);
-        vec3 col = mix(vec3(0.0, 0.28, 0.32), vec3(0.55, 1.0, 0.95), arm);
-        col += vec3(1.0) * smoothstep(0.28, 0.0, r);
-        float alpha = smoothstep(1.05, 0.45, r);
+        float arm = 0.5 + 0.5 * sin(a * 6.0 - r * 22.0 + uTime * 5.5);
+        float arm2 = 0.5 + 0.5 * sin(-a * 3.0 - r * 12.0 + uTime * 3.2);
+        vec3 deep = vec3(0.0, 0.22, 0.28);
+        vec3 glow = vec3(0.05, 1.0, 0.82);
+        vec3 col = mix(deep, glow, arm * smoothstep(1.05, 0.12, r));
+        col += vec3(0.45, 1.0, 0.95) * arm2 * smoothstep(0.9, 0.05, r) * 0.7;
+        col += vec3(0.75, 1.0, 0.98) * smoothstep(0.28, 0.0, r);
+        float alpha = smoothstep(1.05, 0.55, r);
         gl_FragColor = vec4(col, alpha);
       }
     `,
@@ -398,10 +429,10 @@ const colored = [];
     camera.aspect = aspect;
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-    const fit = Math.max(span / 2 / Math.tan(vFov / 2), span / 2 / Math.tan(hFov / 2)) * 1.08;
-    const aim = new THREE.Vector3(0, 0.46, 1).normalize().multiplyScalar(fit);
+    const fit = Math.max(span / 2 / Math.tan(vFov / 2), span / 2 / Math.tan(hFov / 2)) * 1.12;
+    const aim = new THREE.Vector3(0, 0.92, 1).normalize().multiplyScalar(fit);
     camera.position.copy(aim);
-    camera.lookAt(0, 0.2, -0.15);
+    camera.lookAt(0, 0.05, 0);
     camera.updateProjectionMatrix();
     const s = span * 0.72;
     key.shadow.camera.left = -s;
@@ -446,9 +477,9 @@ const colored = [];
     n = level.size;
     clearRig();
     const half = (n - 1) * STEP / 2 + CELL / 2;
-    const t = 0.62;
-    const fh = 1.22;
-    const fy = 0.5;
+    const t = 0.55;
+    const fh = 0.72;
+    const fy = 0.36;
     const outer = half + t;
     const bars = [
       [outer * 2, fh, t, 0, fy, -outer + t / 2],
@@ -469,82 +500,98 @@ const colored = [];
     tray.receiveShadow = true;
     rig.add(tray);
 
-    const pillars = findPillars(level);
-    const pillarAt = new Map(pillars.map((p) => [`${p.r},${p.c}`, p.color]));
-
     for (let r = 0; r < n; r++) {
       for (let c = 0; c < n; c++) {
         const { x, z } = cellXZ(r, c);
         const isHole = r === level.hole[0] && c === level.hole[1];
-        const isGem = pillarAt.has(`${r},${c}`);
-        addBlock(1.02, 0.16, 1.02, x, 0.2, z, plinthMat, { seg: 2, rad: 0.16, shadow: false });
-        if (isGem) {
-          const color = pillarAt.get(`${r},${c}`);
-          const mesh = addBlock(0.9, 0.74, 0.9, x, 0.62, z, gemMaterial(color), { outline: true, seg: 3, rad: 0.16 });
-          const dia = new THREE.Mesh(new THREE.OctahedronGeometry(0.2, 0), diaMats[color] || diaMats.red);
-          dia.position.set(x, 1.02, z);
-          dia.scale.y = 0.62;
-          dia.castShadow = true;
-          rig.add(dia);
-          mesh.parent.userData.kind = "gem";
-        } else if (!isHole) {
-          addBlock(0.78, 0.22, 0.78, x, 0.38, z, woodMat, { seg: 2, rad: 0.12, shadow: false });
+        addBlock(1.02, 0.14, 1.02, x, 0.18, z, plinthMat, { seg: 2, rad: 0.14, shadow: false });
+        if (!isHole) {
+          addBlock(0.82, 0.2, 0.82, x, 0.36, z, woodMat, { seg: 2, rad: 0.12, shadow: false });
         }
         if (isHole) {
           const well = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.3, 0.2, 0.28, 24),
-            new THREE.MeshStandardMaterial({ color: 0x06221f, roughness: 0.9 })
+            new THREE.CylinderGeometry(0.34, 0.22, 0.22, 28),
+            new THREE.MeshStandardMaterial({ color: 0x04302c, roughness: 0.85, emissive: 0x063e38, emissiveIntensity: 0.4 })
           );
-          well.position.set(x, 0.16, z);
+          well.position.set(x, 0.2, z);
           well.receiveShadow = true;
           rig.add(well);
-          const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.4, 40), holeMat);
+          const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.4, 48), holeMat);
           swirl.rotation.x = -Math.PI / 2;
-          swirl.position.set(x, 0.31, z);
+          swirl.position.set(x, 0.33, z);
           rig.add(swirl);
-          const ring = new THREE.Mesh(
-            new THREE.TorusGeometry(0.4, 0.07, 12, 32),
-            new THREE.MeshPhysicalMaterial({
-              color: 0xd9fff8,
-              emissive: 0x1ef0d0,
-              emissiveIntensity: 1.35,
-              roughness: 0.2,
-              clearcoat: 1,
-            })
-          );
+          const ringMat = new THREE.MeshPhysicalMaterial({
+            color: 0x7dfff0,
+            emissive: 0x14f0c8,
+            emissiveIntensity: 1.6,
+            roughness: 0.18,
+            clearcoat: 0.8,
+            envMapIntensity: 0.6,
+          });
+          const ring = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.055, 12, 36), ringMat);
           ring.rotation.x = Math.PI / 2;
-          ring.position.set(x, 0.32, z);
+          ring.position.set(x, 0.36, z);
           ring.name = "hole-ring";
           rig.add(ring);
+          const inner = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 28), ringMat);
+          inner.rotation.x = Math.PI / 2;
+          inner.position.set(x, 0.37, z);
+          inner.name = "hole-ring";
+          rig.add(inner);
         }
-        }
+      }
     }
 
-    const addEdge = (axis, r, c, kind, color) => {
-      const x = axis === "v" ? ((c + 0.5) - (n - 1) / 2) * STEP : (c - (n - 1) / 2) * STEP;
-      const z = axis === "h" ? ((r + 0.5) - (n - 1) / 2) * STEP : (r - (n - 1) / 2) * STEP;
-      const size = axis === "h" ? [0.86, 0.5, 0.28] : [0.28, 0.5, 0.86];
+    const placeRun = (run) => {
+      const span = run.length * STEP;
+      const along = run.axis === "h" ? run.c + (run.length - 1) / 2 : run.r + (run.length - 1) / 2;
+      const x = run.axis === "h"
+        ? (along - (n - 1) / 2) * STEP
+        : ((run.c + 0.5) - (n - 1) / 2) * STEP;
+      const z = run.axis === "h"
+        ? ((run.r + 0.5) - (n - 1) / 2) * STEP
+        : (along - (n - 1) / 2) * STEP;
+      const w = run.axis === "h" ? span : WALL_T;
+      const d = run.axis === "h" ? WALL_T : span;
+      return { x, z, w, d };
+    };
+
+    const addEdge = (axis, r, c, kind, color, length = 1) => {
+      const { x, z, w, d } = placeRun({ axis, r, c, length });
       const mat = kind === "glass" ? glassMat : gemMaterial(color || "red");
-      const mesh = addBlock(size[0], size[1], size[2], x, 0.52, z, mat, {
+      const mesh = addBlock(w, WALL_H, d, x, WALL_Y, z, mat, {
         outline: kind !== "glass",
-        seg: 2,
-        rad: 0.08,
+        seg: 3,
+        rad: 0.1,
         shadow: true,
       });
       mesh.userData = { kind, axis, r, c, color: color || null };
       if (kind === "glass") {
-        const crack = new THREE.Mesh(new THREE.BoxGeometry(size[0] * 0.7, 0.02, size[2] * 0.7), glassCrackMat);
-        crack.position.set(x, 0.7, z);
-        crack.rotation.z = 0.5;
+        const crack = new THREE.Mesh(new THREE.BoxGeometry(w * 0.72, 0.02, d * 0.72), glassCrackMat);
+        crack.position.set(x, WALL_Y + WALL_H * 0.35, z);
+        crack.rotation.y = axis === "h" ? 0.4 : 0.2;
         crack.visible = false;
         crack.userData = { kind: "crack", axis, r, c };
         rig.add(crack);
         glasses.push(mesh);
         cracks.push(crack);
       } else {
-        colored.push(mesh);
+        if (kind === "color") colored.push(mesh);
+        const stud = new THREE.Mesh(new THREE.OctahedronGeometry(0.11, 0), diaMats[color] || diaMats.red);
+        stud.position.set(0, WALL_H * 0.55, 0);
+        stud.scale.y = 0.7;
+        stud.castShadow = true;
+        mesh.parent.add(stud);
       }
+      return mesh;
     };
+
+    for (const run of edgeRuns(level.hWalls)) {
+      addEdge("h", run.r, run.c, "wall", wallColor(run.r, run.c, "h"), run.length);
+    }
+    for (const run of edgeRuns(level.vWalls)) {
+      addEdge("v", run.r, run.c, "wall", wallColor(run.r, run.c, "v"), run.length);
+    }
 
     if (game.hGlass) {
       for (let r = 0; r < game.hGlass.length; r++) {
@@ -560,19 +607,11 @@ const colored = [];
         }
       }
     }
-    if (game.hColored) {
-      for (let r = 0; r < game.hColored.length; r++) {
-        for (let c = 0; c < game.hColored[r].length; c++) {
-          if (game.hColored[r][c]) addEdge("h", r, c, "color", game.hColored[r][c]);
-        }
-      }
+    for (const run of edgeRuns(game.hColored)) {
+      addEdge("h", run.r, run.c, "color", run.color, run.length);
     }
-    if (game.vColored) {
-      for (let r = 0; r < game.vColored.length; r++) {
-        for (let c = 0; c < game.vColored[r].length; c++) {
-          if (game.vColored[r][c]) addEdge("v", r, c, "color", game.vColored[r][c]);
-        }
-      }
+    for (const run of edgeRuns(game.vColored)) {
+      addEdge("v", run.r, run.c, "color", run.color, run.length);
     }
 
     for (const btn of level.buttons || []) {
