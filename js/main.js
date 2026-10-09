@@ -2,10 +2,14 @@ import { LEVELS } from "./levels.js";
 import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
+import { BALLS, ballById } from "./balls.js";
 
 const STORAGE_KEY = "inthehole_cleared";
 const STORAGE_STARS_PREFIX = "inthehole_stars_";
 const STORAGE_LESSONS = "inthehole_lessons";
+const STORAGE_SPENT = "inthehole_stars_spent";
+const STORAGE_OWNED = "inthehole_balls_owned";
+const STORAGE_EQUIPPED = "inthehole_ball_equipped";
 
 const skyEl = document.getElementById("sky");
 const boardWrapEl = document.querySelector(".board-wrap");
@@ -26,6 +30,13 @@ const lessonArt = document.getElementById("lesson-art");
 const lessonBody = document.getElementById("lesson-body");
 const lessonBtn = document.getElementById("lesson-btn");
 const lessonButton = document.getElementById("btn-lesson");
+const storeEl = document.getElementById("store");
+const storeList = document.getElementById("store-list");
+const storeStars = document.getElementById("store-stars");
+const storeConfirm = document.getElementById("store-confirm");
+const storeConfirmText = document.getElementById("store-confirm-text");
+const storeClose = document.getElementById("store-close");
+const storeSpend = document.getElementById("store-spend");
 
 const view = createView(playfieldEl);
 
@@ -35,6 +46,7 @@ let animating = false;
 let gameOver = false;
 let lessonOpen = false;
 let lessonQueue = [];
+let pendingBuy = null;
 
 const LESSON_COPY = {
   sand: {
@@ -279,10 +291,48 @@ function saveStars(id, stars) {
   if (stars > prev) localStorage.setItem(STORAGE_STARS_PREFIX + id, String(stars));
 }
 
-function totalScore() {
-  let score = 0;
-  for (const lv of LEVELS) score += getStars(lv.id) * 100;
-  return score;
+function earnedTotal() {
+  let stars = 0;
+  for (const lv of LEVELS) stars += getStars(lv.id);
+  return stars;
+}
+
+function spentTotal() {
+  const spent = parseInt(localStorage.getItem(STORAGE_SPENT) || "0", 10);
+  return Number.isFinite(spent) && spent > 0 ? spent : 0;
+}
+
+function purse() {
+  return Math.max(0, earnedTotal() - spentTotal());
+}
+
+function ownedIds() {
+  const owned = new Set(["oak"]);
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_OWNED) || "[]");
+    if (Array.isArray(raw)) {
+      for (const id of raw) {
+        if (BALLS.some((ball) => ball.id === id)) owned.add(id);
+      }
+    }
+  } catch {
+    /* keep the free ball */
+  }
+  return owned;
+}
+
+function writeOwned(owned) {
+  const ids = [...owned].filter((id) => id !== "oak");
+  localStorage.setItem(STORAGE_OWNED, JSON.stringify(ids));
+}
+
+function equippedId() {
+  const id = localStorage.getItem(STORAGE_EQUIPPED) || "oak";
+  return ownedIds().has(id) ? id : "oak";
+}
+
+function storeOpen() {
+  return !storeEl.hidden;
 }
 
 function getCleared() {
@@ -308,7 +358,9 @@ function markCleared(id) {
 function updateHud() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
-  scoreLabel.textContent = String(totalScore());
+  const starsLeft = purse();
+  scoreLabel.textContent = String(starsLeft);
+  if (storeOpen()) storeStars.textContent = String(starsLeft);
   levelLabel.textContent = `Lvl. ${level.id}`;
   const tone = moveCountTone(par, game.moves);
   movesLabel.className = "moves";
@@ -435,7 +487,7 @@ function handleAfterMove(won) {
 }
 
 function showHint() {
-  if (lessonOpen || animating || game.won || gameOver) return;
+  if (storeOpen() || lessonOpen || animating || game.won || gameOver) return;
   clearHintUi();
   const route = game.hintRoute();
   if (!route) {
@@ -478,7 +530,7 @@ function cracksSince(before, state) {
 }
 
 async function handleButtonPress(row, col) {
-  if (lessonOpen || animating || game.won || gameOver) return;
+  if (storeOpen() || lessonOpen || animating || game.won || gameOver) return;
   if (game.ball[0] !== row || game.ball[1] !== col) return;
   clearHintUi();
   if (!game.pressButton()) return;
@@ -492,7 +544,7 @@ async function handleButtonPress(row, col) {
 }
 
 async function handleTilt(dir) {
-  if (lessonOpen || animating || game.won || gameOver) return;
+  if (storeOpen() || lessonOpen || animating || game.won || gameOver) return;
   clearHintUi();
   const glassBefore = snapshotGlass(game);
   const { path, moved, won, glassBroken } = game.simulateTilt(dir);
@@ -547,7 +599,7 @@ function nextStage() {
 }
 
 function resetStage() {
-  if (lessonOpen || animating) return;
+  if (storeOpen() || lessonOpen || animating) return;
   game.reset();
   gameOver = false;
   hideOverlay();
@@ -582,18 +634,18 @@ document.querySelectorAll(".arcade-btn[data-dir]").forEach((btn) => {
 document.getElementById("btn-reset").addEventListener("click", () => resetStage());
 document.getElementById("btn-hint").addEventListener("click", () => showHint());
 lessonButton.addEventListener("click", () => {
-  if (lessonOpen || animating) return;
+  if (storeOpen() || lessonOpen || animating) return;
   playLessonQueue(lessonsOn(LEVELS[stageIndex]));
 });
 lessonBtn.addEventListener("click", () => ackLesson());
 document.getElementById("btn-prev").addEventListener("click", () => {
-  if (!lessonOpen && !animating) loadStage(stageIndex - 1);
+  if (!storeOpen() && !lessonOpen && !animating) loadStage(stageIndex - 1);
 });
 document.getElementById("btn-next").addEventListener("click", () => {
-  if (!lessonOpen && !animating) loadStage(stageIndex + 1);
+  if (!storeOpen() && !lessonOpen && !animating) loadStage(stageIndex + 1);
 });
 document.getElementById("btn-select").addEventListener("click", () => {
-  if (lessonOpen) return;
+  if (storeOpen() || lessonOpen) return;
   buildStageList();
   stageDialog.showModal();
 });
@@ -611,6 +663,14 @@ const KEY_MAP = {
 };
 
 document.addEventListener("keydown", (e) => {
+  if (storeOpen()) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      if (!storeConfirm.hidden) cancelBuy();
+      else closeStore();
+    }
+    return;
+  }
   if (stageDialog.open) return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (key === "r") {
@@ -642,7 +702,7 @@ document.addEventListener("keydown", (e) => {
 
 let pointer = null;
 playfieldEl.addEventListener("pointerdown", (e) => {
-  if (lessonOpen || stageDialog.open || !overlay.classList.contains("hidden")) return;
+  if (storeOpen() || lessonOpen || stageDialog.open || !overlay.classList.contains("hidden")) return;
   pointer = { x: e.clientX, y: e.clientY, id: e.pointerId };
   playfieldEl.setPointerCapture?.(e.pointerId);
 });
@@ -668,6 +728,7 @@ document.addEventListener(
   "touchmove",
   (e) => {
     if (stageDialog.open && stageDialog.contains(e.target)) return;
+    if (storeOpen() && storeEl.contains(e.target)) return;
     e.preventDefault();
   },
   { passive: false }
@@ -676,7 +737,7 @@ document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("gesturechange", (e) => e.preventDefault());
 
 window.addEventListener("hashchange", () => {
-  if (lessonOpen || animating) return;
+  if (storeOpen() || lessonOpen || animating) return;
   const idx = indexFromLocation();
   if (idx !== stageIndex) loadStage(idx);
 });
@@ -685,7 +746,132 @@ function paintSky() {
   drawSky(skyEl);
 }
 
+function renderStore() {
+  const owned = ownedIds();
+  const equipped = equippedId();
+  const stars = purse();
+  storeStars.textContent = String(stars);
+  storeList.replaceChildren();
+  for (const ball of BALLS) {
+    const li = document.createElement("li");
+    li.className = "store-row" + (ball.id === equipped ? " is-equipped" : "");
+    const preview = document.createElement("span");
+    preview.className = `ball-preview ball-preview--${ball.id}`;
+    preview.setAttribute("aria-hidden", "true");
+    const copy = document.createElement("span");
+    copy.className = "store-copy";
+    const name = document.createElement("strong");
+    name.textContent = ball.name;
+    const price = document.createElement("em");
+    price.textContent = ball.price === 0 ? "Free" : `${ball.price} stars`;
+    const blurb = document.createElement("span");
+    blurb.textContent = ball.blurb;
+    copy.append(name, price, blurb);
+    li.append(preview, copy);
+    if (ball.id === equipped) {
+      const state = document.createElement("span");
+      state.className = "store-state";
+      state.textContent = "Equipped";
+      li.append(state);
+    } else if (owned.has(ball.id)) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "store-act";
+      btn.dataset.act = "equip";
+      btn.dataset.id = ball.id;
+      btn.textContent = "Equip";
+      li.append(btn);
+    } else if (stars >= ball.price) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "store-act store-act--buy";
+      btn.dataset.act = "buy";
+      btn.dataset.id = ball.id;
+      btn.textContent = `Buy ${ball.price}`;
+      li.append(btn);
+    } else {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "store-act";
+      btn.disabled = true;
+      btn.textContent = `Need ${ball.price - stars}`;
+      li.append(btn);
+    }
+    storeList.append(li);
+  }
+}
+
+function openStore() {
+  pendingBuy = null;
+  storeConfirm.hidden = true;
+  storeEl.hidden = false;
+  renderStore();
+  storeClose.focus();
+}
+
+function closeStore() {
+  pendingBuy = null;
+  storeConfirm.hidden = true;
+  storeEl.hidden = true;
+}
+
+function askBuy(id) {
+  const ball = ballById(id);
+  if (ownedIds().has(ball.id) || purse() < ball.price || ball.price <= 0) return;
+  pendingBuy = ball.id;
+  storeConfirmText.textContent = `Spend ${ball.price} stars on ${ball.name}?`;
+  storeConfirm.hidden = false;
+  storeSpend.focus();
+}
+
+function cancelBuy() {
+  pendingBuy = null;
+  storeConfirm.hidden = true;
+}
+
+function confirmBuy() {
+  const id = pendingBuy;
+  cancelBuy();
+  if (!id) return;
+  const ball = ballById(id);
+  if (ownedIds().has(ball.id) || purse() < ball.price) {
+    renderStore();
+    return;
+  }
+  localStorage.setItem(STORAGE_SPENT, String(spentTotal() + ball.price));
+  const owned = ownedIds();
+  owned.add(ball.id);
+  writeOwned(owned);
+  localStorage.setItem(STORAGE_EQUIPPED, ball.id);
+  view.setBall(ball.id);
+  updateHud();
+  renderStore();
+}
+
+function equipOwned(id) {
+  if (!ownedIds().has(id)) return;
+  localStorage.setItem(STORAGE_EQUIPPED, id);
+  view.setBall(id);
+  updateHud();
+  renderStore();
+}
+
+document.getElementById("btn-store").addEventListener("click", () => {
+  if (storeOpen()) closeStore();
+  else openStore();
+});
+storeClose.addEventListener("click", () => closeStore());
+storeSpend.addEventListener("click", () => confirmBuy());
+document.getElementById("store-cancel").addEventListener("click", () => cancelBuy());
+storeList.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]");
+  if (!btn || !storeList.contains(btn)) return;
+  if (btn.dataset.act === "buy") askBuy(btn.dataset.id);
+  else if (btn.dataset.act === "equip") equipOwned(btn.dataset.id);
+});
+
 paintSky();
+view.setBall(equippedId());
 loadStage(indexFromLocation());
 requestAnimationFrame(() => view.resize());
 

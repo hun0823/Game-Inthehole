@@ -1,5 +1,6 @@
 import * as THREE from "./vendor/three.module.js";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
+import { ballById } from "./balls.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -153,6 +154,177 @@ function makeOakBallMap() {
   return tex;
 }
 
+function paintTex(size, draw) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d");
+  draw(g, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+function makeBallMaterials() {
+  const std = (opts) => new THREE.MeshStandardMaterial(opts);
+  const marbleMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#f4fbff";
+    g.fillRect(0, 0, s, s);
+    g.lineCap = "round";
+    const bands = ["#b7f3ff", "#2f9ec8", "#ffffff", "#1a6eb8"];
+    bands.forEach((color, i) => {
+      g.strokeStyle = color;
+      g.lineWidth = 12 - i;
+      g.beginPath();
+      g.arc(s * 0.15, s * 0.85, 22 + i * 16, 0.1, 2.5);
+      g.stroke();
+      g.beginPath();
+      g.arc(s * 0.95, s * 0.1, 16 + i * 14, 2.4, 5);
+      g.stroke();
+    });
+  });
+  const soccerMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#f7f7f7";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "#1a1a1a";
+    const spots = [[34, 30], [94, 36], [64, 72], [28, 98], [102, 96]];
+    for (const [x, y] of spots) {
+      g.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI * 2) / 5;
+        const px = x + Math.cos(a) * 15;
+        const py = y + Math.sin(a) * 15;
+        if (i) g.lineTo(px, py);
+        else g.moveTo(px, py);
+      }
+      g.closePath();
+      g.fill();
+    }
+  });
+  const tireMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#1a1a1a";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#3c3c3c";
+    g.lineWidth = 5;
+    for (let i = 0; i < 7; i++) {
+      g.beginPath();
+      g.arc(s / 2, s / 2, 12 + i * 8, 0, Math.PI * 2);
+      g.stroke();
+    }
+    g.strokeStyle = "#080808";
+    g.lineWidth = 3;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      g.beginPath();
+      g.moveTo(s / 2 + Math.cos(a) * 8, s / 2 + Math.sin(a) * 8);
+      g.lineTo(s / 2 + Math.cos(a) * 62, s / 2 + Math.sin(a) * 62);
+      g.stroke();
+    }
+  });
+  const hoopMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#ef5a14";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#1a120c";
+    g.lineWidth = 7;
+    g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(0, s * 0.5);
+    g.bezierCurveTo(s * 0.3, s * 0.38, s * 0.7, s * 0.62, s, s * 0.5);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(s * 0.5, 0);
+    g.bezierCurveTo(s * 0.36, s * 0.3, s * 0.64, s * 0.7, s * 0.5, s);
+    g.stroke();
+    g.beginPath();
+    g.arc(s * 0.5, s * 0.5, s * 0.32, 0.5, 2.4);
+    g.stroke();
+  });
+  const bowlMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#121214";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "#3a3a42";
+    g.beginPath();
+    g.ellipse(38, 34, 26, 16, -0.5, 0, Math.PI * 2);
+    g.fill();
+    const holes = [[58, 46], [80, 42], [70, 66]];
+    for (const [x, y] of holes) {
+      g.fillStyle = "#ece8e0";
+      g.beginPath();
+      g.arc(x, y, 9, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#1c1c22";
+      g.beginPath();
+      g.arc(x + 1, y + 1, 5.5, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+  const meteorMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#2a120c";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#ff7a18";
+    g.lineWidth = 4;
+    g.lineCap = "round";
+    for (let i = 0; i < 6; i++) {
+      g.beginPath();
+      g.moveTo(8 + i * 16, 8);
+      g.lineTo(28 + i * 14, s - 8);
+      g.stroke();
+    }
+    g.fillStyle = "#ffb020";
+    g.globalAlpha = 0.85;
+    g.beginPath();
+    g.arc(78, 46, 16, 0, Math.PI * 2);
+    g.fill();
+    g.globalAlpha = 1;
+  });
+  return {
+    oak: std({ map: makeOakBallMap(), color: 0xffffff, roughness: 0.52, metalness: 0.04 }),
+    marble: new THREE.MeshPhysicalMaterial({
+      map: marbleMap,
+      color: 0xffffff,
+      roughness: 0.08,
+      metalness: 0.06,
+      clearcoat: 0.7,
+      clearcoatRoughness: 0.12,
+    }),
+    soccer: std({ map: soccerMap, color: 0xffffff, roughness: 0.58, metalness: 0.02 }),
+    tire: std({ map: tireMap, color: 0xffffff, roughness: 0.92, metalness: 0.02 }),
+    slime: std({
+      color: 0x3dcf4a,
+      roughness: 0.22,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.82,
+      emissive: 0x145c22,
+      emissiveIntensity: 0.25,
+    }),
+    basketball: std({ map: hoopMap, color: 0xffffff, roughness: 0.62, metalness: 0.02 }),
+    bowling: std({ map: bowlMap, color: 0xffffff, roughness: 0.32, metalness: 0.28 }),
+    meteor: std({
+      map: meteorMap,
+      color: 0xffffff,
+      roughness: 0.4,
+      metalness: 0.08,
+      emissive: 0xff6a18,
+      emissiveIntensity: 0.45,
+    }),
+  };
+}
+
+function makeSoftDot() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const grd = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  grd.addColorStop(0, "rgba(255,255,255,1)");
+  grd.addColorStop(0.45, "rgba(255,255,255,0.85)");
+  grd.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 function makeStarShape() {
   const shape = new THREE.Shape();
   for (let i = 0; i < 10; i++) {
@@ -279,12 +451,8 @@ export function createView(canvas) {
     return mat;
   }
 
-  const ballMat = new THREE.MeshStandardMaterial({
-    map: makeOakBallMap(),
-    color: 0xffffff,
-    roughness: 0.52,
-    metalness: 0.04,
-  });
+  const ballMaterials = makeBallMaterials();
+  let equipped = ballById("oak");
   const glassMat = new THREE.MeshPhysicalMaterial({
     color: 0x7af4ff,
     roughness: 0.08,
@@ -365,7 +533,7 @@ export function createView(canvas) {
 
   const ballRoot = new THREE.Group();
   const ballSpin = new THREE.Group();
-  const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 32, 24), ballMat);
+  const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 32, 24), ballMaterials.oak);
   ballMesh.castShadow = true;
   ballSpin.add(ballMesh);
   ballRoot.add(ballSpin);
@@ -395,6 +563,68 @@ export function createView(canvas) {
     x: 0, y: -40, z: 0, vx: 0, vy: 0, vz: 0, life: 0, max: 1, r: 1, g: 1, b: 1,
   }));
   rig.add(sparks);
+
+  const DECALS = 12;
+  const TRAIL_N = 20;
+  const HEADING = { right: 0, left: Math.PI, down: -Math.PI / 2, up: Math.PI / 2 };
+  const fxGroup = new THREE.Group();
+  const goalGroup = new THREE.Group();
+  rig.add(fxGroup, goalGroup);
+  const decalGeo = new THREE.CircleGeometry(0.18, 12);
+  const decals = Array.from({ length: DECALS }, () => {
+    const mesh = new THREE.Mesh(
+      decalGeo,
+      new THREE.MeshBasicMaterial({
+        color: 0x16110e,
+        transparent: true,
+        opacity: 0.7,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -4,
+        polygonOffsetUnits: -4,
+      })
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.renderOrder = 2;
+    const group = new THREE.Group();
+    group.add(mesh);
+    group.visible = false;
+    fxGroup.add(group);
+    return { group, mesh, life: 0, max: 1, base: 0.7, kind: "tire" };
+  });
+  const trailPos = new Float32Array(TRAIL_N * 3);
+  const trailCol = new Float32Array(TRAIL_N * 3);
+  const trailGeo = new THREE.BufferGeometry();
+  trailGeo.setAttribute("position", new THREE.BufferAttribute(trailPos, 3));
+  trailGeo.setAttribute("color", new THREE.BufferAttribute(trailCol, 3));
+  const trailMat = new THREE.PointsMaterial({
+    size: 0.32,
+    map: makeSoftDot(),
+    transparent: true,
+    depthWrite: false,
+    vertexColors: true,
+    sizeAttenuation: true,
+  });
+  const trailPoints = new THREE.Points(trailGeo, trailMat);
+  trailPoints.renderOrder = 3;
+  fxGroup.add(trailPoints);
+  const trails = Array.from({ length: TRAIL_N }, () => ({
+    x: 0, y: -40, z: 0, vy: 0, life: 0, max: 1, r: 1, g: 1, b: 1,
+  }));
+  for (let i = 0; i < TRAIL_N; i++) trailPos[i * 3 + 1] = -50;
+  let stamp = 0;
+  let scorchN = 0;
+  let holeCell = null;
+  let pinT = 0;
+  const pins = [];
+  const pinWhite = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.42 });
+  const pinRed = new THREE.MeshStandardMaterial({ color: 0xd42828, roughness: 0.4 });
+  const netMat = new THREE.MeshStandardMaterial({ color: 0xf7f7f7, roughness: 0.55, side: THREE.DoubleSide });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xe85a12, roughness: 0.42 });
+  const backMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.5 });
+  const pinBodyGeo = new THREE.CylinderGeometry(0.055, 0.085, 0.3, 8);
+  const pinNeckGeo = new THREE.CylinderGeometry(0.032, 0.046, 0.08, 8);
+  const pinHeadGeo = new THREE.SphereGeometry(0.055, 8, 6);
 
   const buttons = [];
   const glasses = [];
@@ -568,7 +798,10 @@ export function createView(canvas) {
     flashes.length = 0;
     for (let i = rig.children.length - 1; i >= 0; i--) {
       const child = rig.children[i];
-      if (child === ballRoot || child === sparks || child === hintGroup || child === hintRoute) continue;
+      if (
+        child === ballRoot || child === sparks || child === hintGroup || child === hintRoute
+        || child === fxGroup || child === goalGroup
+      ) continue;
       dropChild(child);
     }
     buttons.length = 0;
@@ -587,6 +820,172 @@ export function createView(canvas) {
     const p = cellXZ(r, c);
     ballRoot.position.set(p.x, y, p.z);
     contact.position.set(p.x, BOARD_TOP + 0.02, p.z);
+  }
+
+  function clearFx() {
+    stamp = 0;
+    scorchN = 0;
+    for (const d of decals) {
+      d.life = 0;
+      d.group.visible = false;
+    }
+    for (let i = 0; i < trails.length; i++) {
+      trails[i].life = 0;
+      trailPos[i * 3 + 1] = -50;
+    }
+    trailGeo.attributes.position.needsUpdate = true;
+    trailGeo.attributes.color.needsUpdate = true;
+  }
+
+  function spawnDecal(x, z, dir, kind) {
+    let slot = decals[0];
+    for (const d of decals) if (d.life < slot.life) slot = d;
+    slot.kind = kind;
+    slot.life = kind === "scorch" ? 3 : kind === "tire" ? 2.4 : 1.6;
+    slot.max = slot.life;
+    const mat = slot.mesh.material;
+    if (kind === "tire") {
+      mat.color.setHex(0x16110e);
+      slot.base = 0.72;
+      slot.mesh.scale.set(2.7, 0.58, 1);
+      slot.group.rotation.y = HEADING[dir] || 0;
+    } else if (kind === "splat") {
+      mat.color.setHex(0x2fbf3e);
+      slot.base = 0.8;
+      const s = 0.9 + Math.random() * 0.45;
+      slot.mesh.scale.set(s, s * (0.8 + Math.random() * 0.35), 1);
+      slot.group.rotation.y = Math.random() * Math.PI;
+    } else {
+      mat.color.setHex(0x1a0c08);
+      slot.base = 0.75;
+      slot.mesh.scale.set(1.55, 0.9, 1);
+      slot.group.rotation.y = HEADING[dir] || 0;
+    }
+    mat.opacity = slot.base;
+    slot.group.position.set(x, BOARD_TOP + 0.036, z);
+    slot.group.visible = true;
+  }
+
+  function spawnPoint(x, z, kind) {
+    let slot = trails[0];
+    for (const p of trails) if (p.life < slot.life) slot = p;
+    slot.x = x + (Math.random() - 0.5) * 0.1;
+    slot.z = z + (Math.random() - 0.5) * 0.1;
+    slot.y = kind === "flame" ? BALL_Y - 0.02 : BOARD_TOP + 0.22;
+    slot.vy = kind === "flame" ? 0.7 + Math.random() * 0.45 : 0.2;
+    slot.life = kind === "flame" ? 0.48 : 0.6;
+    slot.max = slot.life;
+    if (kind === "flame") {
+      slot.r = 1;
+      slot.g = 0.42 + Math.random() * 0.4;
+      slot.b = 0.05;
+    } else {
+      slot.r = 0.9;
+      slot.g = 0.97;
+      slot.b = 1;
+    }
+  }
+
+  function dropTrail(x, z, dir, traveled) {
+    const kind = equipped.trail;
+    if (!kind || traveled <= 0) return;
+    stamp += traveled;
+    const gap = kind === "tire" ? 0.34 : kind === "splat" ? 0.3 : 0.18;
+    if (stamp < gap) return;
+    stamp -= gap;
+    const back = kind === "tire" ? 0.22 : 0.12;
+    const ox = dir === "right" ? -back : dir === "left" ? back : 0;
+    const oz = dir === "down" ? -back : dir === "up" ? back : 0;
+    if (kind === "tire") spawnDecal(x + ox, z + oz, dir, "tire");
+    else if (kind === "splat") spawnDecal(x + ox, z + oz, dir, "splat");
+    else if (kind === "sparkle") spawnPoint(x + ox, z + oz, "sparkle");
+    else if (kind === "flame") {
+      spawnPoint(x + ox, z + oz, "flame");
+      scorchN += 1;
+      if (scorchN % 2 === 0) spawnDecal(x + ox, z + oz, dir, "scorch");
+    }
+  }
+
+  function emptyGoal() {
+    const geos = new Set();
+    goalGroup.traverse((node) => {
+      if (node.userData.ownGeo && node.geometry) geos.add(node.geometry);
+    });
+    geos.forEach((geo) => geo.dispose());
+    goalGroup.clear();
+    pins.length = 0;
+    pinT = 0;
+  }
+
+  function addNet() {
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.028, 6, 24), netMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = BOARD_TOP + 0.055;
+    ring.userData.ownGeo = true;
+    goalGroup.add(ring);
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.018, 0.02), netMat);
+      spoke.userData.ownGeo = true;
+      spoke.position.set(Math.cos(a) * 0.36, BOARD_TOP + 0.05, Math.sin(a) * 0.36);
+      spoke.rotation.y = -a;
+      goalGroup.add(spoke);
+    }
+  }
+
+  function addHoop() {
+    const board = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.52, 0.05), backMat);
+    board.position.set(0, BOARD_TOP + 0.78, -0.48);
+    board.userData.ownGeo = true;
+    const square = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.02), rimMat);
+    square.position.set(0, BOARD_TOP + 0.78, -0.44);
+    square.userData.ownGeo = true;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.028, 6, 18), rimMat);
+    rim.rotation.x = Math.PI / 2;
+    rim.position.set(0, BOARD_TOP + 0.58, -0.06);
+    rim.userData.ownGeo = true;
+    goalGroup.add(board, square, rim);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.24, 5), netMat);
+      strand.userData.ownGeo = true;
+      strand.position.set(Math.cos(a) * 0.2, BOARD_TOP + 0.44, -0.06 + Math.sin(a) * 0.2);
+      goalGroup.add(strand);
+    }
+  }
+
+  function addPins() {
+    const spots = [[0.16, 0.5], [-0.16, 0.5], [0.34, 0.7], [-0.34, 0.7]];
+    for (const [x, z] of spots) {
+      const pin = new THREE.Group();
+      pin.position.set(x, BOARD_TOP, z);
+      const body = new THREE.Mesh(pinBodyGeo, pinWhite);
+      body.position.y = 0.16;
+      const neck = new THREE.Mesh(pinNeckGeo, pinRed);
+      neck.position.y = 0.34;
+      const head = new THREE.Mesh(pinHeadGeo, pinWhite);
+      head.position.y = 0.42;
+      pin.add(body, neck, head);
+      goalGroup.add(pin);
+      pins.push(pin);
+    }
+  }
+
+  function dressGoal() {
+    emptyGoal();
+    if (!holeCell || !equipped.goal) return;
+    const p = cellXZ(holeCell[0], holeCell[1]);
+    goalGroup.position.set(p.x, 0, p.z);
+    if (equipped.goal === "net") addNet();
+    else if (equipped.goal === "hoop") addHoop();
+    else if (equipped.goal === "pins") addPins();
+  }
+
+  function setBall(id) {
+    equipped = ballById(id);
+    ballMesh.material = ballMaterials[equipped.id] || ballMaterials.oak;
+    clearFx();
+    dressGoal();
   }
 
   function addInlay(group, color, w, d, y) {
@@ -687,8 +1086,10 @@ export function createView(canvas) {
       sinkJob = null;
     }
     n = level.size;
+    holeCell = level.hole;
     clearHint();
     clearRig();
+    clearFx();
     const span = n * STEP;
     const inner = span / 2 - 0.02;
     const outer = inner + FRAME_T;
@@ -1049,6 +1450,7 @@ export function createView(canvas) {
     squash = 1;
     ballRoot.scale.set(1, 1, 1);
     placeBall(game.ball[0], game.ball[1]);
+    dressGoal();
     sync(game, { ready: true });
     frameCamera();
   }
@@ -1266,6 +1668,12 @@ export function createView(canvas) {
   }
 
   function bump(amount = 1) {
+    if (equipped.motion === "thud") {
+      shake = Math.max(shake, 0.72);
+      squash = 0.66;
+      squashV = 5;
+      return;
+    }
     shake = Math.min(0.55, shake + 0.28 * amount);
     squash = Math.min(squash, 0.9);
     squashV = -0.4;
@@ -1389,6 +1797,7 @@ export function createView(canvas) {
   function sink(cell, my) {
     return new Promise((resolve) => {
       const p = cellXZ(cell[0], cell[1]);
+      if (equipped.goal === "pins") pinT = 0.001;
       sinkJob = { token: my, t: 0, x: p.x, z: p.z, resolve };
       const palette = [[1, 0.92, 0.4], [0.4, 1, 0.9], [1, 1, 1], [1, 0.5, 0.75]];
       burst(p.x, 0.7, p.z, 18, 2.4, palette);
@@ -1454,7 +1863,10 @@ export function createView(canvas) {
     contact.position.set(x, BOARD_TOP + 0.02, z);
     const traveled = Math.max(0, dist - job.prevDist);
     job.prevDist = dist;
-    if (traveled > 0 && !snap) ballSpin.rotateOnWorldAxis(moveAxis[job.dir] || moveAxis.right, traveled / BALL_R);
+    if (traveled > 0 && !snap) {
+      ballSpin.rotateOnWorldAxis(moveAxis[job.dir] || moveAxis.right, traveled / BALL_R);
+      dropTrail(x, z, job.dir, traveled);
+    }
     if (t >= 1) {
       playCracks(job.fx.cracked || []);
       const done = job;
@@ -1495,9 +1907,30 @@ export function createView(canvas) {
       world.position.z = Math.cos(time * 37) * mag;
 
       const ring = rig.getObjectByName("hole-ring");
-      if (ring) ring.material.emissiveIntensity = 0.55 + Math.sin(time * 3.2) * 0.35;
+      if (ring) {
+        ring.material.emissiveIntensity = equipped.goal === "hoop"
+          ? 0.2
+          : 0.55 + Math.sin(time * 3.2) * 0.35;
+      }
 
       if (rollJob) stepRoll(rollJob, dt);
+      if (rollJob && !sinkJob && equipped.motion === "bounce") {
+        const hop = Math.abs(Math.sin(rollJob.t * Math.PI * 6));
+        ballRoot.position.y = BALL_Y + hop * 0.22;
+      }
+      if (rollJob && !sinkJob && equipped.motion === "wobble") {
+        const w = Math.sin(time * 22);
+        ballRoot.scale.set(1.12 + w * 0.08, 0.82 - w * 0.06, 1.12 - w * 0.08);
+      }
+      if (pinT > 0) {
+        pinT = Math.min(1.2, pinT + dt / 0.38);
+        const k = Math.min(1, pinT);
+        const e = k * k;
+        pins.forEach((pin, i) => {
+          pin.rotation.x = e * (1.15 + (i % 2) * 0.25);
+          pin.rotation.z = (i % 2 ? -1 : 1) * e * 0.35;
+        });
+      }
 
       if (sinkJob) {
         sinkJob.t += dt / 0.34;
@@ -1583,6 +2016,33 @@ export function createView(canvas) {
       partGeo.attributes.position.needsUpdate = true;
       partGeo.attributes.color.needsUpdate = true;
 
+      for (const d of decals) {
+        if (d.life <= 0) continue;
+        d.life -= dt;
+        const k = Math.max(0, d.life / d.max);
+        const fade = d.kind === "splat" ? k : Math.min(1, k / 0.3);
+        d.mesh.material.opacity = d.base * fade;
+        if (d.life <= 0) d.group.visible = false;
+      }
+      for (let i = 0; i < trails.length; i++) {
+        const p = trails[i];
+        if (p.life <= 0) {
+          trailPos[i * 3 + 1] = -50;
+          continue;
+        }
+        p.life -= dt;
+        p.y += p.vy * dt;
+        trailPos[i * 3] = p.x;
+        trailPos[i * 3 + 1] = p.y;
+        trailPos[i * 3 + 2] = p.z;
+        const fade = Math.max(0, p.life / p.max);
+        trailCol[i * 3] = p.r * fade;
+        trailCol[i * 3 + 1] = p.g * fade;
+        trailCol[i * 3 + 2] = p.b * fade;
+      }
+      trailGeo.attributes.position.needsUpdate = true;
+      trailGeo.attributes.color.needsUpdate = true;
+
       if (hintGroup.visible) {
         const bob = Math.sin(time * 5.5);
         hintGroup.position.y = hintBaseY + bob * 0.05;
@@ -1617,6 +2077,6 @@ export function createView(canvas) {
   requestAnimationFrame(frame);
 
   return {
-    resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint, armGateOpen,
+    resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint, armGateOpen, setBall,
   };
 }
