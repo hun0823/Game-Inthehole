@@ -61,6 +61,7 @@
           <polygon points="48,26 53.5,33 48,39 42.5,33" fill="url(#ruby)" stroke="#ffe0e8" stroke-width="0.7"/>
         </svg>
         <div id="score-label" class="score">0</div>
+        <button type="button" id="btn-store" class="shop-chip">Shop</button>
       </div>
     </header>
 
@@ -134,7 +135,26 @@
         </span>
       </button>
     </nav>
-    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. How? replays the lesson for a new mechanic. Hints are unlimited. R resets the stage. N loads the next stage.</p>
+    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. How? replays the lesson for a new mechanic. Hints are unlimited. R resets the stage. N loads the next stage. Shop spends stars on balls.</p>
+    <div id="store" class="store" hidden>
+      <div class="store-card" role="dialog" aria-modal="true" aria-labelledby="store-title">
+        <div class="store-head">
+          <h2 id="store-title">Ball Shop</h2>
+          <p class="store-balance"><span id="store-stars">0</span> stars</p>
+          <button type="button" id="store-close" class="store-close" aria-label="Close shop">×</button>
+        </div>
+        <ul id="store-list" class="store-list"></ul>
+        <div id="store-confirm" class="store-confirm" hidden>
+          <div class="store-confirm-card">
+            <p id="store-confirm-text"></p>
+            <div class="store-confirm-actions">
+              <button type="button" id="store-spend">Spend</button>
+              <button type="button" id="store-cancel">Not now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <dialog id="stage-dialog">
