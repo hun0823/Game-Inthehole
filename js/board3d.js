@@ -7,7 +7,7 @@ const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "g
 const GEM_HEX = { red: 0xff3b4e, blue: 0x2f7dff, green: 0x1ed760, purple: 0xc44dff };
 const BALL_R = 0.36;
 const BALL_Y = 0.5 + BALL_R;
-const REST_X = 0.16;
+const REST_X = 0.045;
 const WALL_T = 0.3;
 const WALL_H = 0.52;
 const WALL_Y = 0.66;
@@ -420,30 +420,39 @@ const colored = [];
   }
 
   function frameCamera() {
-    const span = n * STEP + 1.55;
     const w = canvas.clientWidth || 300;
     const h = canvas.clientHeight || 300;
     const aspect = w / Math.max(1, h);
-    const fov = 27;
+    const fov = 28;
     camera.fov = fov;
     camera.aspect = aspect;
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-    const fit = Math.max(span / 2 / Math.tan(vFov / 2), span / 2 / Math.tan(hFov / 2)) * 1.12;
-    const aim = new THREE.Vector3(0, 0.92, 1).normalize().multiplyScalar(fit);
-    camera.position.copy(aim);
-    camera.lookAt(0, 0.05, 0);
+    // Outer mint frame. Fitted the same way for every grid size.
+    const half = (n - 1) * STEP / 2 + CELL / 2 + 0.55;
+    // 72° off the table: cells stay nearly square, frame and gem sides still read.
+    const elev = THREE.MathUtils.degToRad(72);
+    const sinE = Math.sin(elev);
+    const cosE = Math.cos(elev);
+    const fill = 0.96;
+    const distW = half / (fill * Math.tan(hFov / 2)) + half * cosE;
+    const distH = (half * sinE) / (fill * Math.tan(vFov / 2)) + half * cosE;
+    const dist = Math.max(distW, distH);
+    const lookY = 0.18;
+    camera.position.set(0, lookY + dist * sinE, dist * cosE);
+    camera.lookAt(0, lookY, 0);
     camera.updateProjectionMatrix();
-    const s = span * 0.72;
+    const span = n * STEP + 1.55;
+    const s = span * 0.85;
     key.shadow.camera.left = -s;
     key.shadow.camera.right = s;
     key.shadow.camera.top = s;
     key.shadow.camera.bottom = -s;
-    key.shadow.camera.near = 2;
-    key.shadow.camera.far = fit * 4;
+    key.shadow.camera.near = 1;
+    key.shadow.camera.far = dist * 3;
     key.shadow.camera.updateProjectionMatrix();
     blob.scale.set(span * 0.78, span * 0.55, 1);
-    blob.position.z = span * 0.06;
+    blob.position.z = span * 0.04;
   }
 
   function clearRig() {
@@ -691,7 +700,7 @@ const colored = [];
   }
 
   function nudge(dir) {
-    const map = { up: [-0.42, 0], down: [0.42, 0], left: [0, 0.42], right: [0, -0.42] };
+    const map = { up: [-0.5, 0], down: [0.5, 0], left: [0, 0.5], right: [0, -0.5] };
     const t = dir && map[dir] ? map[dir] : [0, 0];
     spring.tx = t[0];
     spring.tz = t[1];
@@ -831,8 +840,8 @@ const colored = [];
           if (done.intoHole) {
             sink(done.path[done.path.length - 1], done.token).then(done.resolve);
           } else {
-            spring.vx += done.dir === "down" ? 1.2 : done.dir === "up" ? -1.2 : 0;
-            spring.vz += done.dir === "left" ? 1.2 : done.dir === "right" ? -1.2 : 0;
+            spring.vx += done.dir === "down" ? 1.45 : done.dir === "up" ? -1.45 : 0;
+            spring.vz += done.dir === "left" ? 1.45 : done.dir === "right" ? -1.45 : 0;
             done.resolve();
           }
         }
