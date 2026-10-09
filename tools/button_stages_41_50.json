@@ -1,0 +1,856 @@
+[
+  {
+    "id": 41,
+    "name": "빨간 스위치",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 4,
+        "col": 2
+      },
+      {
+        "row": 5,
+        "col": 0
+      },
+      {
+        "row": 4,
+        "col": 5
+      },
+      {
+        "row": 1,
+        "col": 3
+      },
+      {
+        "row": 1,
+        "col": 0
+      },
+      {
+        "row": 0,
+        "col": 5
+      }
+    ],
+    "ball": {
+      "row": 0,
+      "col": 0
+    },
+    "hole": {
+      "row": 5,
+      "col": 5
+    },
+    "coloredH": [
+      {
+        "row": 3,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 0,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 5,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 3,
+        "col": 4,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 2,
+        "col": 3,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 42,
+    "name": "벽이 막는다",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 5,
+        "col": 4
+      },
+      {
+        "row": 0,
+        "col": 3
+      },
+      {
+        "row": 1,
+        "col": 3
+      },
+      {
+        "row": 2,
+        "col": 3
+      },
+      {
+        "row": 4,
+        "col": 4
+      },
+      {
+        "row": 4,
+        "col": 2
+      },
+      {
+        "row": 1,
+        "col": 5
+      }
+    ],
+    "ball": {
+      "row": 5,
+      "col": 0
+    },
+    "hole": {
+      "row": 0,
+      "col": 5
+    },
+    "coloredH": [
+      {
+        "row": 1,
+        "col": 0,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 0,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 3,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 4,
+        "col": 1,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 43,
+    "name": "버튼 먼저",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 1,
+        "col": 1
+      },
+      {
+        "row": 3,
+        "col": 0
+      },
+      {
+        "row": 0,
+        "col": 1
+      },
+      {
+        "row": 2,
+        "col": 5
+      },
+      {
+        "row": 3,
+        "col": 2
+      },
+      {
+        "row": 1,
+        "col": 0
+      },
+      {
+        "row": 1,
+        "col": 4
+      },
+      {
+        "row": 5,
+        "col": 1
+      }
+    ],
+    "ball": {
+      "row": 0,
+      "col": 5
+    },
+    "hole": {
+      "row": 5,
+      "col": 0
+    },
+    "coloredH": [
+      {
+        "row": 4,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 4,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 4,
+        "col": 3,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 0,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 5,
+        "col": 3,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 2,
+        "col": 0,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 44,
+    "name": "우회로",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 5,
+        "col": 5
+      },
+      {
+        "row": 2,
+        "col": 5
+      },
+      {
+        "row": 2,
+        "col": 4
+      },
+      {
+        "row": 0,
+        "col": 5
+      },
+      {
+        "row": 1,
+        "col": 3
+      },
+      {
+        "row": 3,
+        "col": 0
+      },
+      {
+        "row": 5,
+        "col": 1
+      }
+    ],
+    "ball": {
+      "row": 2,
+      "col": 0
+    },
+    "hole": {
+      "row": 3,
+      "col": 5
+    },
+    "coloredH": [
+      {
+        "row": 0,
+        "col": 1,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 5,
+        "col": 3,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 1,
+        "col": 4,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 45,
+    "name": "이중 차단",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 4,
+        "col": 4
+      },
+      {
+        "row": 0,
+        "col": 2
+      },
+      {
+        "row": 1,
+        "col": 4
+      },
+      {
+        "row": 0,
+        "col": 1
+      },
+      {
+        "row": 3,
+        "col": 2
+      },
+      {
+        "row": 2,
+        "col": 0
+      }
+    ],
+    "ball": {
+      "row": 5,
+      "col": 5
+    },
+    "hole": {
+      "row": 0,
+      "col": 0
+    },
+    "coloredH": [
+      {
+        "row": 0,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 0,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 5,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 3,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 2,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 3,
+        "col": 3,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 46,
+    "name": "6×6 스위치",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 5,
+        "col": 0
+      },
+      {
+        "row": 0,
+        "col": 2
+      },
+      {
+        "row": 2,
+        "col": 0
+      },
+      {
+        "row": 3,
+        "col": 3
+      },
+      {
+        "row": 2,
+        "col": 4
+      },
+      {
+        "row": 5,
+        "col": 4
+      },
+      {
+        "row": 5,
+        "col": 1
+      },
+      {
+        "row": 5,
+        "col": 3
+      },
+      {
+        "row": 1,
+        "col": 4
+      }
+    ],
+    "ball": {
+      "row": 1,
+      "col": 1
+    },
+    "hole": {
+      "row": 4,
+      "col": 4
+    },
+    "coloredV": [
+      {
+        "row": 2,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 2,
+        "color": "red"
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 4,
+        "col": 5,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 47,
+    "name": "7×7 버튼 데뷔",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 3,
+        "col": 0
+      },
+      {
+        "row": 4,
+        "col": 1
+      },
+      {
+        "row": 5,
+        "col": 1
+      },
+      {
+        "row": 5,
+        "col": 3
+      },
+      {
+        "row": 4,
+        "col": 6
+      },
+      {
+        "row": 6,
+        "col": 5
+      },
+      {
+        "row": 2,
+        "col": 0
+      },
+      {
+        "row": 1,
+        "col": 4
+      }
+    ],
+    "ball": {
+      "row": 0,
+      "col": 0
+    },
+    "hole": {
+      "row": 6,
+      "col": 6
+    },
+    "coloredH": [
+      {
+        "row": 2,
+        "col": 2,
+        "color": "red"
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 2,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 5,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 3,
+        "col": 2,
+        "color": "red"
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 6,
+        "col": 4,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 48,
+    "name": "긴 우회",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 2,
+        "col": 6
+      },
+      {
+        "row": 1,
+        "col": 3
+      },
+      {
+        "row": 0,
+        "col": 2
+      },
+      {
+        "row": 4,
+        "col": 1
+      },
+      {
+        "row": 2,
+        "col": 0
+      },
+      {
+        "row": 5,
+        "col": 1
+      },
+      {
+        "row": 5,
+        "col": 4
+      },
+      {
+        "row": 4,
+        "col": 2
+      },
+      {
+        "row": 5,
+        "col": 6
+      }
+    ],
+    "ball": {
+      "row": 6,
+      "col": 0
+    },
+    "hole": {
+      "row": 0,
+      "col": 6
+    },
+    "coloredH": [
+      {
+        "row": 1,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 0,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 1,
+        "col": 2,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 4,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 3,
+        "col": 3,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 0,
+        "col": 0,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 49,
+    "name": "스위치 연쇄",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 3,
+        "col": 3
+      },
+      {
+        "row": 1,
+        "col": 1
+      },
+      {
+        "row": 4,
+        "col": 6
+      },
+      {
+        "row": 0,
+        "col": 0
+      },
+      {
+        "row": 6,
+        "col": 1
+      },
+      {
+        "row": 1,
+        "col": 4
+      },
+      {
+        "row": 4,
+        "col": 2
+      },
+      {
+        "row": 6,
+        "col": 4
+      }
+    ],
+    "ball": {
+      "row": 3,
+      "col": 0
+    },
+    "hole": {
+      "row": 3,
+      "col": 6
+    },
+    "coloredH": [
+      {
+        "row": 5,
+        "col": 3,
+        "color": "red"
+      },
+      {
+        "row": 1,
+        "col": 6,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 1,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 4,
+        "col": 4,
+        "color": "red"
+      },
+      {
+        "row": 3,
+        "col": 5,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 5,
+        "col": 4,
+        "color": "red"
+      }
+    ]
+  },
+  {
+    "id": 50,
+    "name": "버튼 마스터",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 2,
+        "col": 2
+      },
+      {
+        "row": 0,
+        "col": 2
+      },
+      {
+        "row": 2,
+        "col": 0
+      },
+      {
+        "row": 6,
+        "col": 0
+      },
+      {
+        "row": 4,
+        "col": 5
+      },
+      {
+        "row": 2,
+        "col": 3
+      },
+      {
+        "row": 3,
+        "col": 4
+      },
+      {
+        "row": 1,
+        "col": 6
+      },
+      {
+        "row": 6,
+        "col": 4
+      },
+      {
+        "row": 1,
+        "col": 2
+      },
+      {
+        "row": 0,
+        "col": 1
+      }
+    ],
+    "ball": {
+      "row": 6,
+      "col": 6
+    },
+    "hole": {
+      "row": 0,
+      "col": 0
+    },
+    "coloredH": [
+      {
+        "row": 2,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 2,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 4,
+        "col": 3,
+        "color": "red"
+      },
+      {
+        "row": 1,
+        "col": 1,
+        "color": "red"
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "color": "red"
+      }
+    ],
+    "coloredV": [
+      {
+        "row": 5,
+        "col": 5,
+        "color": "red"
+      },
+      {
+        "row": 5,
+        "col": 1,
+        "color": "red"
+      }
+    ],
+    "buttons": [
+      {
+        "row": 0,
+        "col": 6,
+        "color": "red"
+      }
+    ]
+  }
+]

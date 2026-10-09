@@ -1,0 +1,582 @@
+[
+  {
+    "id": 31,
+    "name": "유리 입문",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 4,
+        "col": 3
+      },
+      {
+        "row": 5,
+        "col": 1
+      },
+      {
+        "row": 2,
+        "col": 2
+      },
+      {
+        "row": 0,
+        "col": 3
+      },
+      {
+        "row": 4,
+        "col": 5
+      },
+      {
+        "row": 1,
+        "col": 1
+      },
+      {
+        "row": 3,
+        "col": 3
+      }
+    ],
+    "ball": {
+      "row": 0,
+      "col": 0
+    },
+    "hole": {
+      "row": 5,
+      "col": 5
+    },
+    "glassV": [
+      {
+        "row": 0,
+        "col": 1
+      },
+      {
+        "row": 5,
+        "col": 4
+      }
+    ]
+  },
+  {
+    "id": 32,
+    "name": "첫 균열",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 2,
+        "col": 3
+      },
+      {
+        "row": 5,
+        "col": 4
+      },
+      {
+        "row": 4,
+        "col": 1
+      },
+      {
+        "row": 2,
+        "col": 1
+      },
+      {
+        "row": 1,
+        "col": 5
+      },
+      {
+        "row": 3,
+        "col": 0
+      }
+    ],
+    "ball": {
+      "row": 5,
+      "col": 0
+    },
+    "hole": {
+      "row": 0,
+      "col": 5
+    },
+    "glassV": [
+      {
+        "row": 3,
+        "col": 3
+      }
+    ]
+  },
+  {
+    "id": 33,
+    "name": "두 번 밀기",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 3,
+        "col": 0
+      },
+      {
+        "row": 1,
+        "col": 2
+      },
+      {
+        "row": 2,
+        "col": 3
+      },
+      {
+        "row": 5,
+        "col": 3
+      },
+      {
+        "row": 3,
+        "col": 3
+      },
+      {
+        "row": 0,
+        "col": 4
+      }
+    ],
+    "ball": {
+      "row": 0,
+      "col": 5
+    },
+    "hole": {
+      "row": 5,
+      "col": 0
+    },
+    "glassH": [
+      {
+        "row": 3,
+        "col": 2
+      },
+      {
+        "row": 4,
+        "col": 5
+      }
+    ],
+    "glassV": [
+      {
+        "row": 4,
+        "col": 4
+      }
+    ]
+  },
+  {
+    "id": 34,
+    "name": "유리 지그재그",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 4,
+        "col": 0
+      },
+      {
+        "row": 1,
+        "col": 0
+      },
+      {
+        "row": 3,
+        "col": 4
+      },
+      {
+        "row": 2,
+        "col": 5
+      },
+      {
+        "row": 4,
+        "col": 2
+      }
+    ],
+    "ball": {
+      "row": 2,
+      "col": 0
+    },
+    "hole": {
+      "row": 3,
+      "col": 5
+    },
+    "glassH": [
+      {
+        "row": 4,
+        "col": 4
+      },
+      {
+        "row": 1,
+        "col": 1
+      },
+      {
+        "row": 2,
+        "col": 0
+      }
+    ]
+  },
+  {
+    "id": 35,
+    "name": "취약한 길",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 4,
+        "col": 1
+      },
+      {
+        "row": 3,
+        "col": 3
+      },
+      {
+        "row": 2,
+        "col": 0
+      },
+      {
+        "row": 0,
+        "col": 2
+      },
+      {
+        "row": 2,
+        "col": 5
+      },
+      {
+        "row": 1,
+        "col": 0
+      }
+    ],
+    "ball": {
+      "row": 5,
+      "col": 5
+    },
+    "hole": {
+      "row": 0,
+      "col": 0
+    },
+    "glassH": [
+      {
+        "row": 2,
+        "col": 4
+      },
+      {
+        "row": 3,
+        "col": 0
+      }
+    ],
+    "glassV": [
+      {
+        "row": 1,
+        "col": 1
+      }
+    ]
+  },
+  {
+    "id": 36,
+    "name": "6×6 유리숙련",
+    "size": 6,
+    "pillars": [
+      {
+        "row": 3,
+        "col": 3
+      },
+      {
+        "row": 3,
+        "col": 4
+      },
+      {
+        "row": 5,
+        "col": 4
+      },
+      {
+        "row": 2,
+        "col": 5
+      },
+      {
+        "row": 4,
+        "col": 1
+      },
+      {
+        "row": 1,
+        "col": 5
+      },
+      {
+        "row": 1,
+        "col": 2
+      },
+      {
+        "row": 3,
+        "col": 0
+      }
+    ],
+    "ball": {
+      "row": 1,
+      "col": 1
+    },
+    "hole": {
+      "row": 4,
+      "col": 4
+    },
+    "glassH": [
+      {
+        "row": 3,
+        "col": 2
+      },
+      {
+        "row": 0,
+        "col": 3
+      }
+    ],
+    "glassV": [
+      {
+        "row": 4,
+        "col": 3
+      }
+    ]
+  },
+  {
+    "id": 37,
+    "name": "7×7 유리 데뷔",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 4,
+        "col": 2
+      },
+      {
+        "row": 2,
+        "col": 6
+      },
+      {
+        "row": 5,
+        "col": 1
+      },
+      {
+        "row": 1,
+        "col": 1
+      },
+      {
+        "row": 3,
+        "col": 1
+      },
+      {
+        "row": 6,
+        "col": 4
+      }
+    ],
+    "ball": {
+      "row": 0,
+      "col": 0
+    },
+    "hole": {
+      "row": 6,
+      "col": 6
+    },
+    "glassH": [
+      {
+        "row": 1,
+        "col": 0
+      }
+    ],
+    "glassV": [
+      {
+        "row": 0,
+        "col": 0
+      }
+    ]
+  },
+  {
+    "id": 38,
+    "name": "얇은 방벽",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 5,
+        "col": 5
+      },
+      {
+        "row": 3,
+        "col": 5
+      },
+      {
+        "row": 3,
+        "col": 0
+      },
+      {
+        "row": 2,
+        "col": 6
+      },
+      {
+        "row": 6,
+        "col": 5
+      },
+      {
+        "row": 5,
+        "col": 0
+      },
+      {
+        "row": 4,
+        "col": 4
+      },
+      {
+        "row": 1,
+        "col": 1
+      },
+      {
+        "row": 3,
+        "col": 4
+      }
+    ],
+    "ball": {
+      "row": 6,
+      "col": 0
+    },
+    "hole": {
+      "row": 0,
+      "col": 6
+    },
+    "glassH": [
+      {
+        "row": 2,
+        "col": 3
+      },
+      {
+        "row": 4,
+        "col": 1
+      }
+    ],
+    "glassV": [
+      {
+        "row": 0,
+        "col": 5
+      }
+    ]
+  },
+  {
+    "id": 39,
+    "name": "연쇄 파쇄",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 6,
+        "col": 4
+      },
+      {
+        "row": 2,
+        "col": 6
+      },
+      {
+        "row": 3,
+        "col": 5
+      },
+      {
+        "row": 5,
+        "col": 3
+      },
+      {
+        "row": 0,
+        "col": 4
+      },
+      {
+        "row": 5,
+        "col": 5
+      },
+      {
+        "row": 6,
+        "col": 3
+      },
+      {
+        "row": 2,
+        "col": 2
+      }
+    ],
+    "ball": {
+      "row": 3,
+      "col": 0
+    },
+    "hole": {
+      "row": 3,
+      "col": 6
+    },
+    "glassH": [
+      {
+        "row": 0,
+        "col": 3
+      },
+      {
+        "row": 1,
+        "col": 3
+      }
+    ],
+    "glassV": [
+      {
+        "row": 2,
+        "col": 3
+      },
+      {
+        "row": 4,
+        "col": 1
+      }
+    ]
+  },
+  {
+    "id": 40,
+    "name": "유리 그랜드마스터",
+    "size": 7,
+    "pillars": [
+      {
+        "row": 1,
+        "col": 0
+      },
+      {
+        "row": 2,
+        "col": 2
+      },
+      {
+        "row": 0,
+        "col": 3
+      },
+      {
+        "row": 2,
+        "col": 0
+      },
+      {
+        "row": 1,
+        "col": 3
+      },
+      {
+        "row": 1,
+        "col": 4
+      },
+      {
+        "row": 6,
+        "col": 4
+      },
+      {
+        "row": 1,
+        "col": 6
+      },
+      {
+        "row": 6,
+        "col": 0
+      },
+      {
+        "row": 3,
+        "col": 5
+      }
+    ],
+    "ball": {
+      "row": 6,
+      "col": 6
+    },
+    "hole": {
+      "row": 0,
+      "col": 0
+    },
+    "glassH": [
+      {
+        "row": 3,
+        "col": 2
+      },
+      {
+        "row": 3,
+        "col": 0
+      }
+    ],
+    "glassV": [
+      {
+        "row": 2,
+        "col": 5
+      },
+      {
+        "row": 5,
+        "col": 5
+      }
+    ]
+  }
+]

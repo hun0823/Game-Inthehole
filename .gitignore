@@ -1,0 +1,41 @@
+# Unity (루트를 실수로 열었을 때 생성되는 폴더)
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/Packages/packages-lock.json
+
+# Unity
+unity/**/[Ll]ibrary/
+unity/**/[Tt]emp/
+unity/**/[Oo]bj/
+unity/**/[Bb]uild/
+unity/**/[Bb]uilds/
+unity/**/[Ll]ogs/
+unity/**/[Uu]ser[Ss]ettings/
+unity/**/*.csproj
+unity/**/*.sln
+unity/**/*.pidb
+unity/**/*.booproj
+unity/**/*.svd
+unity/**/*.pdb
+unity/**/*.mdb
+unity/**/*.opendb
+unity/**/*.VC.db
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Cursor / local
+agent-tools/
+.cursor/
+**/.cursor/
+
+# Large local logs
+unity/**/Library/Bee/
+
+# Python
+__pycache__/
+*.pyc
