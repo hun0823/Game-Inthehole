@@ -1,6 +1,6 @@
 {
-  "version": 9,
-  "levelCount": 50,
+  "version": 10,
+  "levelCount": 90,
   "wallModel": "edges",
   "levels": [
     {
@@ -10,14 +10,14 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 1
+          "col": 2
         }
       ],
       "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
         {
           "row": 1,
           "col": 1
@@ -25,7 +25,7 @@
       ],
       "ball": {
         "row": 0,
-        "col": 1
+        "col": 2
       },
       "hole": {
         "row": 1,
@@ -40,7 +40,7 @@
       "hWalls": [
         {
           "row": 1,
-          "col": 0
+          "col": 1
         }
       ],
       "vWalls": [
@@ -49,21 +49,17 @@
           "col": 0
         },
         {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
+          "row": 2,
           "col": 1
         }
       ],
       "ball": {
         "row": 0,
-        "col": 0
+        "col": 2
       },
       "hole": {
         "row": 2,
-        "col": 2
+        "col": 0
       },
       "par": 4
     },
@@ -74,30 +70,30 @@
       "hWalls": [
         {
           "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
           "col": 1
         }
       ],
       "vWalls": [
         {
-          "row": 0,
-          "col": 1
-        },
-        {
           "row": 1,
-          "col": 1
-        },
-        {
-          "row": 2,
           "col": 0
         }
       ],
       "ball": {
-        "row": 1,
-        "col": 2
+        "row": 2,
+        "col": 0
       },
       "hole": {
         "row": 0,
-        "col": 0
+        "col": 2
       },
       "par": 5
     },
@@ -107,27 +103,27 @@
       "size": 3,
       "hWalls": [
         {
-          "row": 0,
-          "col": 0
-        },
-        {
           "row": 1,
-          "col": 1
+          "col": 0
         }
       ],
       "vWalls": [
+        {
+          "row": 1,
+          "col": 1
+        },
         {
           "row": 2,
           "col": 1
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 1
+        "row": 1,
+        "col": 2
       },
       "hole": {
-        "row": 0,
-        "col": 0
+        "row": 2,
+        "col": 1
       },
       "par": 5
     },
@@ -137,26 +133,26 @@
       "size": 3,
       "hWalls": [
         {
-          "row": 0,
+          "row": 1,
           "col": 0
-        },
-        {
-          "row": 0,
-          "col": 2
         }
       ],
       "vWalls": [
+        {
+          "row": 1,
+          "col": 1
+        },
         {
           "row": 2,
           "col": 1
         }
       ],
       "ball": {
-        "row": 2,
+        "row": 1,
         "col": 2
       },
       "hole": {
-        "row": 0,
+        "row": 2,
         "col": 0
       },
       "par": 6
@@ -168,26 +164,26 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 1
         }
       ],
       "vWalls": [
         {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 1,
+          "row": 2,
           "col": 0
         }
       ],
       "ball": {
-        "row": 1,
-        "col": 0
+        "row": 0,
+        "col": 1
       },
       "hole": {
-        "row": 0,
-        "col": 2
+        "row": 2,
+        "col": 0
       },
       "par": 6
     },
@@ -198,23 +194,15 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
           "col": 0
         },
         {
-          "row": 1,
-          "col": 1
+          "row": 2,
+          "col": 0
         },
         {
-          "row": 1,
-          "col": 2
+          "row": 2,
+          "col": 1
         },
         {
           "row": 2,
@@ -224,16 +212,20 @@
       "vWalls": [
         {
           "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
           "col": 1
         }
       ],
       "ball": {
         "row": 1,
-        "col": 1
+        "col": 0
       },
       "hole": {
         "row": 3,
-        "col": 3
+        "col": 2
       },
       "par": 7
     },
@@ -244,30 +236,38 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 0
+          "col": 1
         },
         {
           "row": 0,
           "col": 2
         },
         {
-          "row": 2,
-          "col": 2
+          "row": 0,
+          "col": 3
         },
         {
-          "row": 2,
-          "col": 3
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
         }
       ],
       "vWalls": [
         {
-          "row": 0,
-          "col": 1
+          "row": 2,
+          "col": 2
         }
       ],
       "ball": {
         "row": 0,
-        "col": 0
+        "col": 3
       },
       "hole": {
         "row": 2,
@@ -285,31 +285,23 @@
           "col": 0
         },
         {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
           "row": 2,
-          "col": 3
+          "col": 2
         }
       ],
       "vWalls": [
         {
-          "row": 0,
+          "row": 1,
           "col": 2
         },
         {
-          "row": 1,
-          "col": 0
+          "row": 3,
+          "col": 2
         }
       ],
       "ball": {
         "row": 1,
-        "col": 0
+        "col": 3
       },
       "hole": {
         "row": 3,
@@ -324,38 +316,42 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 3
+          "col": 0
         },
         {
           "row": 1,
-          "col": 0
+          "col": 3
         },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
         {
           "row": 1,
           "col": 1
         },
         {
           "row": 2,
-          "col": 3
-        }
-      ],
-      "vWalls": [
+          "col": 2
+        },
         {
-          "row": 1,
+          "row": 3,
           "col": 0
         },
         {
-          "row": 1,
-          "col": 1
+          "row": 3,
+          "col": 2
         }
       ],
       "ball": {
-        "row": 3,
-        "col": 3
+        "row": 0,
+        "col": 0
       },
       "hole": {
-        "row": 1,
-        "col": 0
+        "row": 3,
+        "col": 1
       },
       "par": 8
     },
@@ -365,37 +361,41 @@
       "size": 4,
       "hWalls": [
         {
-          "row": 2,
+          "row": 0,
           "col": 1
         },
         {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
+          "row": 1,
           "col": 3
         }
       ],
       "vWalls": [
         {
-          "row": 0,
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
           "col": 1
         },
         {
           "row": 2,
-          "col": 2
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 1
         }
       ],
       "ball": {
-        "row": 3,
+        "row": 1,
         "col": 1
       },
       "hole": {
         "row": 2,
         "col": 3
       },
-      "par": 8
+      "par": 9
     },
     {
       "id": 12,
@@ -404,17 +404,21 @@
       "hWalls": [
         {
           "row": 1,
-          "col": 0
+          "col": 2
         }
       ],
       "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
         {
           "row": 0,
           "col": 1
         },
         {
           "row": 1,
-          "col": 2
+          "col": 0
         },
         {
           "row": 2,
@@ -423,6 +427,10 @@
         {
           "row": 2,
           "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
         },
         {
           "row": 3,
@@ -431,314 +439,26 @@
       ],
       "ball": {
         "row": 2,
-        "col": 0
+        "col": 2
       },
       "hole": {
-        "row": 1,
-        "col": 3
+        "row": 0,
+        "col": 0
       },
       "par": 9
     },
     {
       "id": 13,
-      "name": "Loop",
-      "size": 4,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 0
-      },
-      "hole": {
-        "row": 3,
-        "col": 3
-      },
-      "par": 9
-    },
-    {
-      "id": 14,
-      "name": "Far hole",
-      "size": 4,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 2
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 3
-      },
-      "hole": {
-        "row": 2,
-        "col": 0
-      },
-      "par": 9
-    },
-    {
-      "id": 15,
-      "name": "Tight lane",
-      "size": 4,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 2,
-        "col": 2
-      },
-      "hole": {
-        "row": 3,
-        "col": 0
-      },
-      "par": 10
-    },
-    {
-      "id": 16,
-      "name": "Two elbows",
-      "size": 4,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 0
-        }
-      ],
-      "ball": {
-        "row": 2,
-        "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 2
-      },
-      "par": 10
-    },
-    {
-      "id": 17,
-      "name": "Maze",
-      "size": 4,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 2,
-        "col": 0
-      },
-      "hole": {
-        "row": 1,
-        "col": 2
-      },
-      "par": 10
-    },
-    {
-      "id": 18,
-      "name": "Last lane",
-      "size": 4,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 1
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 2
-      },
-      "hole": {
-        "row": 3,
-        "col": 3
-      },
-      "par": 11
-    },
-    {
-      "id": 19,
       "name": "Five debut",
       "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 0
+          "col": 2
         },
         {
           "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 4
+          "col": 2
         },
         {
           "row": 2,
@@ -747,12 +467,20 @@
         {
           "row": 2,
           "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
         }
       ],
       "vWalls": [
         {
+          "row": 1,
+          "col": 2
+        },
+        {
           "row": 2,
-          "col": 3
+          "col": 1
         },
         {
           "row": 3,
@@ -761,107 +489,87 @@
         {
           "row": 4,
           "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
         }
       ],
       "ball": {
-        "row": 4,
-        "col": 0
+        "row": 1,
+        "col": 2
       },
       "hole": {
-        "row": 0,
-        "col": 3
+        "row": 3,
+        "col": 0
       },
-      "par": 11
+      "par": 10
     },
     {
-      "id": 20,
+      "id": 14,
       "name": "Cross",
       "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 0
-        },
-        {
-          "row": 1,
           "col": 1
         },
         {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
+          "row": 0,
           "col": 4
         },
         {
           "row": 2,
           "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 4
         }
       ],
       "vWalls": [
         {
-          "row": 0,
-          "col": 3
+          "row": 2,
+          "col": 1
         },
         {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 3,
+          "row": 4,
           "col": 0
         }
       ],
       "ball": {
-        "row": 3,
-        "col": 0
+        "row": 0,
+        "col": 1
       },
       "hole": {
-        "row": 0,
-        "col": 4
+        "row": 3,
+        "col": 0
       },
       "par": 11
     },
     {
-      "id": 21,
+      "id": 15,
       "name": "Long way",
       "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 1
         },
         {
-          "row": 1,
-          "col": 4
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
         },
         {
           "row": 2,
           "col": 2
-        },
-        {
-          "row": 3,
-          "col": 1
         }
       ],
       "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
         {
           "row": 1,
           "col": 3
@@ -871,32 +579,48 @@
           "col": 1
         },
         {
+          "row": 2,
+          "col": 3
+        },
+        {
           "row": 3,
-          "col": 2
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 3
         },
         {
           "row": 4,
           "col": 1
+        },
+        {
+          "row": 4,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 4,
-        "col": 0
+        "row": 0,
+        "col": 1
       },
       "hole": {
-        "row": 0,
-        "col": 4
+        "row": 3,
+        "col": 0
       },
       "par": 12
     },
     {
-      "id": 22,
+      "id": 16,
       "name": "Center",
       "size": 5,
       "hWalls": [
         {
-          "row": 1,
-          "col": 2
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
         },
         {
           "row": 2,
@@ -904,25 +628,29 @@
         },
         {
           "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
           "col": 4
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 1
+          "col": 2
         },
         {
-          "row": 0,
-          "col": 3
+          "row": 1,
+          "col": 0
         },
         {
           "row": 1,
           "col": 1
         },
         {
-          "row": 2,
-          "col": 0
+          "row": 1,
+          "col": 2
         },
         {
           "row": 2,
@@ -930,43 +658,43 @@
         },
         {
           "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
+          "col": 2
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 0
+        "row": 1,
+        "col": 1
       },
       "hole": {
-        "row": 1,
+        "row": 0,
         "col": 4
       },
       "par": 12
     },
     {
-      "id": 23,
-      "name": "Five clear",
+      "id": 17,
+      "name": "Soft stop",
       "size": 5,
       "hWalls": [
         {
-          "row": 1,
+          "row": 0,
           "col": 1
         },
         {
-          "row": 1,
+          "row": 0,
           "col": 4
         },
         {
           "row": 2,
-          "col": 1
+          "col": 0
         },
         {
           "row": 2,
-          "col": 2
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
         }
       ],
       "vWalls": [
@@ -975,86 +703,24 @@
           "col": 2
         },
         {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
           "row": 2,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 2
-      },
-      "hole": {
-        "row": 1,
-        "col": 4
-      },
-      "par": 13
-    },
-    {
-      "id": 24,
-      "name": "Deep five",
-      "size": 5,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
           "col": 1
         },
         {
           "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
           "col": 2
-        },
-        {
-          "row": 4,
-          "col": 1
         }
       ],
       "ball": {
@@ -1062,27 +728,249 @@
         "col": 1
       },
       "hole": {
-        "row": 4,
+        "row": 0,
         "col": 4
       },
-      "par": 13
+      "par": 13,
+      "sand": [
+        {
+          "row": 1,
+          "col": 0
+        }
+      ]
     },
     {
-      "id": 25,
-      "name": "Six debut",
-      "size": 6,
+      "id": 18,
+      "name": "Sand bar",
+      "size": 5,
       "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 13,
+      "sand": [
+        {
+          "row": 2,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Stuck grain",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 3
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 12,
+      "sand": [
+        {
+          "row": 2,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Drift",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
         {
           "row": 1,
           "col": 2
         },
         {
-          "row": 3,
-          "col": 5
+          "row": 2,
+          "col": 1
         },
         {
-          "row": 4,
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 13,
+      "sand": [
+        {
+          "row": 2,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Sand pocket",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
           "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
         }
       ],
       "vWalls": [
@@ -1091,398 +979,452 @@
           "col": 1
         },
         {
-          "row": 0,
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 14,
+      "sand": [
+        {
+          "row": 4,
           "col": 3
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "name": "Glide",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
         },
         {
           "row": 2,
           "col": 2
         },
         {
-          "row": 5,
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
           "col": 1
         },
         {
-          "row": 5,
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 14,
+      "ice": [
+        {
+          "row": 4,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "name": "Ice run",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
           "col": 3
         }
       ],
       "ball": {
         "row": 2,
-        "col": 1
+        "col": 0
       },
       "hole": {
         "row": 5,
+        "col": 5
+      },
+      "par": 13,
+      "ice": [
+        {
+          "row": 0,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "name": "Skid",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
         "col": 4
       },
-      "par": 13
+      "par": 13,
+      "ice": [
+        {
+          "row": 1,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "name": "Cold lane",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 3
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 12,
+      "ice": [
+        {
+          "row": 3,
+          "col": 4
+        }
+      ]
     },
     {
       "id": 26,
-      "name": "Wide detour",
+      "name": "Slip",
       "size": 6,
       "hWalls": [
         {
-          "row": 0,
+          "row": 1,
           "col": 4
         },
         {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 5
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
+          "row": 2,
+          "col": 0
         },
         {
           "row": 2,
-          "col": 3
+          "col": 2
         },
         {
           "row": 4,
           "col": 0
         },
         {
-          "row": 5,
-          "col": 0
+          "row": 4,
+          "col": 3
         },
         {
-          "row": 5,
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
           "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 4,
+        "row": 2,
         "col": 0
-      },
-      "hole": {
-        "row": 0,
-        "col": 3
-      },
-      "par": 14
-    },
-    {
-      "id": 27,
-      "name": "Islands",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 2
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 4
-        }
-      ],
-      "ball": {
-        "row": 4,
-        "col": 2
-      },
-      "hole": {
-        "row": 0,
-        "col": 5
-      },
-      "par": 14
-    },
-    {
-      "id": 28,
-      "name": "Far corner",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 2
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 0
-      },
-      "hole": {
-        "row": 3,
-        "col": 5
-      },
-      "par": 15
-    },
-    {
-      "id": 29,
-      "name": "Six maze",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 2
       },
       "hole": {
         "row": 5,
         "col": 5
       },
-      "par": 15
+      "par": 13,
+      "ice": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ]
     },
     {
-      "id": 30,
-      "name": "Wall master",
-      "size": 6,
+      "id": 27,
+      "name": "One way",
+      "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 5
+          "col": 1
         },
         {
           "row": 1,
-          "col": 0
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
         },
         {
           "row": 2,
           "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
         }
       ],
       "vWalls": [
         {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 5
-      },
-      "hole": {
-        "row": 3,
-        "col": 0
-      },
-      "par": 16
-    },
-    {
-      "id": 31,
-      "name": "First glass",
-      "size": 6,
-      "hWalls": [
-        {
           "row": 0,
           "col": 1
         },
         {
           "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 0,
+          "col": 0,
+          "dir": "left"
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "name": "Arrow lane",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
           "col": 4
         },
         {
           "row": 2,
-          "col": 5
+          "col": 2
         },
         {
           "row": 3,
-          "col": 3
+          "col": 2
         },
         {
           "row": 4,
@@ -1492,11 +1434,233 @@
       "vWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 0
         },
         {
           "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
           "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 4
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 13,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 2,
+          "col": 0,
+          "dir": "left"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "name": "No return",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 5
+      },
+      "hole": {
+        "row": 4,
+        "col": 1
+      },
+      "par": 14,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 0,
+          "col": 2,
+          "dir": "left"
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Turnstile",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 5
+      },
+      "hole": {
+        "row": 4,
+        "col": 1
+      },
+      "par": 13,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 2,
+          "col": 3,
+          "dir": "left"
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "name": "Only forward",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
         },
         {
           "row": 1,
@@ -1511,12 +1675,12 @@
           "col": 2
         },
         {
-          "row": 5,
+          "row": 2,
           "col": 1
         },
         {
-          "row": 5,
-          "col": 4
+          "row": 2,
+          "col": 2
         }
       ],
       "ball": {
@@ -1524,25 +1688,27 @@
         "col": 1
       },
       "hole": {
-        "row": 3,
-        "col": 5
+        "row": 0,
+        "col": 4
       },
-      "par": 15,
-      "glassH": [
+      "par": 12,
+      "oneWay": [
         {
+          "axis": "v",
           "row": 1,
-          "col": 3
+          "col": 3,
+          "dir": "left"
         }
       ]
     },
     {
       "id": 32,
-      "name": "Crack it",
-      "size": 6,
+      "name": "Warp",
+      "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 4
+          "col": 1
         },
         {
           "row": 1,
@@ -1554,15 +1720,19 @@
         },
         {
           "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
           "col": 0
         },
         {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 5
+          "row": 3,
+          "col": 1
         }
       ],
       "vWalls": [
@@ -1572,143 +1742,133 @@
         },
         {
           "row": 1,
-          "col": 1
+          "col": 2
         },
         {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 5,
+          "row": 3,
           "col": 1
         }
       ],
       "ball": {
-        "row": 1,
-        "col": 4
+        "row": 0,
+        "col": 1
       },
       "hole": {
-        "row": 2,
+        "row": 4,
         "col": 0
       },
-      "par": 15,
-      "glassV": [
+      "par": 12,
+      "teleports": [
         {
-          "row": 3,
-          "col": 1
+          "a": {
+            "row": 3,
+            "col": 0
+          },
+          "b": {
+            "row": 0,
+            "col": 0
+          }
         }
       ]
     },
     {
       "id": 33,
-      "name": "Two panes",
+      "name": "Pair holes",
       "size": 6,
       "hWalls": [
         {
           "row": 0,
-          "col": 5
+          "col": 2
         },
         {
-          "row": 1,
+          "row": 2,
           "col": 0
         },
         {
-          "row": 1,
-          "col": 2
-        },
-        {
           "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 5
+          "col": 4
         },
         {
           "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
           "col": 1
         },
         {
           "row": 4,
-          "col": 2
+          "col": 0
         }
       ],
       "vWalls": [
         {
           "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
           "col": 1
         },
         {
           "row": 1,
-          "col": 0
+          "col": 3
         },
         {
           "row": 1,
-          "col": 2
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 1
         },
         {
           "row": 3,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 1
+          "col": 3
         }
       ],
       "ball": {
-        "row": 3,
-        "col": 2
+        "row": 1,
+        "col": 5
       },
       "hole": {
-        "row": 0,
-        "col": 0
+        "row": 4,
+        "col": 1
       },
-      "par": 16,
-      "glassH": [
+      "par": 12,
+      "teleports": [
         {
-          "row": 0,
-          "col": 2
-        }
-      ],
-      "glassV": [
-        {
-          "row": 4,
-          "col": 2
+          "a": {
+            "row": 0,
+            "col": 3
+          },
+          "b": {
+            "row": 2,
+            "col": 0
+          }
         }
       ]
     },
     {
       "id": 34,
-      "name": "Glass bend",
-      "size": 6,
+      "name": "Jump cut",
+      "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 1
         },
         {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
+          "row": 0,
           "col": 4
         },
         {
-          "row": 3,
-          "col": 2
+          "row": 2,
+          "col": 0
         },
         {
-          "row": 4,
-          "col": 3
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
         }
       ],
       "vWalls": [
@@ -1717,72 +1877,68 @@
           "col": 2
         },
         {
-          "row": 2,
-          "col": 2
+          "row": 1,
+          "col": 0
         },
         {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
+          "row": 1,
           "col": 1
         },
         {
-          "row": 5,
-          "col": 3
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 4
+        "row": 1,
+        "col": 1
       },
       "hole": {
         "row": 0,
-        "col": 1
+        "col": 4
       },
-      "par": 16,
-      "glassH": [
+      "par": 12,
+      "teleports": [
         {
-          "row": 0,
-          "col": 3
-        }
-      ],
-      "glassV": [
-        {
-          "row": 2,
-          "col": 0
+          "a": {
+            "row": 0,
+            "col": 1
+          },
+          "b": {
+            "row": 2,
+            "col": 2
+          }
         }
       ]
     },
     {
       "id": 35,
-      "name": "Brittle lane",
-      "size": 6,
+      "name": "Other side",
+      "size": 5,
       "hWalls": [
         {
-          "row": 1,
-          "col": 0
+          "row": 0,
+          "col": 1
         },
         {
-          "row": 1,
-          "col": 2
+          "row": 0,
+          "col": 4
         },
         {
           "row": 2,
-          "col": 5
+          "col": 0
         },
         {
-          "row": 3,
-          "col": 3
+          "row": 2,
+          "col": 1
         },
         {
           "row": 3,
@@ -1792,7 +1948,15 @@
       "vWalls": [
         {
           "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
           "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
         },
         {
           "row": 1,
@@ -1800,699 +1964,38 @@
         },
         {
           "row": 2,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 5,
           "col": 1
         },
         {
-          "row": 5,
-          "col": 3
+          "row": 2,
+          "col": 2
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 0
+        "row": 1,
+        "col": 1
       },
       "hole": {
-        "row": 3,
-        "col": 5
+        "row": 0,
+        "col": 4
       },
-      "par": 17,
-      "glassH": [
+      "par": 12,
+      "teleports": [
         {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
+          "a": {
+            "row": 4,
+            "col": 2
+          },
+          "b": {
+            "row": 1,
+            "col": 0
+          }
         }
       ]
     },
     {
       "id": 36,
-      "name": "Glass six",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 5
-      },
-      "hole": {
-        "row": 0,
-        "col": 2
-      },
-      "par": 17,
-      "glassH": [
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 2
-        }
-      ]
-    },
-    {
-      "id": 37,
-      "name": "Seven glass",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 5
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 5
-        },
-        {
-          "row": 6,
-          "col": 4
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 5
-      },
-      "hole": {
-        "row": 2,
-        "col": 0
-      },
-      "par": 17,
-      "glassH": [
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 5
-        }
-      ]
-    },
-    {
-      "id": 38,
-      "name": "Thin pane",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 6
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 6,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 6,
-        "col": 0
-      },
-      "hole": {
-        "row": 3,
-        "col": 6
-      },
-      "par": 18,
-      "glassV": [
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 0,
-          "col": 3
-        }
-      ]
-    },
-    {
-      "id": 39,
-      "name": "Three cracks",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 6,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 4,
-        "col": 0
-      },
-      "hole": {
-        "row": 6,
-        "col": 6
-      },
-      "par": 18,
-      "glassH": [
-        {
-          "row": 4,
-          "col": 6
-        },
-        {
-          "row": 0,
-          "col": 5
-        }
-      ],
-      "glassV": [
-        {
-          "row": 4,
-          "col": 5
-        }
-      ]
-    },
-    {
-      "id": 40,
-      "name": "Glass master",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 5
-        },
-        {
-          "row": 6,
-          "col": 1
-        },
-        {
-          "row": 6,
-          "col": 4
-        },
-        {
-          "row": 6,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 5
-      },
-      "hole": {
-        "row": 6,
-        "col": 0
-      },
-      "par": 19,
-      "glassH": [
-        {
-          "row": 1,
-          "col": 0
-        }
-      ],
-      "glassV": [
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 2
-        }
-      ]
-    },
-    {
-      "id": 41,
-      "name": "Glass gate",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 2
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 1
-      },
-      "hole": {
-        "row": 4,
-        "col": 3
-      },
-      "par": 18,
-      "glassV": [
-        {
-          "row": 5,
-          "col": 1
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 0,
-          "col": 2,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 2,
-          "color": "red"
-        },
-        {
-          "row": 2,
-          "col": 2,
-          "color": "red"
-        }
-      ],
-      "buttons": [
-        {
-          "row": 5,
-          "col": 2,
-          "color": "red"
-        }
-      ]
-    },
-    {
-      "id": 42,
-      "name": "Crack and press",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 2,
-        "col": 2
-      },
-      "hole": {
-        "row": 1,
-        "col": 5
-      },
-      "par": 19,
-      "glassV": [
-        {
-          "row": 0,
-          "col": 3
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 4,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 5,
-          "col": 4,
-          "color": "red"
-        }
-      ],
-      "buttons": [
-        {
-          "row": 4,
-          "col": 0,
-          "color": "red"
-        }
-      ]
-    },
-    {
-      "id": 43,
-      "name": "Red and glass",
+      "name": "Ring pair",
       "size": 6,
       "hWalls": [
         {
@@ -2500,38 +2003,30 @@
           "col": 4
         },
         {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
           "row": 2,
           "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
         },
         {
           "row": 3,
-          "col": 5
+          "col": 2
         },
         {
           "row": 4,
-          "col": 5
+          "col": 3
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 3
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
         },
         {
           "row": 1,
@@ -2547,7 +2042,15 @@
         },
         {
           "row": 3,
-          "col": 3
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
         },
         {
           "row": 5,
@@ -2562,40 +2065,551 @@
         "row": 3,
         "col": 0
       },
-      "par": 19,
-      "glassH": [
+      "par": 12,
+      "teleports": [
+        {
+          "a": {
+            "row": 2,
+            "col": 2
+          },
+          "b": {
+            "row": 0,
+            "col": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "First glass",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 3
+      },
+      "hole": {
+        "row": 1,
+        "col": 0
+      },
+      "par": 12,
+      "glassV": [
+        {
+          "row": 4,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Crack it",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 3,
+        "col": 3
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "glassV": [
+        {
+          "row": 0,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Two panes",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 1,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
         {
           "row": 4,
           "col": 3
         },
         {
-          "row": 1,
+          "row": 4,
           "col": 4
         }
       ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 5,
+        "col": 4
+      },
+      "hole": {
+        "row": 1,
+        "col": 5
+      },
+      "par": 12,
+      "glassH": [
+        {
+          "row": 0,
+          "col": 5
+        }
+      ],
+      "glassV": [
+        {
+          "row": 4,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "name": "Glass bend",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 4
+      },
+      "hole": {
+        "row": 2,
+        "col": 0
+      },
+      "par": 12,
+      "glassV": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "name": "Brittle lane",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 4
+      },
+      "hole": {
+        "row": 2,
+        "col": 0
+      },
+      "par": 12,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "glassV": [
+        {
+          "row": 4,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "name": "Glass six",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 4
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 4,
+        "col": 4
+      },
+      "par": 12,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 5
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "name": "Red gate",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 3
+      },
+      "hole": {
+        "row": 3,
+        "col": 1
+      },
+      "par": 12,
       "coloredH": [
         {
           "row": 2,
-          "col": 4,
+          "col": 0,
           "color": "red"
         },
         {
           "row": 2,
-          "col": 5,
+          "col": 1,
+          "color": "red"
+        },
+        {
+          "row": 2,
+          "col": 2,
           "color": "red"
         }
       ],
       "buttons": [
         {
           "row": 2,
-          "col": 1,
+          "col": 2,
           "color": "red"
         }
       ]
     },
     {
       "id": 44,
-      "name": "Two panes shut",
+      "name": "Press first",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 2
+      },
+      "hole": {
+        "row": 2,
+        "col": 1
+      },
+      "par": 12,
+      "coloredH": [
+        {
+          "row": 1,
+          "col": 2,
+          "color": "red"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "color": "red"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "color": "red"
+        }
+      ],
+      "buttons": [
+        {
+          "row": 0,
+          "col": 1,
+          "color": "red"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "The button",
       "size": 6,
       "hWalls": [
         {
@@ -2603,35 +2617,15 @@
           "col": 2
         },
         {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 4
+          "row": 2,
+          "col": 0
         },
         {
           "row": 2,
           "col": 2
         },
         {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
+          "row": 4,
           "col": 2
         }
       ],
@@ -2641,414 +2635,246 @@
           "col": 2
         },
         {
-          "row": 1,
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
           "col": 1
         },
         {
-          "row": 2,
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
           "col": 2
         },
         {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 4
+          "row": 5,
+          "col": 2
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 4
+        "row": 3,
+        "col": 0
       },
       "hole": {
         "row": 4,
-        "col": 0
+        "col": 3
       },
-      "par": 20,
-      "glassH": [
+      "par": 12,
+      "coloredV": [
+        {
+          "row": 1,
+          "col": 2,
+          "color": "red"
+        },
         {
           "row": 2,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 0
-        }
-      ],
-      "coloredH": [
-        {
-          "row": 3,
-          "col": 3,
+          "col": 2,
           "color": "red"
         },
         {
           "row": 3,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 3,
-          "col": 5,
+          "col": 2,
           "color": "red"
         }
       ],
       "buttons": [
         {
-          "row": 0,
-          "col": 5,
-          "color": "red"
-        }
-      ]
-    },
-    {
-      "id": 45,
-      "name": "Locked glass",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 6
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
           "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 6
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 4
-      },
-      "hole": {
-        "row": 6,
-        "col": 0
-      },
-      "par": 19,
-      "glassV": [
-        {
-          "row": 6,
-          "col": 0
-        }
-      ],
-      "coloredH": [
-        {
-          "row": 5,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 5,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 5,
-          "col": 5,
-          "color": "red"
-        }
-      ],
-      "buttons": [
-        {
-          "row": 3,
-          "col": 3,
+          "col": 2,
           "color": "red"
         }
       ]
     },
     {
       "id": 46,
-      "name": "Seven mix",
-      "size": 7,
+      "name": "Around",
+      "size": 6,
       "hWalls": [
         {
           "row": 0,
-          "col": 5
-        },
-        {
-          "row": 1,
           "col": 3
         },
         {
           "row": 1,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 6
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
           "col": 1
         },
         {
-          "row": 4,
+          "row": 1,
           "col": 2
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 0
+          "col": 2
         },
         {
           "row": 1,
-          "col": 4
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
         },
         {
           "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
           "col": 0
         },
         {
+          "row": 3,
+          "col": 3
+        },
+        {
           "row": 4,
-          "col": 1
+          "col": 3
         },
         {
           "row": 5,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 1
+          "col": 3
         }
       ],
       "ball": {
-        "row": 1,
-        "col": 0
-      },
-      "hole": {
-        "row": 6,
+        "row": 3,
         "col": 1
       },
-      "par": 20,
-      "glassV": [
-        {
-          "row": 5,
-          "col": 1
-        },
+      "hole": {
+        "row": 4,
+        "col": 5
+      },
+      "par": 12,
+      "coloredV": [
         {
           "row": 0,
-          "col": 4
-        }
-      ],
-      "coloredH": [
-        {
-          "row": 1,
-          "col": 0,
+          "col": 3,
           "color": "red"
         },
         {
           "row": 1,
-          "col": 1,
+          "col": 3,
           "color": "red"
         },
         {
-          "row": 1,
-          "col": 2,
+          "row": 2,
+          "col": 3,
           "color": "red"
         }
       ],
       "buttons": [
         {
           "row": 1,
-          "col": 5,
+          "col": 2,
           "color": "red"
         }
       ]
     },
     {
       "id": 47,
-      "name": "Shatter switch",
-      "size": 7,
+      "name": "Locked lane",
+      "size": 6,
       "hWalls": [
         {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 3,
+          "row": 2,
           "col": 0
         },
         {
-          "row": 3,
-          "col": 6
+          "row": 2,
+          "col": 1
         },
         {
-          "row": 4,
+          "row": 2,
           "col": 2
-        },
-        {
-          "row": 5,
-          "col": 4
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
         },
         {
           "row": 3,
-          "col": 3
+          "col": 1
         },
         {
           "row": 4,
           "col": 0
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 6,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 4,
-        "col": 0
-      },
-      "hole": {
-        "row": 6,
-        "col": 5
-      },
-      "par": 20,
-      "glassH": [
-        {
-          "row": 1,
-          "col": 6
         },
         {
           "row": 4,
           "col": 1
         }
       ],
-      "coloredV": [
+      "ball": {
+        "row": 0,
+        "col": 5
+      },
+      "hole": {
+        "row": 3,
+        "col": 1
+      },
+      "par": 12,
+      "coloredH": [
         {
-          "row": 0,
-          "col": 3,
-          "color": "red"
-        },
-        {
-          "row": 1,
+          "row": 2,
           "col": 3,
           "color": "red"
         },
         {
           "row": 2,
-          "col": 3,
+          "col": 4,
+          "color": "red"
+        },
+        {
+          "row": 2,
+          "col": 5,
           "color": "red"
         }
       ],
       "buttons": [
         {
-          "row": 4,
-          "col": 1,
+          "row": 1,
+          "col": 0,
           "color": "red"
         }
       ]
     },
     {
       "id": 48,
-      "name": "Two colors",
-      "size": 7,
+      "name": "Switch six",
+      "size": 6,
       "hWalls": [
-        {
-          "row": 0,
-          "col": 5
-        },
         {
           "row": 1,
           "col": 4
         },
         {
-          "row": 2,
+          "row": 3,
           "col": 0
         },
         {
-          "row": 2,
-          "col": 1
+          "row": 4,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
         },
         {
           "row": 2,
@@ -3056,105 +2882,77 @@
         },
         {
           "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 6
+          "col": 4
         },
         {
           "row": 3,
-          "col": 1
-        },
-        {
-          "row": 4,
           "col": 0
         },
         {
-          "row": 4,
-          "col": 3
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 4
         },
         {
           "row": 4,
           "col": 4
         },
         {
-          "row": 4,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 6
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
+          "row": 5,
           "col": 4
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 0
         }
       ],
       "ball": {
         "row": 2,
-        "col": 5
+        "col": 0
       },
       "hole": {
-        "row": 5,
-        "col": 4
+        "row": 4,
+        "col": 5
       },
-      "par": 20,
-      "glassV": [
-        {
-          "row": 3,
-          "col": 1
-        }
-      ],
-      "coloredH": [
-        {
-          "row": 2,
-          "col": 4,
-          "color": "red"
-        },
-        {
-          "row": 2,
-          "col": 5,
-          "color": "red"
-        },
-        {
-          "row": 4,
-          "col": 1,
-          "color": "blue"
-        },
+      "par": 12,
+      "coloredV": [
         {
           "row": 4,
           "col": 2,
+          "color": "red"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "color": "red"
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "color": "blue"
+        },
+        {
+          "row": 1,
+          "col": 4,
           "color": "blue"
         }
       ],
       "buttons": [
         {
-          "row": 0,
-          "col": 2,
+          "row": 3,
+          "col": 0,
           "color": "red"
         },
         {
-          "row": 3,
-          "col": 1,
+          "row": 4,
+          "col": 3,
           "color": "blue"
         }
       ]
     },
     {
       "id": 49,
-      "name": "Blue after red",
-      "size": 7,
+      "name": "Fog",
+      "size": 5,
       "hWalls": [
         {
           "row": 0,
@@ -3162,134 +2960,89 @@
         },
         {
           "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 0,
           "col": 4
         },
         {
-          "row": 3,
-          "col": 2
+          "row": 2,
+          "col": 0
         },
         {
-          "row": 4,
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
           "col": 4
-        },
-        {
-          "row": 5,
-          "col": 2
         }
       ],
       "vWalls": [
         {
-          "row": 0,
-          "col": 4
-        },
-        {
           "row": 2,
           "col": 1
         },
         {
-          "row": 3,
-          "col": 1
-        },
-        {
           "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 6,
-          "col": 1
-        },
-        {
-          "row": 6,
-          "col": 4
+          "col": 0
         }
       ],
       "ball": {
-        "row": 5,
+        "row": 0,
         "col": 1
       },
       "hole": {
-        "row": 2,
-        "col": 6
+        "row": 3,
+        "col": 0
       },
-      "par": 21,
-      "glassH": [
-        {
-          "row": 5,
-          "col": 1
-        }
-      ],
-      "coloredV": [
-        {
-          "row": 0,
-          "col": 1,
-          "color": "red"
-        },
+      "par": 11,
+      "smog": [
         {
           "row": 1,
-          "col": 1,
-          "color": "red"
-        },
-        {
-          "row": 1,
-          "col": 4,
-          "color": "blue"
-        },
-        {
-          "row": 2,
-          "col": 4,
-          "color": "blue"
+          "col": 4
         },
         {
           "row": 3,
-          "col": 4,
-          "color": "blue"
-        }
-      ],
-      "buttons": [
-        {
-          "row": 4,
-          "col": 0,
-          "color": "red"
+          "col": 4
         },
         {
-          "row": 6,
-          "col": 3,
-          "color": "blue"
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
         }
       ]
     },
     {
       "id": 50,
-      "name": "Gate master",
-      "size": 7,
+      "name": "Hidden wall",
+      "size": 5,
       "hWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 1
         },
         {
-          "row": 0,
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
           "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
         },
         {
           "row": 2,
@@ -3297,7 +3050,665 @@
         },
         {
           "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 12,
+      "smog": [
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "name": "Smog lane",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 5
+      },
+      "hole": {
+        "row": 4,
+        "col": 1
+      },
+      "par": 14,
+      "smog": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "name": "Murk",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "smog": [
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "name": "Clear sight",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 4
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 13,
+      "smog": [
+        {
+          "row": 5,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
           "col": 5
+        },
+        {
+          "row": 0,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "name": "Two coins",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "coins": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "name": "Coin row",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "coins": [
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "name": "Spare star",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "coins": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "name": "Gold bend",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "coins": [
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "name": "Pick up",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "coins": [
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "name": "Crumble",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
         },
         {
           "row": 4,
@@ -3305,7 +3716,79 @@
         },
         {
           "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
           "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 12,
+      "collapse": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "name": "Once only",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 0
         }
       ],
       "vWalls": [
@@ -3314,101 +3797,2391 @@
           "col": 3
         },
         {
-          "row": 0,
-          "col": 5
+          "row": 1,
+          "col": 1
         },
         {
           "row": 1,
-          "col": 5
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
         },
         {
           "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
           "col": 1
         },
         {
           "row": 3,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 5
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 6,
           "col": 3
         }
       ],
       "ball": {
-        "row": 3,
-        "col": 3
+        "row": 1,
+        "col": 5
       },
       "hole": {
-        "row": 1,
-        "col": 6
+        "row": 4,
+        "col": 1
       },
-      "par": 21,
-      "glassV": [
+      "par": 14,
+      "collapse": [
+        {
+          "row": 1,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "name": "Thin floor",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
         {
           "row": 3,
           "col": 2
         },
         {
-          "row": 6,
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 4
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 13,
+      "collapse": [
+        {
+          "row": 3,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "name": "Give way",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
           "col": 1
         }
       ],
-      "coloredV": [
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "collapse": [
+        {
+          "row": 3,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "name": "No return path",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "collapse": [
+        {
+          "row": 1,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "name": "Sink cell",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 12,
+      "collapse": [
+        {
+          "row": 1,
+          "col": 2
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "name": "Shift",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 14,
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 0,
+            "col": 0
+          },
+          "alt": {
+            "axis": "v",
+            "row": 4,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "name": "Moving bar",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 4
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 15,
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 2,
+            "col": 1
+          },
+          "alt": {
+            "axis": "v",
+            "row": 0,
+            "col": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "name": "Toggle",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 15,
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 1,
+            "col": 1
+          },
+          "alt": {
+            "axis": "v",
+            "row": 4,
+            "col": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "name": "Phase wall",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 14,
+      "shifters": [
+        {
+          "home": {
+            "axis": "h",
+            "row": 0,
+            "col": 4
+          },
+          "alt": {
+            "axis": "h",
+            "row": 2,
+            "col": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "name": "Slide aside",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 3
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "shifters": [
+        {
+          "home": {
+            "axis": "h",
+            "row": 1,
+            "col": 4
+          },
+          "alt": {
+            "axis": "h",
+            "row": 3,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "name": "After one",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 14,
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 4,
+            "col": 2
+          },
+          "alt": {
+            "axis": "v",
+            "row": 1,
+            "col": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "name": "Glass + Gate",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 2
+      },
+      "hole": {
+        "row": 2,
+        "col": 1
+      },
+      "par": 13,
+      "coloredH": [
+        {
+          "row": 1,
+          "col": 2,
+          "color": "red"
+        },
         {
           "row": 1,
           "col": 3,
           "color": "red"
         },
         {
-          "row": 2,
-          "col": 3,
+          "row": 1,
+          "col": 4,
           "color": "red"
-        },
-        {
-          "row": 5,
-          "col": 5,
-          "color": "blue"
-        },
-        {
-          "row": 6,
-          "col": 5,
-          "color": "blue"
         }
       ],
       "buttons": [
         {
           "row": 0,
+          "col": 1,
+          "color": "red"
+        }
+      ],
+      "glassH": [
+        {
+          "row": 2,
+          "col": 0
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "name": "Sand + Ice",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 14,
+      "ice": [
+        {
+          "row": 0,
+          "col": 1
+        }
+      ],
+      "sand": [
+        {
+          "row": 0,
+          "col": 4
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "name": "Ice + Crumble",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 13,
+      "collapse": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "ice": [
+        {
+          "row": 0,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "name": "Ice + Arrow",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 13,
+      "ice": [
+        {
+          "row": 0,
+          "col": 1
+        }
+      ],
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 5,
+          "col": 3,
+          "dir": "right"
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "name": "Arrow + Warp",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 5
+      },
+      "hole": {
+        "row": 4,
+        "col": 1
+      },
+      "par": 13,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 2,
+          "col": 3,
+          "dir": "left"
+        }
+      ],
+      "teleports": [
+        {
+          "a": {
+            "row": 2,
+            "col": 1
+          },
+          "b": {
+            "row": 0,
+            "col": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "name": "Sand + Fog",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 14,
+      "sand": [
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "smog": [
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "name": "Ice + Coins",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 13,
+      "ice": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "coins": [
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "name": "Arrow + Crumble",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 4
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 13,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 2,
+          "col": 0,
+          "dir": "left"
+        }
+      ],
+      "collapse": [
+        {
+          "row": 1,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "name": "Crumble + Shift",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 15,
+      "collapse": [
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 1,
+            "col": 1
+          },
+          "alt": {
+            "axis": "v",
+            "row": 4,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "name": "Sand + Arrow",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 5
+      },
+      "hole": {
+        "row": 4,
+        "col": 1
+      },
+      "par": 14,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 2,
+          "col": 3,
+          "dir": "left"
+        }
+      ],
+      "sand": [
+        {
+          "row": 1,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "name": "Ice + Glass",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 4
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 4,
+        "col": 4
+      },
+      "par": 13,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 5
+        }
+      ],
+      "ice": [
+        {
+          "row": 3,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "name": "Coins + Shift",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 14,
+      "shifters": [
+        {
+          "home": {
+            "axis": "h",
+            "row": 0,
+            "col": 4
+          },
+          "alt": {
+            "axis": "h",
+            "row": 2,
+            "col": 4
+          }
+        }
+      ],
+      "coins": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "name": "Fog + Shift",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 1
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 3,
+        "col": 0
+      },
+      "par": 14,
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 0,
+            "col": 0
+          },
+          "alt": {
+            "axis": "v",
+            "row": 4,
+            "col": 0
+          }
+        }
+      ],
+      "smog": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "name": "Arrow + Fog",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 1
+      },
+      "hole": {
+        "row": 4,
+        "col": 0
+      },
+      "par": 13,
+      "smog": [
+        {
+          "row": 3,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 4
+        }
+      ],
+      "oneWay": [
+        {
+          "axis": "h",
+          "row": 2,
+          "col": 4,
+          "dir": "down"
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "name": "Ice + Warp + Crumble",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 13,
+      "collapse": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "ice": [
+        {
+          "row": 0,
+          "col": 1
+        }
+      ],
+      "teleports": [
+        {
+          "a": {
+            "row": 1,
+            "col": 5
+          },
+          "b": {
+            "row": 4,
+            "col": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "name": "Arrow + Crumble",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 3,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 1,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 1
+      },
+      "hole": {
+        "row": 0,
+        "col": 4
+      },
+      "par": 12,
+      "oneWay": [
+        {
+          "axis": "v",
+          "row": 1,
+          "col": 3,
+          "dir": "left"
+        }
+      ],
+      "collapse": [
+        {
+          "row": 3,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "name": "Ice + Coins + Shift",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 4
+        },
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 4
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
+        }
+      ],
+      "ball": {
+        "row": 2,
+        "col": 0
+      },
+      "hole": {
+        "row": 5,
+        "col": 5
+      },
+      "par": 14,
+      "ice": [
+        {
+          "row": 5,
+          "col": 3
+        }
+      ],
+      "coins": [
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 1
+        }
+      ],
+      "shifters": [
+        {
+          "home": {
+            "axis": "v",
+            "row": 5,
+            "col": 4
+          },
+          "alt": {
+            "axis": "v",
+            "row": 3,
+            "col": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "name": "Sand + Gate",
+      "size": 5,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
+        },
+        {
+          "row": 0,
+          "col": 1
+        },
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 1,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 2
+        }
+      ],
+      "ball": {
+        "row": 1,
+        "col": 3
+      },
+      "hole": {
+        "row": 3,
+        "col": 1
+      },
+      "par": 13,
+      "coloredH": [
+        {
+          "row": 2,
           "col": 0,
           "color": "red"
         },
         {
+          "row": 2,
+          "col": 1,
+          "color": "red"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "color": "red"
+        }
+      ],
+      "buttons": [
+        {
+          "row": 2,
+          "col": 2,
+          "color": "red"
+        }
+      ],
+      "sand": [
+        {
+          "row": 0,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "name": "Glass + Coins",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
           "row": 1,
-          "col": 5,
-          "color": "blue"
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 4
+      },
+      "hole": {
+        "row": 2,
+        "col": 0
+      },
+      "par": 12,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "glassV": [
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "coins": [
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 3
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "name": "Ice + Glass",
+      "size": 6,
+      "hWalls": [
+        {
+          "row": 0,
+          "col": 4
+        },
+        {
+          "row": 0,
+          "col": 5
+        },
+        {
+          "row": 1,
+          "col": 0
+        },
+        {
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 4,
+          "col": 1
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 3,
+          "col": 1
+        },
+        {
+          "row": 5,
+          "col": 0
+        }
+      ],
+      "ball": {
+        "row": 0,
+        "col": 4
+      },
+      "hole": {
+        "row": 2,
+        "col": 0
+      },
+      "par": 13,
+      "glassH": [
+        {
+          "row": 4,
+          "col": 5
+        }
+      ],
+      "glassV": [
+        {
+          "row": 4,
+          "col": 0
+        }
+      ],
+      "ice": [
+        {
+          "row": 4,
+          "col": 3
         }
       ]
     }

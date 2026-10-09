@@ -37,6 +37,22 @@ let lessonOpen = false;
 let lessonQueue = [];
 
 const LESSON_COPY = {
+  sand: {
+    title: "Sand",
+    body: "Sand stops the ball the moment it rolls in. That tilt ends on the sand square.",
+  },
+  ice: {
+    title: "Ice",
+    body: "On ice the ball keeps sliding. It stops on the first normal square after the ice, unless a wall, sand, or the hole stops it sooner. A first glass hit still cracks, but on ice it does not stop the ball.",
+  },
+  oneway: {
+    title: "One-way door",
+    body: "The arrow is a door in the floor edge. The ball can cross it only in the arrow's direction.",
+  },
+  teleport: {
+    title: "Teleport holes",
+    body: "The two purple holes are a pair. Roll into one and you come out of the other, still moving the same way.",
+  },
   glass: {
     title: "Glass",
     body: "The first hit cracks the pane and stops the ball. Hit it again and it shatters, and the ball rolls through.",
@@ -49,7 +65,25 @@ const LESSON_COPY = {
     title: "Glass and switches",
     body: "This board has both. Crack the glass on the second hit, and press the matching button, or the way stays shut.",
   },
+  smog: {
+    title: "Smog",
+    body: "Fog hides the walls on that square. It clears on every square the ball rolls through. The path itself does not change.",
+  },
+  coins: {
+    title: "Coins",
+    body: "Roll over every coin for one extra star. The hole still clears the stage. Three stars stay three, and the clear screen says coin bonus.",
+  },
+  collapse: {
+    title: "Collapsing floor",
+    body: "A thin square crumbles after the ball leaves it, and also when a tilt ends there. You cannot roll onto it again.",
+  },
+  movers: {
+    title: "Moving walls",
+    body: "The purple bar switches to its other edge after every tilt that moves the ball. A bump that goes nowhere leaves it where it is.",
+  },
 };
+
+const LESSON_ORDER = ["sand", "ice", "oneway", "teleport", "glass", "gates", "mixed", "smog", "coins", "collapse", "movers"];
 
 function rowHas(grid) {
   return grid.some((row) => row.some(Boolean));
@@ -63,13 +97,46 @@ function hasGates(level) {
   return (level.buttons || []).length > 0;
 }
 
+function hasSand(level) {
+  return (level.sand || []).length > 0;
+}
+function hasIce(level) {
+  return (level.ice || []).length > 0;
+}
+function hasOneWay(level) {
+  return (level.oneWay || []).length > 0;
+}
+function hasTeleport(level) {
+  return (level.teleports || []).length > 0;
+}
+function hasSmog(level) {
+  return (level.smog || []).length > 0;
+}
+function hasCoins(level) {
+  return (level.coins || []).length > 0;
+}
+function hasCollapse(level) {
+  return (level.collapse || []).length > 0;
+}
+function hasMovers(level) {
+  return (level.shifters || []).length > 0;
+}
+
 function lessonsOn(level) {
-  const glass = hasGlass(level);
-  const gates = hasGates(level);
-  if (glass && gates) return ["glass", "gates", "mixed"];
-  if (glass) return ["glass"];
-  if (gates) return ["gates"];
-  return [];
+  const present = {
+    sand: hasSand(level),
+    ice: hasIce(level),
+    oneway: hasOneWay(level),
+    teleport: hasTeleport(level),
+    glass: hasGlass(level),
+    gates: hasGates(level),
+    mixed: hasGlass(level) && hasGates(level),
+    smog: hasSmog(level),
+    coins: hasCoins(level),
+    collapse: hasCollapse(level),
+    movers: hasMovers(level),
+  };
+  return LESSON_ORDER.filter((id) => present[id]);
 }
 
 let debuts = null;
@@ -77,9 +144,9 @@ function debutIndex() {
   if (debuts) return debuts;
   debuts = {};
   LEVELS.forEach((lv, i) => {
-    if (debuts.glass == null && hasGlass(lv)) debuts.glass = i;
-    if (debuts.gates == null && hasGates(lv)) debuts.gates = i;
-    if (debuts.mixed == null && hasGlass(lv) && hasGates(lv)) debuts.mixed = i;
+    for (const id of lessonsOn(lv)) {
+      if (debuts[id] == null) debuts[id] = i;
+    }
   });
   return debuts;
 }
@@ -101,13 +168,20 @@ function rememberLesson(id) {
 }
 
 function artHtml(id) {
-  if (id === "glass") {
-    return `<div class="toy toy-glass"><span class="toy-ball"></span><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-shard"></span><span class="toy-shard"></span><span class="toy-shard"></span><span class="toy-shard"></span></div>`;
-  }
-  if (id === "gates") {
-    return `<div class="toy toy-gate"><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`;
-  }
-  return `<div class="toy toy-mix"><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`;
+  const toys = {
+    sand: `<div class="toy toy-sand"><span class="toy-sand"></span><span class="toy-ball"></span></div>`,
+    ice: `<div class="toy toy-ice"><span class="toy-ice"></span><span class="toy-ball"></span></div>`,
+    oneway: `<div class="toy toy-oneway"><span class="toy-arrow"></span><span class="toy-ball"></span></div>`,
+    teleport: `<div class="toy toy-teleport"><span class="toy-pad"></span><span class="toy-pad toy-pad-b"></span><span class="toy-ball"></span></div>`,
+    glass: `<div class="toy toy-glass"><span class="toy-ball"></span><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-shard"></span><span class="toy-shard"></span><span class="toy-shard"></span><span class="toy-shard"></span></div>`,
+    gates: `<div class="toy toy-gate"><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`,
+    mixed: `<div class="toy toy-mix"><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`,
+    smog: `<div class="toy toy-smog"><span class="toy-fog"></span><span class="toy-ball"></span></div>`,
+    coins: `<div class="toy toy-coins"><span class="toy-coin"></span><span class="toy-coin toy-coin-b"></span><span class="toy-ball"></span></div>`,
+    collapse: `<div class="toy toy-collapse"><span class="toy-pit"></span><span class="toy-ball"></span></div>`,
+    movers: `<div class="toy toy-movers"><span class="toy-mover"></span><span class="toy-ball"></span></div>`,
+  };
+  return toys[id] || toys.mixed;
 }
 
 function showLessonCard(id) {
@@ -150,7 +224,7 @@ function updateLessonButton() {
 function maybeAutoLesson() {
   const first = debutIndex();
   const seen = new Set(seenLessons());
-  const ids = ["glass", "gates", "mixed"].filter((id) => first[id] === stageIndex && !seen.has(id));
+  const ids = LESSON_ORDER.filter((id) => first[id] === stageIndex && !seen.has(id));
   if (ids.length) playLessonQueue(ids);
   else hideLesson();
   updateLessonButton();
@@ -167,6 +241,14 @@ function moveCountTone(par, moves) {
   if (over === 1) return "warn";
   if (over === 2) return "danger";
   return "danger";
+}
+
+function earnedStars() {
+  const par = LEVELS[stageIndex].par || 0;
+  const base = starsForMoves(par, game.moves);
+  if (base <= 0 || !game.allCoins()) return { stars: base, coinBonus: false };
+  if (base >= 3) return { stars: 3, coinBonus: true };
+  return { stars: base + 1, coinBonus: true };
 }
 
 function starsForMoves(par, moves) {
@@ -233,7 +315,7 @@ function updateHud() {
   if (gameOver) movesLabel.classList.add("move-over");
   else if (tone === "warn") movesLabel.classList.add("move-warn");
   else if (tone === "danger") movesLabel.classList.add("move-danger");
-  const stars = starsText(starsForMoves(par, game.moves));
+  const stars = starsText(earnedStars().stars);
   const ratio = par > 0 ? `${game.moves}/${par}` : String(game.moves);
   movesLabel.innerHTML = `<span class="move-num">${ratio}</span> · <span class="stars">${stars}</span>`;
 }
@@ -306,13 +388,15 @@ function spawnClearStars() {
   }
 }
 
-function showWin(stars) {
+function showWin(stars, coinBonus) {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   spawnClearStars();
   overlay.classList.remove("hidden");
   overlayTitle.textContent = "Cleared!";
-  overlayMsg.textContent = `Lvl. ${level.id} · ${game.moves}/${par}`;
+  overlayMsg.textContent = coinBonus
+    ? `Lvl. ${level.id} · ${game.moves}/${par} · coin bonus`
+    : `Lvl. ${level.id} · ${game.moves}/${par}`;
   showClearStars(stars);
   overlayBtn.textContent = stageIndex < LEVELS.length - 1 ? "Next stage" : "From the start";
   overlayBtn.onclick = () => nextStage();
@@ -337,17 +421,17 @@ function handleAfterMove(won) {
     updateHud();
     return;
   }
-  const stars = starsForMoves(par, game.moves);
-  if (stars <= 0) {
+  const award = earnedStars();
+  if (award.stars <= 0) {
     gameOver = true;
     updateHud();
     showGameOver();
     return;
   }
   markCleared(level.id);
-  saveStars(level.id, stars);
+  saveStars(level.id, award.stars);
   updateHud();
-  showWin(stars);
+  showWin(award.stars, award.coinBonus);
 }
 
 function showHint() {
@@ -422,7 +506,7 @@ async function handleTilt(dir) {
   }
   animating = true;
   game.applyTiltResult(path, won, moved);
-  view.sync(game, { ready: false, skipGlass: true, skipGates: true });
+  view.sync(game, { ready: false, skipGlass: true, skipGates: true, adoptReveal: false, skipShift: true });
   view.armGateOpen(game);
   updateHud();
   await view.roll(path, dir, won, { cracked, broken: glassBroken });

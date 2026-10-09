@@ -9,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 
-from tilt_solver import COLOR_IDS, color_id, play, solve
+from tilt_solver import COLOR_IDS, DIRS, color_id, play, prepare, solve, tilt
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -53,7 +53,24 @@ def layout_fingerprint(level):
     btns = tuple(sorted((b["row"], b["col"], b.get("color", "red")) for b in level.get("buttons") or []))
     ball = (level["ball"]["row"], level["ball"]["col"])
     hole = (level["hole"]["row"], level["hole"]["col"])
-    return (level["size"], ball, hole, h, v, glass_h, glass_v, col_h, col_v, btns)
+    sand = tuple(sorted(edge_pairs(level.get("sand"))))
+    ice = tuple(sorted(edge_pairs(level.get("ice"))))
+    smog = tuple(sorted(edge_pairs(level.get("smog"))))
+    coins = tuple(sorted(edge_pairs(level.get("coins"))))
+    collapse = tuple(sorted(edge_pairs(level.get("collapse"))))
+    one = tuple(sorted((e["axis"], e["row"], e["col"], e["dir"]) for e in level.get("oneWay") or []))
+    ports = tuple(sorted(
+        (pair["a"]["row"], pair["a"]["col"], pair["b"]["row"], pair["b"]["col"])
+        for pair in level.get("teleports") or []
+    ))
+    shifts = tuple(sorted(
+        (
+            s["home"]["axis"], s["home"]["row"], s["home"]["col"],
+            s["alt"]["axis"], s["alt"]["row"], s["alt"]["col"],
+        )
+        for s in level.get("shifters") or []
+    ))
+    return (level["size"], ball, hole, h, v, glass_h, glass_v, col_h, col_v, btns, sand, ice, smog, coins, collapse, one, ports, shifts)
 
 
 def _in_range(n, kind, r, c):
@@ -76,19 +93,137 @@ def _sealed_cells(n, h_set, v_set):
 
 
 def mechanics_label(level):
+    parts = []
     glass = len(level.get("glassH") or []) + len(level.get("glassV") or [])
+    if glass:
+        parts.append(f"glass×{glass}")
     colors = []
     for e in (level.get("coloredH") or []) + (level.get("coloredV") or []):
         name = e.get("color", "red")
         if name not in colors:
             colors.append(name)
-    if glass and colors:
-        return f"glass×{glass}, {('+'.join(colors))} gate"
-    if glass:
-        return f"glass×{glass}"
     if colors:
-        return "+".join(colors) + " gate"
-    return "walls"
+        parts.append("+".join(colors) + " gate")
+    if level.get("sand"):
+        parts.append("sand")
+    if level.get("ice"):
+        parts.append("ice")
+    if level.get("oneWay"):
+        parts.append("one-way")
+    if level.get("teleports"):
+        parts.append("teleport")
+    if level.get("smog"):
+        parts.append("smog")
+    if level.get("coins"):
+        parts.append("coins")
+    if level.get("collapse"):
+        parts.append("collapse")
+    if level.get("shifters"):
+        parts.append("moving wall")
+    return ", ".join(parts) if parts else "walls"
+
+
+def mechanic_names(level):
+    names = []
+    if level.get("sand"):
+        names.append("sand")
+    if level.get("ice"):
+        names.append("ice")
+    if level.get("oneWay"):
+        names.append("oneway")
+    if level.get("teleports"):
+        names.append("teleport")
+    if (level.get("glassH") or level.get("glassV")):
+        names.append("glass")
+    if level.get("buttons"):
+        names.append("gates")
+    if level.get("smog"):
+        names.append("smog")
+    if level.get("coins"):
+        names.append("coins")
+    if level.get("collapse"):
+        names.append("collapse")
+    if level.get("shifters"):
+        names.append("movers")
+    return names
+
+
+def _band(i):
+    bands = (
+        (1, 16, set()),
+        (17, 21, {"sand"}),
+        (22, 26, {"ice"}),
+        (27, 31, {"oneway"}),
+        (32, 36, {"teleport"}),
+        (37, 42, {"glass"}),
+        (43, 48, {"gates"}),
+        (49, 53, {"smog"}),
+        (54, 58, {"coins"}),
+        (59, 64, {"collapse"}),
+        (65, 70, {"movers"}),
+    )
+    for start, end, names in bands:
+        if start <= i <= end:
+            return names
+    return None
+
+
+def _replay(level, moves):
+    board = prepare(level)
+    r, c = board["ball"]
+    gstate = act = collapse = phase = 0
+    allow = (1 << len(COLOR_IDS)) - 1
+    paths = []
+    for action in moves:
+        if action == "press":
+            continue
+        dir_i = next(i for i, (name, _dr, _dc) in enumerate(DIRS) if name == action)
+        r, c, gstate, act, _moved, _won, collapse, phase, path = tilt(
+            board, r, c, dir_i, gstate, act, allow, collapse, phase
+        )
+        paths.append(path)
+    return paths
+
+
+def _shorter_without(level, key, par):
+    bare = dict(level)
+    bare[key] = []
+    moves = solve(bare, max_moves=par)
+    return moves is not None and len(moves) < par
+
+
+def _coins_on_par(level, moves):
+    flat = {cell for path in _replay(level, moves) for cell in path}
+    coins = [(c["row"], c["col"]) for c in level.get("coins") or []]
+    if len(coins) < 1:
+        return False
+    bare = dict(level)
+    bare["coins"] = []
+    same = solve(bare, max_moves=len(moves))
+    return same is not None and len(same) == len(moves) and all(cell in flat for cell in coins)
+
+
+def _jumps(level, moves):
+    for path in _replay(level, moves):
+        for a, b in zip(path, path[1:]):
+            if abs(a[0] - b[0]) + abs(a[1] - b[1]) > 1:
+                return True
+    return False
+
+
+def _collapse_once(level, moves):
+    cells = [(c["row"], c["col"]) for c in level.get("collapse") or []]
+    if not cells:
+        return False
+    flat = [cell for path in _replay(level, moves) for cell in path]
+    return all(flat.count(cell) == 1 for cell in cells)
+
+
+def _shifter_matters(level, moves):
+    bare = dict(level)
+    bare["shifters"] = []
+    other = solve(bare, max_moves=len(moves) + 6)
+    return other is None or tuple(other) != tuple(moves)
 
 
 def validate(data):
@@ -97,8 +232,8 @@ def validate(data):
     if "pillars" in json.dumps(data):
         errors.append("pillar field still present")
     levels = data.get("levels") or []
-    if len(levels) != 50:
-        errors.append(f"expected 50 levels, got {len(levels)}")
+    if len(levels) != 90:
+        errors.append(f"expected 90 levels, got {len(levels)}")
     seen = set()
     prev_par = 0
     for i, lv in enumerate(levels, start=1):
@@ -136,7 +271,20 @@ def validate(data):
         if fp in seen:
             errors.append(f"id {i} duplicates an earlier layout")
         seen.add(fp)
-        moves = solve(lv, max_moves=40)
+        for e in lv.get("oneWay") or []:
+            edge = (e["axis"], e["row"], e["col"])
+            if not _in_range(n, e["axis"], e["row"], e["col"]):
+                errors.append(f"id {i} one-way out of range {edge}")
+            elif edge in occupied:
+                errors.append(f"id {i} one-way overlaps {edge}")
+        for shifter in lv.get("shifters") or []:
+            for spot in (shifter["home"], shifter["alt"]):
+                edge = (spot["axis"], spot["row"], spot["col"])
+                if not _in_range(n, spot["axis"], spot["row"], spot["col"]):
+                    errors.append(f"id {i} shifter out of range {edge}")
+                elif edge in occupied:
+                    errors.append(f"id {i} shifter overlaps {edge}")
+        moves = solve(lv, max_moves=60)
         if not moves:
             errors.append(f"id {i} unsolvable")
             par = -1
@@ -151,41 +299,36 @@ def validate(data):
                 errors.append(f"id {i} board is smaller than 3×3")
             if par < 4:
                 errors.append(f"id {i} trivial par {par}")
-            if i <= 30 and (lv.get("glassH") or lv.get("glassV") or lv.get("buttons")):
-                errors.append(f"id {i} should be walls only")
-            if 31 <= i <= 40:
-                glass_n = len(lv.get("glassH") or []) + len(lv.get("glassV") or [])
-                if glass_n < 1 or lv.get("buttons"):
-                    errors.append(f"id {i} expected glass and no buttons")
-                if broken < 1:
-                    errors.append(f"id {i} optimal path never breaks glass")
-                bare = dict(lv)
-                bare["glassH"] = []
-                bare["glassV"] = []
-                bare_moves = solve(bare, max_moves=40)
-                if bare_moves is None or len(bare_moves) >= par:
-                    errors.append(f"id {i} glass does not add tilts")
-            if 41 <= i <= 50:
-                glass_n = len(lv.get("glassH") or []) + len(lv.get("glassV") or [])
-                if glass_n < 1 or not lv.get("buttons"):
-                    errors.append(f"id {i} expected glass and colored gates together")
-                if broken < 1:
-                    errors.append(f"id {i} optimal path never breaks glass")
-                bare = dict(lv)
-                bare["glassH"] = []
-                bare["glassV"] = []
-                bare_moves = solve(bare, max_moves=40)
-                if bare_moves is None or len(bare_moves) >= par:
-                    errors.append(f"id {i} glass does not add tilts")
-                if not button_required(lv, max_moves=40):
+            names = set(mechanic_names(lv))
+            expected = _band(i)
+            if expected is not None and names != expected:
+                errors.append(f"id {i} mechanics {sorted(names)} expected {sorted(expected)}")
+            if i >= 71 and len(names) < 2:
+                errors.append(f"id {i} mix needs two mechanics, has {sorted(names)}")
+            if "glass" in names and broken < 1 and i <= 42:
+                errors.append(f"id {i} optimal path never breaks glass")
+            if "gates" in names and expected == {"gates"}:
+                if not button_required(lv, max_moves=60):
                     errors.append(f"id {i} solvable without its button")
                 full = (1 << len(COLOR_IDS)) - 1
                 bits = {1 << color_id(b.get("color")) for b in lv["buttons"]}
                 for bit in bits:
-                    if solve(lv, max_moves=40, allow_mask=full ^ bit) is not None:
+                    if solve(lv, max_moves=60, allow_mask=full ^ bit) is not None:
                         errors.append(f"id {i} color bit {bit} is not required")
-            if prev_par and par + 2 < prev_par:
-                errors.append(f"id {i} par {par} drops more than 1 from {prev_par}")
+            if expected == {"sand"} and not _shorter_without(lv, "sand", par):
+                errors.append(f"id {i} sand does not add tilts")
+            if expected == {"ice"} and not _shorter_without(lv, "ice", par):
+                errors.append(f"id {i} ice does not add tilts")
+            if expected == {"coins"} and not _coins_on_par(lv, moves):
+                errors.append(f"id {i} par path misses a coin")
+            if expected == {"teleport"} and not _jumps(lv, moves):
+                errors.append(f"id {i} solution never teleports")
+            if expected == {"collapse"} and not _collapse_once(lv, moves):
+                errors.append(f"id {i} collapse cell is not a one-time step")
+            if expected == {"movers"} and not _shifter_matters(lv, moves):
+                errors.append(f"id {i} moving wall does not change the route")
+            if prev_par and par + 3 < prev_par:
+                errors.append(f"id {i} par {par} drops more than 2 from {prev_par}")
             prev_par = par
         rows.append((i, n, lv.get("par"), mechanics_label(lv)))
     return errors, rows

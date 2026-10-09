@@ -92,15 +92,39 @@ function prepareBoard(level) {
         const wall = axis === "h" ? level.hWalls[er][ec] : level.vWalls[er][ec];
         const colorName = axis === "h" ? level.hColored[er][ec] : level.vColored[er][ec];
         const gi = glassIndex.get(`${axis}:${er}:${ec}`);
+        const edgeKey = `${axis}:${er}:${ec}`;
         table[r * n + c] = {
           wall: !!wall,
           colorBit: colorName ? COLOR_BIT[colorName] || 1 : 0,
           glassIndex: gi === undefined ? -1 : gi,
+          edgeKey,
+          nr,
+          nc,
         };
       }
     }
     return table;
   });
+
+  const asPairs = (list) => (list || []).map((p) => (Array.isArray(p) ? p : [p.row, p.col]));
+  const ice = new Set(asPairs(level.ice).map(([r, c]) => `${r},${c}`));
+  const sand = new Set(asPairs(level.sand).map(([r, c]) => `${r},${c}`));
+  const collapse = asPairs(level.collapse);
+  const collapseIndex = new Map(collapse.map(([r, c], i) => [`${r},${c}`, 1 << i]));
+  const oneWays = new Map((level.oneWay || []).map((e) => [`${e[0]}:${e[1]}:${e[2]}`, e[3]]));
+  const teleport = new Map();
+  for (const pair of level.teleports || []) {
+    const a = pair[0];
+    const b = pair[1];
+    teleport.set(`${a[0]},${a[1]}`, b);
+    teleport.set(`${b[0]},${b[1]}`, a);
+  }
+  const shifters = (level.shifters || []).map((pair) => ({
+    home: { axis: pair[0][0], r: pair[0][1], c: pair[0][2] },
+    alt: { axis: pair[1][0], r: pair[1][1], c: pair[1][2] },
+  }));
+  const coins = asPairs(level.coins);
+  const smog = asPairs(level.smog);
 
   return {
     n,
@@ -109,6 +133,16 @@ function prepareBoard(level) {
     leave,
     holeR: level.hole[0],
     holeC: level.hole[1],
+    ice,
+    sand,
+    collapse,
+    collapseIndex,
+    oneWays,
+    teleport,
+    shifters,
+    coins,
+    smog,
+    special: ice.size + sand.size + collapse.length + oneWays.size + teleport.size + shifters.length > 0,
   };
 }
 
@@ -123,9 +157,91 @@ function activateAt(board, r, c, act) {
 }
 
 // One tilt. Shared by the live board and the hint search.
-// A tilt counts only when the ball moves or glass takes a hit. A button
-// under the ball opens during that tilt. Pressing without tilting is separate.
-function slide(board, r, c, dirIndex, gstate, act) {
+// A tilt counts only when the ball moves, glass takes a hit, or a button
+// under the ball opens. Pressing without tilting is separate and does not
+// flip shifting walls.
+//
+// Ice: once a tilt steps on ice, the ball keeps going in that direction. A
+// first glass hit does not stop it while it is on ice (the pane still cracks).
+// The tilt ends on the first non-ice cell after that ice, or sooner on sand,
+// the goal, or a hard block. A hard block (border, wall, closed gate, one-way
+// facing the wrong way, shifting wall, crumbled floor) always stops the ball,
+// even on ice.
+// Sand: entering a sand cell ends the tilt on that cell.
+// Teleport: entering one pad of a pair exits on the other and the slide
+// continues in the same direction. The exit pad does not teleport again.
+// One-way: the edge can be crossed only in its arrow direction.
+// Shifting walls: each pair occupies `home` on even phase and `alt` on odd
+// phase. A spent tilt flips the phase afterward. A pure button press does not.
+// Collapsing floor: a listed cell crumbles when the ball leaves it, or when a
+// spent tilt ends on it. A crumbled cell cannot be entered again.
+// Smog and coins do not change the slide. Smog only hides walls until the
+// ball has been on that cell. Coins on the path are collected; the hole is
+// still the only clear condition. All coins add one bonus star, capped at 3.
+function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0) {
+  if (!board.special) return slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase);
+  const dir = DIR_LIST[dirIndex];
+  const table = board.leave[dirIndex];
+  const n = board.n;
+  let newAct = activateAt(board, r, c, act);
+  const path = [[r, c]];
+  const broken = [];
+  let moved = false;
+  let coll = collapse | 0;
+  let iceRun = board.ice.has(`${r},${c}`);
+  const limit = n * n * 6;
+
+  const crumble = (rr, cc) => {
+    const bit = board.collapseIndex.get(`${rr},${cc}`);
+    if (bit) coll |= bit;
+  };
+
+  for (let steps = 0; steps < limit; steps++) {
+    const info = table[r * n + c];
+    if (blocked(board, info, dir.name, newAct, coll, phase)) break;
+    if (info.glassIndex >= 0) {
+      const base = POW3[info.glassIndex];
+      const st = Math.floor(gstate / base) % 3;
+      if (st === 0) {
+        gstate += base;
+        moved = true;
+        if (!board.ice.has(`${r},${c}`)) break;
+      } else if (st === 1) {
+        gstate += base;
+        broken.push(board.glass[info.glassIndex]);
+      }
+    }
+    const hop = board.teleport.get(`${info.nr},${info.nc}`);
+    let destR = info.nr;
+    let destC = info.nc;
+    let via = null;
+    if (hop) {
+      const exitBit = board.collapseIndex.get(`${hop[0]},${hop[1]}`);
+      if (exitBit && coll & exitBit) break;
+      via = [info.nr, info.nc];
+      destR = hop[0];
+      destC = hop[1];
+    }
+    crumble(r, c);
+    moved = true;
+    if (via) path.push(via);
+    r = destR;
+    c = destC;
+    path.push([r, c]);
+    newAct = activateAt(board, r, c, newAct);
+    if (r === board.holeR && c === board.holeC) {
+      return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, broken);
+    }
+    if (board.sand.has(`${r},${c}`)) break;
+    const nowIce = board.ice.has(`${r},${c}`);
+    if (iceRun && !nowIce) break;
+    if (nowIce) iceRun = true;
+  }
+  if (moved) crumble(r, c);
+  return finish(board, r, c, gstate, act, newAct, coll, phase, moved, false, path, broken);
+}
+
+function slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase) {
   const dir = DIR_LIST[dirIndex];
   const table = board.leave[dirIndex];
   const n = board.n;
@@ -157,15 +273,39 @@ function slide(board, r, c, dirIndex, gstate, act) {
     moved = true;
     newAct = activateAt(board, r, c, newAct);
     if (r === board.holeR && c === board.holeC) {
-      return { r, c, gstate, act: newAct, moved: true, won: true, path, broken };
+      return finish(board, r, c, gstate, act, newAct, collapse, phase, true, true, path, broken);
     }
   }
 
-  return { r, c, gstate, act: newAct, moved, won: false, path, broken };
+  return finish(board, r, c, gstate, act, newAct, collapse, phase, moved, false, path, broken);
 }
 
-function stateKey(r, c, gstate, act, n) {
-  return ((gstate * 32 + act) * n + r) * n + c;
+function blocked(board, info, dirName, act, collapse, phase) {
+  if (!info || info.wall) return true;
+  if (info.colorBit && (act & info.colorBit) === 0) return true;
+  const allow = board.oneWays.get(info.edgeKey);
+  if (allow && allow !== dirName) return true;
+  if (shifterBlocks(board, info.edgeKey, phase)) return true;
+  const bit = board.collapseIndex.get(`${info.nr},${info.nc}`);
+  if (bit && collapse & bit) return true;
+  return false;
+}
+
+function shifterBlocks(board, edgeKey, phase) {
+  for (const shifter of board.shifters) {
+    const spot = phase & 1 ? shifter.alt : shifter.home;
+    if (`${spot.axis}:${spot.r}:${spot.c}` === edgeKey) return true;
+  }
+  return false;
+}
+
+function finish(board, r, c, gstate, act, newAct, collapse, phase, moved, won, path, broken) {
+  const nextPhase = board.shifters.length && moved ? phase ^ 1 : phase;
+  return { r, c, gstate, act: newAct, collapse, phase: nextPhase, moved, won, path, broken };
+}
+
+function stateKey(r, c, gstate, act, collapse, phase, n) {
+  return `${r},${c},${gstate},${act},${collapse},${phase},${n}`;
 }
 
 export class Game {
@@ -191,7 +331,14 @@ export class Game {
     this.hole = [...level.hole];
     this.moves = 0;
     this.won = false;
+    this.collapse = 0;
+    this.phase = 0;
     this.board = prepareBoard(level);
+    this.coinsGot = new Set();
+    this.revealed = new Set([`${this.ball[0]},${this.ball[1]}`]);
+    if (this.board.coins.some(([r, c]) => r === this.ball[0] && c === this.ball[1])) {
+      this.coinsGot.add(`${this.ball[0]},${this.ball[1]}`);
+    }
     this.hintCache = new Map();
   }
 
@@ -266,8 +413,14 @@ export class Game {
     if (dirIndex === undefined) {
       return { path: [this.ball.slice()], moved: false, won: false, glassBroken: [] };
     }
-    const result = slide(this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct());
+    const result = slide(
+      this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct(), this.collapse, this.phase
+    );
     this.writeGlass(result.gstate);
+    if (result.moved) {
+      this.collapse = result.collapse;
+      this.phase = result.phase;
+    }
     return {
       path: result.path,
       moved: result.moved,
@@ -287,10 +440,18 @@ export class Game {
       this.ball = cell.slice();
       if (this.tryActivateButton()) spent = true;
       this.ball = saved;
+      this.revealed.add(`${cell[0]},${cell[1]}`);
+      if (this.board.coins.some(([r, c]) => r === cell[0] && c === cell[1])) {
+        this.coinsGot.add(`${cell[0]},${cell[1]}`);
+      }
     }
     if (path.length > 0) this.ball = path[path.length - 1].slice();
     if (spent) this.moves += 1;
     if (won) this.won = true;
+  }
+
+  allCoins() {
+    return this.board.coins.length > 0 && this.coinsGot.size >= this.board.coins.length;
   }
 
   pressButton() {
@@ -318,6 +479,8 @@ export class Game {
     let c = this.ball[1];
     let gstate = this.packGlass();
     let act = this.packAct();
+    let collapse = this.collapse;
+    let phase = this.phase;
     const cells = [[r, c]];
     const stops = [[r, c]];
     for (const action of actions) {
@@ -325,12 +488,14 @@ export class Game {
         act = activateAt(this.board, r, c, act);
         continue;
       }
-      const result = slide(this.board, r, c, DIR_INDEX[action], gstate, act);
+      const result = slide(this.board, r, c, DIR_INDEX[action], gstate, act, collapse, phase);
       for (let i = 1; i < result.path.length; i++) cells.push(result.path[i].slice());
       r = result.r;
       c = result.c;
       gstate = result.gstate;
       act = result.act;
+      collapse = result.collapse;
+      phase = result.phase;
       stops.push([r, c]);
     }
     return { action: actions[0], actions, cells, stops };
@@ -345,33 +510,35 @@ export class Game {
     if (sr === board.holeR && sc === board.holeC) return null;
     const g0 = this.packGlass();
     const a0 = this.packAct();
-    const startKey = stateKey(sr, sc, g0, a0, n);
+    const c0 = this.collapse;
+    const p0 = this.phase;
+    const startKey = stateKey(sr, sc, g0, a0, c0, p0, n);
     if (this.hintCache.has(startKey)) return this.hintCache.get(startKey);
 
     const parent = new Map();
     parent.set(startKey, null);
-    const queue = [[sr, sc, g0, a0, 0]];
+    const queue = [[sr, sc, g0, a0, c0, p0, 0]];
     let answer = null;
 
     for (let qi = 0; qi < queue.length; qi++) {
-      const [r, c, gstate, act, depth] = queue[qi];
+      const [r, c, gstate, act, collapse, phase, depth] = queue[qi];
       if (depth >= limit) continue;
-      const here = stateKey(r, c, gstate, act, n);
+      const here = stateKey(r, c, gstate, act, collapse, phase, n);
 
       const pressBit = activateAt(board, r, c, act) ^ act;
       if (pressBit) {
         const nextAct = act | pressBit;
-        const key = stateKey(r, c, gstate, nextAct, n);
+        const key = stateKey(r, c, gstate, nextAct, collapse, phase, n);
         if (!parent.has(key)) {
           parent.set(key, { prev: here, action: "press" });
-          queue.push([r, c, gstate, nextAct, depth + 1]);
+          queue.push([r, c, gstate, nextAct, collapse, phase, depth + 1]);
         }
       }
 
       for (let dirIndex = 0; dirIndex < DIR_LIST.length; dirIndex++) {
-        const result = slide(board, r, c, dirIndex, gstate, act);
+        const result = slide(board, r, c, dirIndex, gstate, act, collapse, phase);
         if (!result.moved) continue;
-        const key = stateKey(result.r, result.c, result.gstate, result.act, n);
+        const key = stateKey(result.r, result.c, result.gstate, result.act, result.collapse, result.phase, n);
         if (result.won) {
           const actions = [DIR_LIST[dirIndex].name];
           let cursor = here;
@@ -387,7 +554,7 @@ export class Game {
         }
         if (!parent.has(key)) {
           parent.set(key, { prev: here, action: DIR_LIST[dirIndex].name });
-          queue.push([result.r, result.c, result.gstate, result.act, depth + 1]);
+          queue.push([result.r, result.c, result.gstate, result.act, result.collapse, result.phase, depth + 1]);
         }
       }
     }

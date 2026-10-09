@@ -399,6 +399,33 @@ export function createView(canvas) {
   const buttons = [];
   const glasses = [];
   const colored = [];
+  const fogWalls = [];
+  const smogs = [];
+  const coins = [];
+  const pits = [];
+  const shifters = [];
+  let smogKeys = new Set();
+  let visualReveal = new Set();
+  const shiftCanvas = document.createElement("canvas");
+  shiftCanvas.width = 64;
+  shiftCanvas.height = 64;
+  {
+    const g = shiftCanvas.getContext("2d");
+    g.fillStyle = "#2c2158";
+    g.fillRect(0, 0, 64, 64);
+    g.fillStyle = "#f2c14a";
+    for (let i = -64; i < 96; i += 18) {
+      g.beginPath();
+      g.moveTo(i, 0);
+      g.lineTo(i + 8, 0);
+      g.lineTo(i + 28, 64);
+      g.lineTo(i + 20, 64);
+      g.fill();
+    }
+  }
+  const shiftMap = new THREE.CanvasTexture(shiftCanvas);
+  shiftMap.colorSpace = THREE.SRGBColorSpace;
+  const shiftMat = new THREE.MeshStandardMaterial({ map: shiftMap, color: 0xffffff, roughness: 0.45, metalness: 0.04 });
   const flashes = [];
   const liveShards = [];
   const shardGeo = new THREE.BoxGeometry(0.14, 0.09, 0.045);
@@ -547,6 +574,13 @@ export function createView(canvas) {
     buttons.length = 0;
     glasses.length = 0;
     colored.length = 0;
+    fogWalls.length = 0;
+    smogs.length = 0;
+    coins.length = 0;
+    pits.length = 0;
+    shifters.length = 0;
+    smogKeys = new Set();
+    visualReveal = new Set();
   }
 
   function placeBall(r, c, y = BALL_Y) {
@@ -717,9 +751,18 @@ export function createView(canvas) {
       const mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, kind === "wall" ? 0.05 : 0.07), mat);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
-      mesh.userData = { kind, axis, r, c, color: color || null };
+      mesh.userData = {
+        kind,
+        axis,
+        r,
+        c,
+        color: color || null,
+        fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
+        ruleVisible: true,
+      };
       group.add(mesh);
       rig.add(group);
+      fogWalls.push(mesh);
       if (kind === "color") {
         addInlay(group, color || "red", w, d, WALL_H / 2 + 0.03);
         colored.push(mesh);
@@ -824,6 +867,182 @@ export function createView(canvas) {
       buttons.push(mesh);
     }
 
+    const paintDisc = (r, c, color, radius, y, opacity = 1) => {
+      const { x, z } = cellXZ(r, c);
+      const mat = new THREE.MeshStandardMaterial({
+        color,
+        roughness: 0.62,
+        metalness: 0.04,
+        transparent: opacity < 1,
+        opacity,
+        depthWrite: opacity >= 1,
+      });
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 0.045, 22), mat);
+      mesh.position.set(x, y, z);
+      mesh.userData.ownMat = true;
+      mesh.userData.row = r;
+      mesh.userData.col = c;
+      rig.add(mesh);
+      return mesh;
+    };
+
+    for (const [r, c] of level.sand || []) {
+      const dune = paintDisc(r, c, 0xd0892a, 0.46, BOARD_TOP + 0.04);
+      const { x, z } = cellXZ(r, c);
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.4, 0.045, 8, 20),
+        new THREE.MeshStandardMaterial({ color: 0x8a4e12, roughness: 0.8 })
+      );
+      rim.rotation.x = Math.PI / 2;
+      rim.position.set(x, BOARD_TOP + 0.05, z);
+      rim.userData.ownMat = true;
+      rig.add(rim);
+      dune.material.roughness = 0.95;
+    }
+    for (const [r, c] of level.ice || []) {
+      const sheet = paintDisc(r, c, 0x3ec4ff, 0.5, BOARD_TOP + 0.025, 0.88);
+      sheet.material.emissive = new THREE.Color(0x1aa8ee);
+      sheet.material.emissiveIntensity = 0.7;
+      const { x, z } = cellXZ(r, c);
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(0.4, 0.03, 8, 24),
+        new THREE.MeshStandardMaterial({ color: 0xeaf8ff, emissive: 0xffffff, emissiveIntensity: 0.4, roughness: 0.2 })
+      );
+      rim.rotation.x = Math.PI / 2;
+      rim.position.set(x, BOARD_TOP + 0.05, z);
+      rim.userData.ownMat = true;
+      rig.add(rim);
+    }
+    smogKeys = new Set((level.smog || []).map(([r, c]) => `${r},${c}`));
+    for (const [r, c] of level.smog || []) {
+      const { x, z } = cellXZ(r, c);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x5c656e,
+        transparent: true,
+        opacity: 0.9,
+        roughness: 1,
+        depthWrite: false,
+      });
+      const puff = new THREE.Mesh(new THREE.SphereGeometry(0.52, 16, 12), mat);
+      puff.scale.set(1.15, 0.85, 1.15);
+      puff.position.set(x, BOARD_TOP + 0.46, z);
+      puff.userData = { ownMat: true, row: r, col: c };
+      rig.add(puff);
+      smogs.push(puff);
+    }
+    for (const [r, c] of level.coins || []) {
+      const { x, z } = cellXZ(r, c);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xf0c22e,
+        emissive: 0xc48a10,
+        emissiveIntensity: 0.25,
+        roughness: 0.35,
+        metalness: 0.45,
+      });
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.09, 24), mat);
+      mesh.position.set(x, BOARD_TOP + 0.12, z);
+      mesh.userData = { ownMat: true, row: r, col: c };
+      rig.add(mesh);
+      coins.push(mesh);
+    }
+    (level.collapse || []).forEach(([r, c], i) => {
+      const { x, z } = cellXZ(r, c);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x120c08 });
+      const mesh = new THREE.Mesh(new THREE.CircleGeometry(0.4, 24), mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, BOARD_TOP + 0.035, z);
+      mesh.visible = false;
+      mesh.userData = { ownMat: true, row: r, col: c, bit: 1 << i };
+      rig.add(mesh);
+      const crack = new THREE.Mesh(
+        new THREE.TorusGeometry(0.34, 0.045, 8, 18),
+        new THREE.MeshStandardMaterial({ color: 0x6a3a22, roughness: 0.7 })
+      );
+      crack.rotation.x = Math.PI / 2;
+      crack.position.set(x, BOARD_TOP + 0.045, z);
+      crack.userData = { ownMat: true, row: r, col: c, bit: 1 << i, crack: true };
+      rig.add(crack);
+      pits.push(mesh);
+      pits.push(crack);
+    });
+    const pairMat = new THREE.MeshStandardMaterial({
+      color: 0xd946ef,
+      emissive: 0xa21caf,
+      emissiveIntensity: 0.35,
+      roughness: 0.4,
+    });
+    for (const pair of level.teleports || []) {
+      for (const [r, c] of pair) {
+        const { x, z } = cellXZ(r, c);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.06, 10, 24), pairMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.set(x, BOARD_TOP + 0.05, z);
+        rig.add(ring);
+        const dot = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 8), pairMat);
+        dot.position.set(x, BOARD_TOP + 0.1, z);
+        rig.add(dot);
+      }
+    }
+    const arrowRot = {
+      right: [0, 0, -Math.PI / 2],
+      left: [0, 0, Math.PI / 2],
+      down: [Math.PI / 2, 0, 0],
+      up: [-Math.PI / 2, 0, 0],
+    };
+    const arrowMat = new THREE.MeshStandardMaterial({
+      color: 0xf0a020,
+      emissive: 0xc47a08,
+      emissiveIntensity: 0.2,
+      roughness: 0.45,
+    });
+    for (const [axis, r, c, dir] of level.oneWay || []) {
+      const { x, z } = placeEdge(axis, r, c);
+      const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.56, 4), arrowMat);
+      const rot = arrowRot[dir] || arrowRot.right;
+      arrow.rotation.set(rot[0], rot[1], rot[2]);
+      const slide = { left: [-0.28, 0], right: [0.28, 0], up: [0, -0.28], down: [0, 0.28] };
+      const off = slide[dir] || slide.right;
+      arrow.position.set(x + off[0], BOARD_TOP + 0.3, z + off[1]);
+      rig.add(arrow);
+      const pad = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.16, 0.16, 0.04, 12),
+        new THREE.MeshStandardMaterial({ color: 0x6a3808, roughness: 0.6 })
+      );
+      pad.position.set(x, BOARD_TOP + 0.04, z);
+      pad.userData.ownMat = true;
+      rig.add(pad);
+    }
+    const addShift = (spot, slot) => {
+      const axis = spot[0];
+      const r = spot[1];
+      const c = spot[2];
+      const { x, z, w, d } = placeEdge(axis, r, c);
+      const group = new THREE.Group();
+      group.position.set(x, WALL_Y, z);
+      const mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, 0.05), shiftMat);
+      mesh.castShadow = true;
+      mesh.userData = {
+        kind: "shift",
+        axis,
+        r,
+        c,
+        shiftSlot: slot,
+        fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
+        ruleVisible: slot === 0,
+      };
+      group.add(mesh);
+      group.visible = slot === 0;
+      rig.add(group);
+      fogWalls.push(mesh);
+      shifters.push(mesh);
+    };
+    for (const pair of level.shifters || []) {
+      addShift(pair[0], 0);
+      addShift(pair[1], 1);
+    }
+
+    visualReveal = new Set(game.revealed ? [...game.revealed] : [`${game.ball[0]},${game.ball[1]}`]);
+
     if (!ballRoot.parent) rig.add(ballRoot);
     if (!contact.parent) rig.add(contact);
     if (!sparks.parent) rig.add(sparks);
@@ -865,9 +1084,43 @@ export function createView(canvas) {
     }
   }
 
+  function edgeFogged(mesh) {
+    const cells = mesh.userData.fogCells;
+    if (!cells || !smogKeys.size) return false;
+    return cells.some(([r, c]) => smogKeys.has(`${r},${c}`) && !visualReveal.has(`${r},${c}`));
+  }
+
+  function applyEdgeVisibility(mesh, ruleVisible) {
+    if (ruleVisible !== undefined) mesh.userData.ruleVisible = ruleVisible;
+    if (mesh.userData.opening) return;
+    if (!mesh.parent) return;
+    mesh.parent.visible = mesh.userData.ruleVisible !== false && !edgeFogged(mesh);
+  }
+
+  function refreshFog() {
+    for (const puff of smogs) {
+      const key = `${puff.userData.row},${puff.userData.col}`;
+      puff.visible = smogKeys.has(key) && !visualReveal.has(key);
+    }
+    for (const mesh of coins) {
+      const key = `${mesh.userData.row},${mesh.userData.col}`;
+      mesh.visible = !visualReveal.has(key);
+    }
+    for (const mesh of fogWalls) applyEdgeVisibility(mesh);
+  }
+
+  function showPit(r, c) {
+    for (const pit of pits) {
+      if (pit.userData.row === r && pit.userData.col === c) pit.visible = true;
+    }
+  }
+
   function triggerCell(path, index) {
     const cell = path[index];
     if (!cell) return;
+    visualReveal.add(`${cell[0]},${cell[1]}`);
+    if (index > 0) showPit(path[index - 1][0], path[index - 1][1]);
+    refreshFog();
     for (const b of buttons) {
       if (!b.userData.pendingSpent) continue;
       if (b.userData.row === cell[0] && b.userData.col === cell[1]) openColor(b.userData.color, cell[0], cell[1]);
@@ -944,7 +1197,8 @@ export function createView(canvas) {
     return false;
   }
 
-  function sync(game, { ready = true, animateGates = false, skipGlass = false, skipGates = false } = {}) {
+  function sync(game, { ready = true, animateGates = false, skipGlass = false, skipGates = false, adoptReveal = true, skipShift = false } = {}) {
+    if (adoptReveal && game.revealed) visualReveal = new Set(game.revealed);
     if (!skipGates) {
       const fresh = [];
       for (const mesh of buttons) {
@@ -960,7 +1214,7 @@ export function createView(canvas) {
           startOpen(mesh);
           continue;
         }
-        mesh.parent.visible = show;
+        applyEdgeVisibility(mesh, show);
         if (show) mesh.parent.scale.y = 1;
       }
       for (const mesh of buttons) {
@@ -986,10 +1240,22 @@ export function createView(canvas) {
           mesh.parent.visible = false;
           continue;
         }
-        mesh.parent.visible = alive;
+        applyEdgeVisibility(mesh, alive && !mesh.parent.userData.shattered);
         if (alive && edgeAlive(stress, data.r, data.c)) showCrack(mesh, false);
       }
     }
+    if (!skipShift) {
+      const phase = game.phase & 1;
+      for (const mesh of shifters) applyEdgeVisibility(mesh, mesh.userData.shiftSlot === phase);
+      for (const pit of pits) {
+        const gone = (game.collapse & pit.userData.bit) !== 0;
+        pit.visible = pit.userData.crack ? true : gone;
+      }
+    }
+    for (const mesh of fogWalls) {
+      if (mesh.userData.kind === "wall") applyEdgeVisibility(mesh, true);
+    }
+    refreshFog();
   }
 
   function nudge(dir) {
@@ -1029,6 +1295,10 @@ export function createView(canvas) {
       const b = pts[i];
       const len = Math.hypot(b.x - a.x, b.z - a.z);
       if (len < 1e-4) continue;
+      if (len > STEP * 1.5) {
+        cursor = spacing * 0.65;
+        continue;
+      }
       let d = cursor;
       while (d <= len) {
         const t = d / len;
@@ -1088,8 +1358,12 @@ export function createView(canvas) {
     if (rollJob) rollJob.resolve();
     const pts = path.map((cell) => cellXZ(cell[0], cell[1]));
     const cum = [0];
+    const hop = [false];
     for (let i = 1; i < pts.length; i++) {
-      cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
+      const len = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
+      const far = len > STEP * 1.5;
+      hop.push(far);
+      cum.push(cum[i - 1] + (far ? STEP * 0.18 : len));
     }
     const total = cum[cum.length - 1] || 0;
     return new Promise((resolve) => {
@@ -1105,7 +1379,7 @@ export function createView(canvas) {
       }
       const dur = Math.max(0.28, Math.min(0.8, 0.16 + total * 0.092));
       rollJob = {
-        path, pts, cum, total, dur, t: 0, prevDist: 0, dir, intoHole,
+        path, pts, cum, hop, total, dur, t: 0, prevDist: 0, dir, intoHole,
         resolve, token: my, fx, triggered: [true], segHit: [],
       };
       triggerCell(path, 0);
@@ -1173,13 +1447,14 @@ export function createView(canvas) {
     const local = Math.min(1, Math.max(0, (dist - job.cum[seg - 1]) / span));
     const a = job.pts[seg - 1];
     const b = job.pts[seg];
-    const x = a.x + (b.x - a.x) * local;
-    const z = a.z + (b.z - a.z) * local;
+    const snap = job.hop[seg];
+    const x = snap ? (local < 0.45 ? a.x : b.x) : a.x + (b.x - a.x) * local;
+    const z = snap ? (local < 0.45 ? a.z : b.z) : a.z + (b.z - a.z) * local;
     ballRoot.position.set(x, BALL_Y, z);
     contact.position.set(x, BOARD_TOP + 0.02, z);
     const traveled = Math.max(0, dist - job.prevDist);
     job.prevDist = dist;
-    if (traveled > 0) ballSpin.rotateOnWorldAxis(moveAxis[job.dir] || moveAxis.right, traveled / BALL_R);
+    if (traveled > 0 && !snap) ballSpin.rotateOnWorldAxis(moveAxis[job.dir] || moveAxis.right, traveled / BALL_R);
     if (t >= 1) {
       playCracks(job.fx.cracked || []);
       const done = job;

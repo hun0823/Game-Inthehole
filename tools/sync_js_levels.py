@@ -14,7 +14,7 @@ header = """/**
  * Glass and colored gates use the same edge coordinates.
  */
 function levelFromEdges(
-  id, name, size, hEdges, vEdges, ball, hole, glassH, glassV, coloredH, coloredV, buttons, par
+  id, name, size, hEdges, vEdges, ball, hole, glassH, glassV, coloredH, coloredV, buttons, par, extras
 ) {
   const hWalls = Array.from({ length: size - 1 }, () => Array(size).fill(false));
   const vWalls = Array.from({ length: size }, () => Array(size - 1).fill(false));
@@ -32,10 +32,19 @@ function levelFromEdges(
   for (const [r, c, color] of coloredV || []) vColored[r][c] = color;
 
   const btnList = (buttons || []).map(([row, col, color]) => ({ row, col, color }));
+  const extra = extras || {};
   return {
     id, name, size, par: par || 0,
     hWalls, vWalls, hGlass, vGlass, hColored, vColored,
     buttons: btnList, ball, hole,
+    sand: extra.sand || [],
+    ice: extra.ice || [],
+    smog: extra.smog || [],
+    coins: extra.coins || [],
+    collapse: extra.collapse || [],
+    oneWay: extra.oneWay || [],
+    teleports: extra.teleports || [],
+    shifters: extra.shifters || [],
   };
 }
 
@@ -53,11 +62,31 @@ for lv in data["levels"]:
     btns = [[b["row"], b["col"], b.get("color", "red")] for b in lv.get("buttons") or []]
     ball = [lv["ball"]["row"], lv["ball"]["col"]]
     hole = [lv["hole"]["row"], lv["hole"]["col"]]
+    extras = {
+        "sand": [[e["row"], e["col"]] for e in lv.get("sand") or []],
+        "ice": [[e["row"], e["col"]] for e in lv.get("ice") or []],
+        "smog": [[e["row"], e["col"]] for e in lv.get("smog") or []],
+        "coins": [[e["row"], e["col"]] for e in lv.get("coins") or []],
+        "collapse": [[e["row"], e["col"]] for e in lv.get("collapse") or []],
+        "oneWay": [[e["axis"], e["row"], e["col"], e["dir"]] for e in lv.get("oneWay") or []],
+        "teleports": [
+            [[p["a"]["row"], p["a"]["col"]], [p["b"]["row"], p["b"]["col"]]]
+            for p in lv.get("teleports") or []
+        ],
+        "shifters": [
+            [
+                [s["home"]["axis"], s["home"]["row"], s["home"]["col"]],
+                [s["alt"]["axis"], s["alt"]["row"], s["alt"]["col"]],
+            ]
+            for s in lv.get("shifters") or []
+        ],
+    }
     lines.append(
         f'  levelFromEdges({lv["id"]}, "{lv["name"]}", {lv["size"]}, '
         f"{json.dumps(h_edges)}, {json.dumps(v_edges)}, {json.dumps(ball)}, {json.dumps(hole)}, "
         f"{json.dumps(glass_h)}, {json.dumps(glass_v)}, "
-        f"{json.dumps(col_h)}, {json.dumps(col_v)}, {json.dumps(btns)}, {lv.get('par', 0)}),"
+        f"{json.dumps(col_h)}, {json.dumps(col_v)}, {json.dumps(btns)}, {lv.get('par', 0)}, "
+        f"{json.dumps(extras)}),"
     )
 lines[-1] = lines[-1][:-1]
 lines.append("];\n")
