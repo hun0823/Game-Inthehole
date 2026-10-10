@@ -2682,14 +2682,14 @@ html[lang="ko"] .map {
 }
 
 .controls {
-  --pad: 58px;
-  padding-top: 6px;
-  min-height: calc(var(--pad) * 3 + 28px);
+  --pad: 66px;
+  padding-top: 4px;
+  min-height: calc(var(--pad) * 3 + 22px);
 }
 
 .dpad {
-  column-gap: 8px;
-  row-gap: 10px;
+  column-gap: 16px;
+  row-gap: 12px;
 }
 
 .arcade-btn--gold {
@@ -2705,13 +2705,22 @@ html[lang="ko"] .map {
 }
 
 .arcade-face {
-  border: 3px solid var(--ink);
-  border-radius: 18px;
+  border: 4px solid var(--ink);
+  border-radius: 22px;
   box-shadow:
-    inset 0 -5px 0 rgba(0, 0, 0, 0.08),
-    inset 0 3px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -6px 0 rgba(0, 0, 0, 0.1),
+    inset 0 4px 0 rgba(255, 255, 255, 0.65),
     0 5px 0 #c48a00,
     0 8px 0 var(--ink);
+}
+
+.dpad .arcade-face {
+  border-radius: 20px;
+}
+
+.dpad .arrow {
+  width: 36px;
+  height: 36px;
 }
 
 .arcade-btn--purple .arcade-face {

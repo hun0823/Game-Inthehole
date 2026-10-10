@@ -24,9 +24,26 @@ const BOARD_TOP = 0.5;
 const BALL_Y = BOARD_TOP + BALL_R;
 const REST_X = 0.045;
 const WALL_T = 0.28;
-const WALL_H = 0.46;
+const WALL_H = 0.42;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
-const FRAME_T = 0.26;
+const FRAME_T = 0.46;
+const FRAME_H = 0.64;
+const FRAME_Y = 0.36;
+const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
+const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
+
+function mixHex(a, b, t) {
+  return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
+}
+
+function framePalette(theme) {
+  if (theme.id === "wood") return { hi: 0xb6f59a, mid: 0x3fb83a, low: 0x1c6e28 };
+  return {
+    hi: mixHex(theme.cap, 0xffffff, 0.42),
+    mid: theme.frame,
+    low: mixHex(theme.edge, 0x000000, 0.35),
+  };
+}
 
 const geos = new Map();
 function roundGeo(w, h, d, seg = 2, rad = 0.08) {
@@ -746,11 +763,18 @@ export function createView(canvas) {
 
   applyStudio(renderer, scene, 0.4);
 
-  const frameMap = woodCanvas("#a56b38", "#4e2c12", "#e0b072", 22);
-  frameMap.repeat.set(2, 1);
-  const frameMat = new THREE.MeshStandardMaterial({ map: frameMap, roughness: 0.72, metalness: 0.02 });
-  const capMap = woodCanvas("#c48448", "#6a3c18", "#f0c890", 16);
-  const frameCapMat = new THREE.MeshStandardMaterial({ map: capMap, roughness: 0.58, metalness: 0.03 });
+  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.58, metalness: 0.02 });
+  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.42, metalness: 0.03 });
+  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.3, metalness: 0.04 });
+  const frameGlossMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.8,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const boltGoldMat = new THREE.MeshStandardMaterial({ color: 0xf2c14a, roughness: 0.32, metalness: 0.55 });
+  const boltDarkMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.4, metalness: 0.25 });
   const edgeMap = woodCanvas("#c88840", "#6a3a16", "#f2c48a", 18);
   const floorEdgeMat = new THREE.MeshStandardMaterial({ map: edgeMap, roughness: 0.78, metalness: 0.02 });
   let activeTheme = themeById("wood");
@@ -814,8 +838,10 @@ export function createView(canvas) {
   layoutMotes(0);
   function applyTheme(id) {
     activeTheme = themeById(id);
-    frameMat.color.setHex(activeTheme.frame);
-    frameCapMat.color.setHex(activeTheme.cap);
+    const pal = framePalette(activeTheme);
+    frameLowMat.color.setHex(pal.low);
+    frameMidMat.color.setHex(pal.mid);
+    frameHiMat.color.setHex(pal.hi);
     floorEdgeMat.color.setHex(activeTheme.edge);
     moteMat.color.set(activeTheme.mote);
     storm = !!activeTheme.storm;
@@ -852,8 +878,8 @@ export function createView(canvas) {
     if (!wallMats[key]) {
       wallMats[key] = new THREE.MeshStandardMaterial({
         color: GEM_HEX[key],
-        roughness: 0.82,
-        metalness: 0.0,
+        roughness: 0.38,
+        metalness: 0.04,
       });
     }
     return wallMats[key];
@@ -861,6 +887,23 @@ export function createView(canvas) {
   function gateMaterial(name) {
     return wallMaterial(name);
   }
+  const wallLitMats = {};
+  const wallDimMats = {};
+  function wallTone(store, table, rough) {
+    return (name) => {
+      const key = GEM_HEX[name] ? name : "red";
+      if (!store[key]) {
+        store[key] = new THREE.MeshStandardMaterial({
+          color: table[key],
+          roughness: rough,
+          metalness: 0.04,
+        });
+      }
+      return store[key];
+    };
+  }
+  const wallLit = wallTone(wallLitMats, GEM_LIT, 0.22);
+  const wallDim = wallTone(wallDimMats, GEM_DIM, 0.55);
 
   const blob = new THREE.Mesh(
     new THREE.CircleGeometry(1, 40),
@@ -874,7 +917,7 @@ export function createView(canvas) {
   const ballSpin = new THREE.Group();
   const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 48, 32), ballMaterials.oak);
   const ballInk = new THREE.Mesh(ballMesh.geometry, inkOutlineMaterial());
-  ballInk.scale.setScalar(1.045);
+  ballInk.scale.setScalar(1.07);
   ballInk.raycast = () => {};
   ballMesh.add(ballInk);
   ballMesh.castShadow = true;
@@ -1128,14 +1171,18 @@ export function createView(canvas) {
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const half = viewHalf;
-    const elev = THREE.MathUtils.degToRad(72);
+    // 82° from the floor: near top-down, still enough pitch that screen-up
+    // stays the board's -Z (the "up" tilt). Width fit leaves vertical bands
+    // for the trim; height fit keeps the frame off the canvas edges.
+    const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const fillRatio = 0.96;
-    const distW = half / (fillRatio * Math.tan(hFov / 2)) + half * cosE;
-    const distH = (half * sinE) / (fillRatio * Math.tan(vFov / 2)) + half * cosE;
+    const fillW = 0.9;
+    const fillH = 0.7;
+    const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
+    const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
     const dist = Math.max(distW, distH);
-    const lookY = 0.18;
+    const lookY = 0.42;
     camera.position.set(0, lookY + dist * sinE, dist * cosE);
     camera.lookAt(0, lookY, 0);
     camera.updateProjectionMatrix();
@@ -1469,7 +1516,8 @@ export function createView(canvas) {
     const spot = cellXZ(holeCell[0], holeCell[1]);
     goalGroup.position.set(spot.x, 0, spot.z);
     const tuck = holeCell[0] === 0;
-    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme, tuck });
+    const edge = holeCell[1] === 0 ? "left" : holeCell[1] === n - 1 ? "right" : "";
+    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme, tuck, edge, zoom: tuck ? 1 : 1.32 });
     pins.push(...built.pins);
     pawMesh = built.paw;
   }
@@ -1601,31 +1649,69 @@ export function createView(canvas) {
     clearFx();
     const span = n * STEP;
     const inner = span / 2 - 0.02;
-    const outer = inner + FRAME_T;
-    viewHalf = outer + 0.12 + (decoWanted() ? 0.52 : 0);
-    const fh = 0.56;
-    const fy = 0.4;
-    const capH = 0.1;
+    // 6×6 is the look the trim was drawn for. Thickness and margin track
+    // the board so 3×3 through 8×8 keep the same frame weight on screen.
+    const unit = n / 6;
+    const frameT = FRAME_T * unit;
+    const frameH = FRAME_H * unit;
+    const frameY = 0.04 + frameH / 2;
+    const outer = inner + frameT;
+    viewHalf = outer + 0.05 * unit;
     const bars = [
-      [outer * 2, fh, FRAME_T, 0, fy, -(inner + FRAME_T / 2)],
-      [outer * 2, fh, FRAME_T, 0, fy, inner + FRAME_T / 2],
-      [FRAME_T, fh, inner * 2, -(inner + FRAME_T / 2), fy, 0],
-      [FRAME_T, fh, inner * 2, inner + FRAME_T / 2, fy, 0],
+      [outer * 2 + 0.02, frameH, frameT, 0, frameY, -(inner + frameT / 2)],
+      [outer * 2 + 0.02, frameH, frameT, 0, frameY, inner + frameT / 2],
+      [frameT, frameH, inner * 2, -(inner + frameT / 2), frameY, 0],
+      [frameT, frameH, inner * 2, inner + frameT / 2, frameY, 0],
     ];
     for (const [w, h, d, x, y, z] of bars) {
-      const rail = new THREE.Mesh(roundGeo(w, h, d, 3, 0.07), frameMat);
-      rail.position.set(x, y, z);
-      rail.castShadow = true;
-      rail.receiveShadow = true;
-      rig.add(rail);
-      const capW = w > d ? w - 0.06 : FRAME_T * 0.58;
-      const capD = w > d ? FRAME_T * 0.58 : d - 0.06;
-      const cap = new THREE.Mesh(roundGeo(capW, capH, capD, 2, 0.04), frameCapMat);
-      cap.position.set(x, y + h / 2 + capH / 2 - 0.025, z);
+      const body = new THREE.Mesh(roundGeo(w, h, d, 2, 0.08), frameLowMat);
+      body.position.set(x, y, z);
+      body.castShadow = true;
+      body.receiveShadow = true;
+      const ink = new THREE.Mesh(body.geometry, inkOutlineMaterial());
+      ink.scale.setScalar(1.06);
+      ink.raycast = () => {};
+      body.add(ink);
+      rig.add(body);
+      const alongX = w >= d;
+      const capH = 0.12 * unit;
+      const cw = alongX ? w * 0.99 : w * 0.56;
+      const cd = alongX ? d * 0.56 : d * 0.99;
+      const cap = new THREE.Mesh(roundGeo(cw, capH, cd, 2, 0.04), frameHiMat);
+      cap.position.set(
+        x + (alongX ? 0 : Math.sign(-x || 1) * w * 0.16),
+        y + h / 2 - capH * 0.2,
+        z + (alongX ? Math.sign(-z || 1) * d * 0.16 : 0)
+      );
       cap.castShadow = true;
       rig.add(cap);
+      const band = new THREE.Mesh(roundGeo(cw * 0.96, 0.05, cd * 0.72, 1, 0.02), frameMidMat);
+      band.position.set(cap.position.x, cap.position.y - 0.02, cap.position.z);
+      rig.add(band);
+      const gloss = new THREE.Mesh(roundGeo(cw * 0.62, 0.028, cd * 0.28, 1, 0.01), frameGlossMat);
+      gloss.position.set(cap.position.x, cap.position.y + capH * 0.35, cap.position.z);
+      rig.add(gloss);
     }
-    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span));
+    const boltY = frameY + frameH / 2 + 0.02 * unit;
+    const boltGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.07, 10);
+    const boltCapGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.035, 10);
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        const bolt = new THREE.Mesh(boltGeo, boltDarkMat);
+        bolt.scale.setScalar(unit);
+        bolt.position.set(sx * (outer - 0.22 * unit), boltY, sz * (outer - 0.22 * unit));
+        bolt.castShadow = true;
+        const boltInk = new THREE.Mesh(boltGeo, inkOutlineMaterial());
+        boltInk.scale.setScalar(1.16);
+        boltInk.raycast = () => {};
+        bolt.add(boltInk);
+        const stud = new THREE.Mesh(boltCapGeo, boltGoldMat);
+        stud.position.y = 0.04;
+        bolt.add(stud);
+        rig.add(bolt);
+      }
+    }
+    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
 
     const boardH = 0.26;
     const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
@@ -1659,9 +1745,44 @@ export function createView(canvas) {
       const mat = kind === "glass" ? glassMat : kind === "color" ? gateMaterial(color) : wallMaterial(color);
       const group = new THREE.Group();
       group.position.set(x, WALL_Y, z);
-      const mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, kind === "wall" ? 0.05 : 0.07), mat);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
+      let mesh;
+      if (kind === "wall") {
+        const longX = w >= d;
+        const len = longX ? w : d;
+        const thick = longX ? d : w;
+        const piece = len * 0.29;
+        const gap = len * 0.04;
+        const run = piece * 3 + gap * 2;
+        const start = -run / 2 + piece / 2;
+        for (let i = 0; i < 3; i++) {
+          const bw = longX ? piece : thick * 0.94;
+          const bd = longX ? thick * 0.94 : piece;
+          const offset = start + i * (piece + gap);
+          const ox = longX ? offset : 0;
+          const oz = longX ? 0 : offset;
+          const body = new THREE.Mesh(roundGeo(bw, WALL_H * 0.68, bd, 2, 0.045), mat);
+          body.position.set(ox, 0.02, oz);
+          body.castShadow = true;
+          body.receiveShadow = true;
+          const ink = new THREE.Mesh(body.geometry, inkOutlineMaterial());
+          ink.scale.setScalar(1.1);
+          ink.raycast = () => {};
+          body.add(ink);
+          const base = new THREE.Mesh(roundGeo(bw * 1.05, WALL_H * 0.28, bd * 1.05, 1, 0.035), wallDim(color));
+          base.position.set(ox, -WALL_H * 0.3, oz);
+          const cap = new THREE.Mesh(roundGeo(bw * 0.82, WALL_H * 0.2, bd * 0.82, 1, 0.03), wallLit(color));
+          cap.position.set(ox, WALL_H * 0.34, oz);
+          const shine = new THREE.Mesh(roundGeo(bw * 0.36, 0.03, bd * 0.24, 1, 0.012), frameGlossMat);
+          shine.position.set(ox - bw * 0.12, WALL_H * 0.45, oz - bd * 0.1);
+          group.add(base, body, cap, shine);
+          if (!mesh) mesh = body;
+        }
+      } else {
+        mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, 0.07), mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+      }
       mesh.userData = {
         kind,
         axis,
@@ -1671,7 +1792,6 @@ export function createView(canvas) {
         fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
         ruleVisible: true,
       };
-      group.add(mesh);
       rig.add(group);
       fogWalls.push(mesh);
       const skin = trickVariant(activeTheme.id);
@@ -2433,22 +2553,22 @@ export function createView(canvas) {
       }
       if (goalGroup.userData.idle && propT <= 0) goalGroup.userData.idle(time);
       if (propT > 0) {
-        propT += dt;
+        if (reactHold == null) propT += dt;
         const u = propT;
         const env = u >= 0.16 && u < 0.76 ? Math.sin(((u - 0.16) / 0.6) * Math.PI) : 0;
         const wob = u > 0.16 && u < 0.95 ? Math.sin((u - 0.16) * 16) * Math.exp(-(u - 0.16) * 2.6) : 0;
         const play = goalGroup.userData.play;
         if (play) play(env, wob, Math.min(1, Math.max(0, (u - 0.12) / 0.78)));
-        if (u >= 1.15) {
+        if (reactHold == null && u >= 1.15) {
           if (play) play(0, 0, 0);
           propT = 0;
         }
       }
       if (pawT > 0 && pawMesh) {
-        pawT += dt / 0.6;
+        if (reactHold == null) pawT += dt / 0.6;
         const k = Math.min(1, pawT);
-        pawMesh.rotation.x = -0.55 + Math.sin(k * Math.PI) * 0.85;
-        if (pawT >= 1) {
+        pawMesh.rotation.x = -0.55 + Math.sin(k * Math.PI) * 1.2;
+        if (reactHold == null && pawT >= 1) {
           pawMesh.rotation.x = -0.55;
           pawT = 0;
         }
@@ -2464,21 +2584,32 @@ export function createView(canvas) {
           dancer.visible = false;
         }
       }
+      if (pinT > 0 && reactHold == null) pinT += dt / 1.05;
       if (pinT > 0) {
-        pinT += dt / 1.05;
         const k = Math.min(1, pinT);
         let fall = 1;
-        if (k < 0.42) fall = k / 0.42;
-        else if (k > 0.68) fall = Math.max(0, 1 - (k - 0.68) / 0.32);
-        const e = fall * fall;
+        if (k < 0.32) fall = k / 0.32;
+        else if (k > 0.72) fall = Math.max(0, 1 - (k - 0.72) / 0.28);
+        const e = fall * fall * (3 - 2 * fall);
         pins.forEach((pin, i) => {
-          pin.rotation.x = e * (1.05 + (i % 3) * 0.2);
-          pin.rotation.z = (i % 2 ? -1 : 1) * e * (0.28 + (i % 3) * 0.1);
+          if (pin.userData.hx == null) {
+            pin.userData.hx = pin.position.x;
+            pin.userData.hz = pin.position.z;
+          }
+          const ang = (i / Math.max(1, pins.length)) * Math.PI * 2 + 0.5;
+          pin.rotation.x = e * (1.05 + (i % 3) * 0.12);
+          pin.rotation.z = (i % 2 ? -1 : 1) * e * 0.55;
+          pin.position.x = pin.userData.hx + Math.cos(ang) * e * 0.16;
+          pin.position.z = pin.userData.hz + Math.sin(ang) * e * 0.12;
         });
-        if (pinT >= 1) {
+        if (reactHold == null && pinT >= 1) {
           pins.forEach((pin) => {
             pin.rotation.x = 0;
             pin.rotation.z = 0;
+            if (pin.userData.hx != null) {
+              pin.position.x = pin.userData.hx;
+              pin.position.z = pin.userData.hz;
+            }
           });
           pinT = 0;
         }

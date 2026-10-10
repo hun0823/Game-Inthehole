@@ -1,19 +1,14 @@
 /**
- * Creatures and props outside the play cells. Shared low-poly parts.
- * localStorage inthehole_deco = "on" | "off" | "auto" (default auto).
- * Auto turns the trim off for reduced motion and very small devices.
+ * Arcade trim around the board. Creatures are canvas sprites with the
+ * outline baked in, so a near-top-down camera still reads the silhouette.
+ * Nothing is placed inside the play cells.
+ * localStorage inthehole_deco = "on" | "off" | "auto".
  */
 import * as THREE from "./vendor/three.module.js";
 
 const jobs = [];
-const mats = new Map();
-const geos = {
-  sph: new THREE.SphereGeometry(1, 8, 6),
-  box: new THREE.BoxGeometry(1, 1, 1),
-  cone: new THREE.ConeGeometry(1, 1, 6),
-  cyl: new THREE.CylinderGeometry(1, 1, 1, 7),
-};
-const INK = new THREE.MeshBasicMaterial({ color: 0x141414, side: THREE.BackSide });
+const texCache = new Map();
+const INK = "#141414";
 
 export function decoWanted() {
   try {
@@ -38,46 +33,8 @@ export function tickDeco(time) {
   for (const step of jobs) step(time);
 }
 
-function M(hex, rough = 0.62) {
-  let mat = mats.get(hex);
-  if (!mat) {
-    mat = new THREE.MeshStandardMaterial({ color: hex, roughness: rough });
-    mats.set(hex, mat);
-  }
-  return mat;
-}
-
-function part(parent, kind, color, x, y, z, sx, sy, sz, ink = false) {
-  const mesh = new THREE.Mesh(geos[kind], M(color));
-  mesh.position.set(x, y, z);
-  mesh.scale.set(sx, sy, sz);
-  mesh.castShadow = false;
-  if (ink) {
-    const line = new THREE.Mesh(geos[kind], INK);
-    line.scale.setScalar(1.07);
-    mesh.add(line);
-  }
-  parent.add(mesh);
-  return mesh;
-}
-
 function loop(fn) {
   jobs.push(fn);
-}
-
-function metrics(span) {
-  const inner = span / 2 - 0.02;
-  const outer = inner + 0.26;
-  return {
-    inner,
-    outer,
-    farZ: -(inner + 0.5),
-    nearZ: inner + 0.5,
-    left: -(inner + 0.5),
-    right: inner + 0.5,
-    walkY: 1.02,
-    out: inner + 0.72,
-  };
 }
 
 function pingpong(t, period) {
@@ -85,40 +42,189 @@ function pingpong(t, period) {
   return u < 0.5 ? u * 2 : (1 - u) * 2;
 }
 
-function bandMotes(parent, count, color, m, rise) {
-  const pos = new Float32Array(count * 3);
-  const seeds = Array.from({ length: count }, (_, i) => ({
-    side: i % 4,
-    u: Math.random(),
-    s: 0.45 + (i % 5) * 0.12,
-    y: Math.random(),
+let dotMap = null;
+function dotTexture() {
+  if (dotMap) return dotMap;
+  const c = document.createElement("canvas");
+  c.width = c.height = 32;
+  const g = c.getContext("2d");
+  g.clearRect(0, 0, 32, 32);
+  g.fillStyle = "#ffffff";
+  g.beginPath();
+  g.arc(16, 16, 11, 0, Math.PI * 2);
+  g.fill();
+  g.strokeStyle = INK;
+  g.lineWidth = 3;
+  g.stroke();
+  dotMap = new THREE.CanvasTexture(c);
+  dotMap.colorSpace = THREE.SRGBColorSpace;
+  return dotMap;
+}
+
+function paint(key, draw, size = 160) {
+  let entry = texCache.get(key);
+  if (entry) return entry;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d");
+  g.lineJoin = "round";
+  g.lineCap = "round";
+  draw(g, size);
+  const map = new THREE.CanvasTexture(c);
+  map.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.SpriteMaterial({
+    map,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  entry = { mat };
+  texCache.set(key, entry);
+  return entry;
+}
+
+function blob(g, x, y, rx, ry, fill) {
+  const ox = Math.min(8, rx * 0.28);
+  const oy = Math.min(8, ry * 0.28);
+  g.fillStyle = INK;
+  g.beginPath();
+  g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = fill;
+  g.beginPath();
+  g.ellipse(x, y, Math.max(1, rx - ox), Math.max(1, ry - oy), 0, 0, Math.PI * 2);
+  g.fill();
+}
+
+function poly(g, pts, fill) {
+  g.beginPath();
+  pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
+  g.closePath();
+  g.lineWidth = 8;
+  g.strokeStyle = INK;
+  g.fillStyle = fill;
+  g.stroke();
+  g.fill();
+}
+
+function eye(g, x, y, r) {
+  g.fillStyle = "#fff";
+  g.beginPath();
+  g.arc(x, y, r, 0, Math.PI * 2);
+  g.fill();
+  g.lineWidth = 2.5;
+  g.strokeStyle = INK;
+  g.stroke();
+  g.fillStyle = INK;
+  g.beginPath();
+  g.arc(x + r * 0.2, y, r * 0.42, 0, Math.PI * 2);
+  g.fill();
+}
+
+const READ = 1.65;
+const REF_SPAN = 6 * 1.16;
+let spriteUnit = 1;
+
+function stamp(parent, key, draw, x, y, z, w, h, anchorY = 0.08) {
+  const { mat } = paint(key, draw);
+  const sprite = new THREE.Sprite(mat);
+  sprite.center.set(0.5, anchorY);
+  const s = READ * spriteUnit;
+  sprite.scale.set(w * s, h * s, 1);
+  sprite.position.set(x, y, z);
+  sprite.renderOrder = 6;
+  sprite.frustumCulled = false;
+  parent.add(sprite);
+  return sprite;
+}
+
+function tilt(sprite, angle) {
+  ownMat(sprite).rotation = angle;
+}
+
+function ownMat(sprite) {
+  if (!sprite.userData.cloned) {
+    sprite.material = sprite.material.clone();
+    sprite.userData.cloned = true;
+    sprite.userData.ownMat = true;
+  }
+  return sprite.material;
+}
+
+function metrics(span, frameT) {
+  const inner = span / 2 - 0.02;
+  const outer = inner + frameT;
+  const unit = span / REF_SPAN;
+  return {
+    inner,
+    outer,
+    unit,
+    far: -(inner + frameT * 0.8),
+    sky: -(outer + 0.62 * unit),
+    near: outer + 0.08 * unit,
+    groundZ: outer + 0.95 * unit,
+    foot: 0.76,
+    low: 0.06,
+  };
+}
+
+function ground(parent, m, color, z, ry) {
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(1, 22),
+    new THREE.MeshBasicMaterial({ color, depthWrite: false, transparent: true, opacity: 0.95 })
+  );
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.set(0, 0.01, z);
+  disc.scale.set(m.outer * 0.98, ry, 1);
+  disc.renderOrder = 1;
+  parent.add(disc);
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(0.96, 1.04, 28),
+    new THREE.MeshBasicMaterial({ color: 0x141414, side: THREE.DoubleSide, depthWrite: false })
+  );
+  rim.rotation.x = -Math.PI / 2;
+  rim.position.set(0, 0.012, z);
+  rim.scale.set(m.outer * 0.98, ry, 1);
+  rim.renderOrder = 1;
+  parent.add(rim);
+}
+
+function flakes(parent, count, color, m, rise) {
+  const n = Math.min(count, 18);
+  const pos = new Float32Array(n * 3);
+  const seeds = Array.from({ length: n }, (_, i) => ({
+    lane: i % 3,
+    u: (i * 0.37) % 1,
+    s: 0.55 + (i % 4) * 0.16,
+    drift: (i % 6) * 0.15,
   }));
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   const mat = new THREE.PointsMaterial({
     color,
-    size: 0.09,
+    size: 0.24,
+    map: dotTexture(),
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.92,
     depthWrite: false,
     sizeAttenuation: true,
   });
-  parent.add(new THREE.Points(geo, mat));
+  const points = new THREE.Points(geo, mat);
+  points.frustumCulled = false;
+  parent.add(points);
   loop((time) => {
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < n; i++) {
       const seed = seeds[i];
-      const along = ((seed.u + time * 0.04 * seed.s) % 1) * 2 - 1;
-      const span = m.outer + 0.05;
-      const out = m.inner + 0.34;
-      const y = rise
-        ? 0.35 + ((seed.y + time * 0.12 * seed.s) % 1) * 1.15
-        : 1.15 + Math.sin(time * seed.s + seed.u * 6) * 0.25;
-      let x = along * span;
-      let z = out;
-      if (seed.side === 0) z = -out;
-      else if (seed.side === 1) z = out;
-      else if (seed.side === 2) { x = -out; z = along * span; }
-      else { x = out; z = along * span; }
+      const along = ((seed.u + time * 0.045 * seed.s) % 1) * 2 - 1;
+      const fall = (seed.drift + time * (rise ? 0.11 : 0.07) * seed.s) % 1;
+      let x = along * (m.outer * 0.92);
+      let z = m.sky;
+      const y = rise ? 1.55 - fall * 1.15 : 1.15 + Math.sin(time * seed.s + i) * 0.18;
+      if (seed.lane === 1) z = m.outer + 0.55;
+      if (seed.lane === 2) {
+        x = (i % 2 ? 1 : -1) * (m.outer + 0.15);
+        z = along * m.outer * 0.8;
+      }
       pos[i * 3] = x;
       pos[i * 3 + 1] = y;
       pos[i * 3 + 2] = z;
@@ -127,447 +233,526 @@ function bandMotes(parent, count, color, m, rise) {
   });
 }
 
-function squirrel(parent, m) {
-  const g = new THREE.Group();
-  part(g, "sph", 0xc47a3a, 0, 0.12, 0, 0.11, 0.1, 0.12, true);
-  part(g, "sph", 0xe8a05a, 0.08, 0.16, 0.04, 0.07, 0.06, 0.07);
-  part(g, "sph", 0x8a4e22, -0.12, 0.16, -0.02, 0.08, 0.1, 0.06);
-  part(g, "sph", 0x141414, 0.1, 0.18, 0.07, 0.015, 0.015, 0.015);
-  parent.add(g);
-  g.position.set(0, m.walkY, m.farZ);
+function patrol(sprite, m, period, bob) {
+  const width = Math.abs(sprite.scale.x);
+  const baseY = sprite.position.y;
   loop((time) => {
-    const p = pingpong(time, 6);
-    g.position.x = (p * 2 - 1) * (m.outer - 0.5);
-    g.position.y = m.walkY + Math.abs(Math.sin(time * Math.PI * 2)) * 0.06;
-    g.rotation.y = time % 6 < 3 ? Math.PI / 2 : -Math.PI / 2;
+    const p = pingpong(time, period);
+    const dir = time % period < period / 2 ? 1 : -1;
+    sprite.position.x = (p * 2 - 1) * (m.outer - 0.85 * m.unit);
+    sprite.position.z = m.far;
+    sprite.scale.x = dir * width;
+    sprite.position.y = baseY + (bob ? Math.abs(Math.sin(time * Math.PI * 2)) * 0.08 : 0);
   });
 }
 
-function bird(parent, m, color, y, z, period, flap) {
-  const g = new THREE.Group();
-  part(g, "sph", color, 0, 0, 0, 0.1, 0.07, 0.08, true);
-  part(g, "cone", 0xf2c14a, 0.12, 0.02, 0, 0.04, 0.08, 0.04);
-  const wing = part(g, "box", color, 0, 0.02, 0, 0.16, 0.02, 0.08);
-  g.children[1].rotation.z = -Math.PI / 2;
-  parent.add(g);
-  g.position.y = y;
-  loop((time) => {
-    const p = (time % period) / period;
-    g.position.x = (p * 2 - 1) * (m.outer + 0.15);
-    g.position.z = z;
-    wing.rotation.z = Math.sin(time * flap) * 0.5;
-  });
-  return g;
-}
-
-function tree(parent, x, z) {
-  const g = new THREE.Group();
-  part(g, "cyl", 0x6a4424, 0, 0.28, 0, 0.06, 0.36, 0.06);
-  part(g, "sph", 0x2f8a3a, 0, 0.55, 0, 0.2, 0.22, 0.18, true);
-  part(g, "sph", 0x3daf4a, 0.08, 0.66, 0.04, 0.12, 0.12, 0.1);
-  g.position.set(x, 0.7, z);
-  parent.add(g);
-}
-
-function cactus(parent, x, y, z, scale) {
-  const g = new THREE.Group();
-  part(g, "cyl", 0x3d9a4a, 0, 0.22, 0, 0.07 * scale, 0.4 * scale, 0.07 * scale, true);
-  part(g, "cyl", 0x3d9a4a, 0.1 * scale, 0.28 * scale, 0, 0.04 * scale, 0.16 * scale, 0.04 * scale);
-  part(g, "sph", 0xff5a7a, 0, 0.44 * scale, 0, 0.04, 0.04, 0.04);
-  g.position.set(x, y, z);
-  parent.add(g);
-  return g;
-}
-
-function penguinBody(parent, scale, baby) {
-  const g = new THREE.Group();
-  part(g, "sph", 0x1c2430, 0, 0.16 * scale, 0, 0.12 * scale, 0.16 * scale, 0.1 * scale, true);
-  part(g, "sph", 0xfff6ea, 0, 0.12 * scale, 0.06 * scale, 0.07 * scale, 0.1 * scale, 0.04 * scale);
-  part(g, "sph", baby ? 0x2a3444 : 0x1c2430, 0, 0.3 * scale, 0.02, 0.08 * scale, 0.08 * scale, 0.08 * scale);
-  part(g, "cone", 0xf2a020, 0, 0.28 * scale, 0.08 * scale, 0.03, 0.06, 0.03);
-  part(g, "sph", 0xfff6ea, -0.03, 0.32 * scale, 0.06, 0.015, 0.015, 0.015);
-  part(g, "sph", 0xfff6ea, 0.03, 0.32 * scale, 0.06, 0.015, 0.015, 0.015);
-  const footL = part(g, "box", 0xf2a020, -0.05 * scale, 0.02, 0.06, 0.05, 0.02, 0.07);
-  const footR = part(g, "box", 0xf2a020, 0.05 * scale, 0.02, 0.06, 0.05, 0.02, 0.07);
-  g.children[3].rotation.x = Math.PI / 2;
-  parent.add(g);
-  return { g, footL, footR };
-}
-
-function iceberg(parent, x, z, s) {
-  const g = new THREE.Group();
-  part(g, "cone", 0xeaf6ff, 0, 0.28 * s, 0, 0.22 * s, 0.5 * s, 0.18 * s, true);
-  part(g, "box", 0xb7d4ea, 0.08 * s, 0.1, 0.04, 0.16 * s, 0.16, 0.12 * s);
-  g.position.set(x, 0.55, z);
-  parent.add(g);
-}
-
-function crystal(parent, x, y, z, color) {
-  const g = new THREE.Group();
-  part(g, "cone", color, 0, 0.16, 0, 0.08, 0.32, 0.08, true);
-  part(g, "cone", 0xe4ecff, 0.08, 0.1, 0.04, 0.05, 0.2, 0.05);
-  g.position.set(x, y, z);
-  parent.add(g);
-  loop((time) => {
-    g.rotation.y = time * 0.3;
-  });
-}
-
-function robotToy(parent, m) {
-  const g = new THREE.Group();
-  part(g, "box", 0x3ec4ff, 0, 0.14, 0, 0.14, 0.14, 0.1, true);
-  part(g, "box", 0xfff6ea, 0, 0.26, 0, 0.1, 0.08, 0.08);
-  const key = part(g, "box", 0xc5ced8, 0, 0.16, -0.08, 0.08, 0.02, 0.02);
-  part(g, "sph", 0x141414, -0.03, 0.28, 0.04, 0.015, 0.015, 0.015);
-  part(g, "sph", 0x141414, 0.03, 0.28, 0.04, 0.015, 0.015, 0.015);
-  g.position.set(0, m.walkY, m.farZ);
-  parent.add(g);
-  loop((time) => {
-    const p = pingpong(time, 6);
-    g.position.x = (p * 2 - 1) * (m.outer - 0.45);
-    g.position.y = m.walkY + Math.abs(Math.sin(time * Math.PI * 2)) * 0.05;
-    key.rotation.z = time * 3;
-    g.rotation.y = time % 6 < 3 ? Math.PI / 2 : -Math.PI / 2;
-  });
-}
-
-function gear(parent, x, y, z, dir) {
-  const g = new THREE.Group();
-  part(g, "cyl", 0xb7c0ca, 0, 0, 0, 0.12, 0.04, 0.12, true);
-  for (let i = 0; i < 6; i++) {
-    const tooth = part(g, "box", 0xd5dde6, Math.cos((i / 6) * Math.PI * 2) * 0.12, 0, Math.sin((i / 6) * Math.PI * 2) * 0.12, 0.04, 0.04, 0.04);
-    tooth.rotation.y = (i / 6) * Math.PI * 2;
-  }
-  g.position.set(x, y, z);
-  parent.add(g);
-  loop((time) => {
-    g.rotation.y = time * (Math.PI / 3) * dir;
-  });
-}
+const draw = {
+  squirrel(g, S) {
+    blob(g, S * 0.34, S * 0.48, S * 0.2, S * 0.24, "#8a4e22");
+    blob(g, S * 0.58, S * 0.55, S * 0.2, S * 0.16, "#c47a3a");
+    blob(g, S * 0.62, S * 0.6, S * 0.1, S * 0.08, "#f4d2a4");
+    blob(g, S * 0.74, S * 0.42, S * 0.13, S * 0.12, "#e8a05a");
+    blob(g, S * 0.7, S * 0.3, S * 0.05, S * 0.07, "#c47a3a");
+    blob(g, S * 0.8, S * 0.3, S * 0.05, S * 0.07, "#c47a3a");
+    eye(g, S * 0.78, S * 0.4, 6);
+    poly(g, [[S * 0.86, S * 0.44], [S * 0.96, S * 0.4], [S * 0.86, S * 0.5]], "#e07a6a");
+  },
+  bird(g, S, body, wing) {
+    poly(g, [[S * 0.18, S * 0.48], [S * 0.42, S * 0.28], [S * 0.4, S * 0.55]], wing);
+    blob(g, S * 0.48, S * 0.52, S * 0.22, S * 0.14, body);
+    blob(g, S * 0.7, S * 0.46, S * 0.12, S * 0.11, body);
+    poly(g, [[S * 0.8, S * 0.44], [S * 0.96, S * 0.48], [S * 0.8, S * 0.54]], "#f2c14a");
+    eye(g, S * 0.72, S * 0.42, 5);
+  },
+  redbird(g, S) {
+    draw.bird(g, S, "#e23b3b", "#f2c14a");
+  },
+  bluebird(g, S) {
+    draw.bird(g, S, "#2f7dff", "#7eb6ff");
+  },
+  gull(g, S) {
+    draw.bird(g, S, "#f7f7f7", "#d5dde6");
+    blob(g, S * 0.46, S * 0.58, S * 0.12, S * 0.05, "#e7eef6");
+  },
+  tree(g, S) {
+    blob(g, S * 0.5, S * 0.78, S * 0.08, S * 0.16, "#6a4424");
+    blob(g, S * 0.5, S * 0.48, S * 0.28, S * 0.24, "#2f8a3a");
+    blob(g, S * 0.34, S * 0.4, S * 0.16, S * 0.14, "#3daf4a");
+    blob(g, S * 0.66, S * 0.36, S * 0.14, S * 0.12, "#7adf5a");
+  },
+  mushroom(g, S, cap) {
+    blob(g, S * 0.5, S * 0.7, S * 0.1, S * 0.16, "#f4f0ea");
+    blob(g, S * 0.5, S * 0.46, S * 0.32, S * 0.18, cap);
+    blob(g, S * 0.36, S * 0.42, S * 0.05, S * 0.04, "#fff");
+    blob(g, S * 0.58, S * 0.4, S * 0.06, S * 0.045, "#fff");
+    blob(g, S * 0.7, S * 0.48, S * 0.04, S * 0.035, "#fff");
+  },
+  grass(g, S) {
+    poly(g, [[S * 0.3, S * 0.84], [S * 0.38, S * 0.28], [S * 0.48, S * 0.84]], "#3d9a4a");
+    poly(g, [[S * 0.46, S * 0.84], [S * 0.58, S * 0.18], [S * 0.68, S * 0.84]], "#2f8a3a");
+    poly(g, [[S * 0.62, S * 0.84], [S * 0.74, S * 0.34], [S * 0.84, S * 0.84]], "#7adf5a");
+  },
+  lizard(g, S) {
+    blob(g, S * 0.58, S * 0.52, S * 0.24, S * 0.1, "#c47a3a");
+    blob(g, S * 0.8, S * 0.48, S * 0.12, S * 0.09, "#e8a05a");
+    poly(g, [[S * 0.28, S * 0.52], [S * 0.08, S * 0.36], [S * 0.1, S * 0.66]], "#e07a3a");
+    eye(g, S * 0.84, S * 0.44, 5);
+  },
+  cactus(g, S) {
+    blob(g, S * 0.5, S * 0.55, S * 0.12, S * 0.32, "#3d9a4a");
+    blob(g, S * 0.28, S * 0.46, S * 0.08, S * 0.16, "#2f8a3a");
+    blob(g, S * 0.72, S * 0.42, S * 0.08, S * 0.14, "#3d9a4a");
+    blob(g, S * 0.5, S * 0.2, S * 0.07, S * 0.07, "#ff5a7a");
+  },
+  palm(g, S) {
+    blob(g, S * 0.5, S * 0.68, S * 0.07, S * 0.24, "#8a5a32");
+    poly(g, [[S * 0.5, S * 0.4], [S * 0.12, S * 0.28], [S * 0.5, S * 0.48]], "#3d9a4a");
+    poly(g, [[S * 0.5, S * 0.4], [S * 0.88, S * 0.26], [S * 0.5, S * 0.5]], "#2f8a3a");
+    poly(g, [[S * 0.5, S * 0.38], [S * 0.22, S * 0.55], [S * 0.48, S * 0.5]], "#7adf5a");
+    poly(g, [[S * 0.5, S * 0.38], [S * 0.8, S * 0.56], [S * 0.52, S * 0.5]], "#3d9a4a");
+  },
+  bone(g, S) {
+    blob(g, S * 0.28, S * 0.4, S * 0.1, S * 0.1, "#f4f1ea");
+    blob(g, S * 0.28, S * 0.62, S * 0.1, S * 0.1, "#f4f1ea");
+    blob(g, S * 0.72, S * 0.4, S * 0.1, S * 0.1, "#f4f1ea");
+    blob(g, S * 0.72, S * 0.62, S * 0.1, S * 0.1, "#f4f1ea");
+    blob(g, S * 0.5, S * 0.52, S * 0.22, S * 0.07, "#f7f4ee");
+  },
+  dune(g, S) {
+    poly(g, [[S * 0.05, S * 0.78], [S * 0.4, S * 0.28], [S * 0.7, S * 0.78]], "#e6c27a");
+    poly(g, [[S * 0.35, S * 0.78], [S * 0.72, S * 0.4], [S * 0.98, S * 0.78]], "#c4924a");
+  },
+  penguin(g, S) {
+    poly(g, [[S * 0.3, S * 0.9], [S * 0.42, S * 0.78], [S * 0.52, S * 0.9]], "#f2a020");
+    poly(g, [[S * 0.5, S * 0.9], [S * 0.64, S * 0.78], [S * 0.74, S * 0.9]], "#f2a020");
+    blob(g, S * 0.48, S * 0.58, S * 0.24, S * 0.28, "#1c2430");
+    blob(g, S * 0.52, S * 0.64, S * 0.13, S * 0.16, "#fff6ea");
+    blob(g, S * 0.66, S * 0.34, S * 0.15, S * 0.14, "#1c2430");
+    blob(g, S * 0.66, S * 0.4, S * 0.08, S * 0.07, "#fff6ea");
+    poly(g, [[S * 0.76, S * 0.34], [S * 0.94, S * 0.4], [S * 0.76, S * 0.46]], "#f2a020");
+    eye(g, S * 0.7, S * 0.3, 6);
+    blob(g, S * 0.32, S * 0.58, S * 0.07, S * 0.14, "#141820");
+  },
+  babyPen(g, S) {
+    draw.penguin(g, S);
+  },
+  seal(g, S) {
+    blob(g, S * 0.46, S * 0.58, S * 0.28, S * 0.16, "#8aa0b4");
+    blob(g, S * 0.72, S * 0.52, S * 0.14, S * 0.12, "#d5e4ee");
+    poly(g, [[S * 0.2, S * 0.62], [S * 0.06, S * 0.78], [S * 0.28, S * 0.7]], "#7e96aa");
+    eye(g, S * 0.78, S * 0.48, 5);
+    blob(g, S * 0.86, S * 0.56, S * 0.05, S * 0.035, "#141414");
+  },
+  iceberg(g, S) {
+    poly(g, [[S * 0.5, S * 0.12], [S * 0.12, S * 0.82], [S * 0.88, S * 0.82]], "#eaf6ff");
+    poly(g, [[S * 0.5, S * 0.28], [S * 0.34, S * 0.7], [S * 0.62, S * 0.62]], "#ffffff");
+    poly(g, [[S * 0.2, S * 0.82], [S * 0.5, S * 0.82], [S * 0.36, S * 0.62]], "#b7d4ea");
+  },
+  icicle(g, S) {
+    poly(g, [[S * 0.5, S * 0.08], [S * 0.22, S * 0.92], [S * 0.78, S * 0.92]], "#eaf8ff");
+  },
+  crab(g, S) {
+    blob(g, S * 0.5, S * 0.58, S * 0.22, S * 0.16, "#e23b3b");
+    blob(g, S * 0.22, S * 0.48, S * 0.1, S * 0.08, "#ff6a5a");
+    blob(g, S * 0.78, S * 0.48, S * 0.1, S * 0.08, "#ff6a5a");
+    blob(g, S * 0.4, S * 0.28, S * 0.035, S * 0.1, "#e23b3b");
+    blob(g, S * 0.6, S * 0.28, S * 0.035, S * 0.1, "#e23b3b");
+    eye(g, S * 0.4, S * 0.2, 6);
+    eye(g, S * 0.6, S * 0.2, 6);
+  },
+  fish(g, S, body, fin) {
+    blob(g, S * 0.55, S * 0.52, S * 0.24, S * 0.14, body);
+    poly(g, [[S * 0.3, S * 0.52], [S * 0.08, S * 0.32], [S * 0.1, S * 0.72]], fin);
+    eye(g, S * 0.7, S * 0.46, 5);
+  },
+  coral(g, S, color) {
+    blob(g, S * 0.5, S * 0.7, S * 0.1, S * 0.2, color);
+    blob(g, S * 0.32, S * 0.48, S * 0.08, S * 0.16, color);
+    blob(g, S * 0.68, S * 0.46, S * 0.08, S * 0.18, color);
+  },
+  wave(g, S) {
+    g.strokeStyle = INK;
+    g.lineWidth = 10;
+    g.beginPath();
+    g.moveTo(S * 0.06, S * 0.62);
+    g.quadraticCurveTo(S * 0.28, S * 0.2, S * 0.5, S * 0.55);
+    g.quadraticCurveTo(S * 0.72, S * 0.9, S * 0.94, S * 0.4);
+    g.stroke();
+    g.strokeStyle = "#7fd6ff";
+    g.lineWidth = 5;
+    g.stroke();
+  },
+  crystal(g, S, color) {
+    poly(g, [[S * 0.5, S * 0.08], [S * 0.18, S * 0.78], [S * 0.5, S * 0.62], [S * 0.82, S * 0.78]], color);
+    poly(g, [[S * 0.5, S * 0.16], [S * 0.4, S * 0.5], [S * 0.5, S * 0.42]], "#ffffff");
+  },
+  butterfly(g, S) {
+    poly(g, [[S * 0.5, S * 0.5], [S * 0.12, S * 0.22], [S * 0.28, S * 0.55]], "#d0dcff");
+    poly(g, [[S * 0.5, S * 0.5], [S * 0.88, S * 0.22], [S * 0.72, S * 0.55]], "#e4ecff");
+    poly(g, [[S * 0.5, S * 0.5], [S * 0.16, S * 0.78], [S * 0.4, S * 0.58]], "#9a78f0");
+    poly(g, [[S * 0.5, S * 0.5], [S * 0.84, S * 0.78], [S * 0.6, S * 0.58]], "#b7c6e6");
+    blob(g, S * 0.5, S * 0.5, S * 0.04, S * 0.12, "#2a2418");
+  },
+  robot(g, S) {
+    blob(g, S * 0.5, S * 0.62, S * 0.2, S * 0.16, "#3ec4ff");
+    blob(g, S * 0.5, S * 0.36, S * 0.14, S * 0.12, "#fff6ea");
+    eye(g, S * 0.44, S * 0.34, 5);
+    eye(g, S * 0.58, S * 0.34, 5);
+    blob(g, S * 0.5, S * 0.2, S * 0.05, S * 0.05, "#c5ced8");
+    poly(g, [[S * 0.28, S * 0.58], [S * 0.12, S * 0.72], [S * 0.3, S * 0.7]], "#2f7dff");
+  },
+  balloon(g, S, color) {
+    blob(g, S * 0.5, S * 0.4, S * 0.22, S * 0.26, color);
+    g.strokeStyle = INK;
+    g.lineWidth = 4;
+    g.beginPath();
+    g.moveTo(S * 0.5, S * 0.66);
+    g.lineTo(S * 0.5, S * 0.9);
+    g.stroke();
+  },
+  block(g, S, color) {
+    g.fillStyle = INK;
+    g.fillRect(S * 0.16, S * 0.16, S * 0.68, S * 0.68);
+    g.fillStyle = color;
+    g.fillRect(S * 0.24, S * 0.24, S * 0.52, S * 0.52);
+    g.fillStyle = "rgba(255,255,255,0.45)";
+    g.fillRect(S * 0.28, S * 0.28, S * 0.22, S * 0.12);
+  },
+  house(g, S, cap) {
+    blob(g, S * 0.5, S * 0.68, S * 0.16, S * 0.2, "#f4f0ea");
+    blob(g, S * 0.5, S * 0.42, S * 0.34, S * 0.2, cap);
+    blob(g, S * 0.34, S * 0.38, S * 0.05, S * 0.04, "#fff");
+    blob(g, S * 0.62, S * 0.36, S * 0.06, S * 0.05, "#fff");
+    g.fillStyle = "#f2c14a";
+    g.fillRect(S * 0.44, S * 0.62, S * 0.12, S * 0.14);
+    g.strokeStyle = INK;
+    g.lineWidth = 3;
+    g.strokeRect(S * 0.44, S * 0.62, S * 0.12, S * 0.14);
+  },
+  cookie(g, S) {
+    blob(g, S * 0.5, S * 0.52, S * 0.32, S * 0.32, "#e7b07a");
+    blob(g, S * 0.38, S * 0.44, S * 0.06, S * 0.05, "#6a3a1a");
+    blob(g, S * 0.62, S * 0.58, S * 0.05, S * 0.05, "#6a3a1a");
+    blob(g, S * 0.55, S * 0.36, S * 0.045, S * 0.04, "#6a3a1a");
+  },
+  pop(g, S) {
+    blob(g, S * 0.5, S * 0.36, S * 0.2, S * 0.2, "#ff5a9a");
+    blob(g, S * 0.5, S * 0.72, S * 0.05, S * 0.2, "#f4f7fb");
+  },
+  cream(g, S) {
+    blob(g, S * 0.5, S * 0.62, S * 0.28, S * 0.16, "#fff6ea");
+    blob(g, S * 0.5, S * 0.4, S * 0.12, S * 0.12, "#e23b3b");
+    blob(g, S * 0.42, S * 0.34, S * 0.04, S * 0.05, "#3d9a4a");
+  },
+  volcano(g, S) {
+    poly(g, [[S * 0.5, S * 0.18], [S * 0.12, S * 0.86], [S * 0.88, S * 0.86]], "#4a2018");
+    poly(g, [[S * 0.5, S * 0.28], [S * 0.38, S * 0.48], [S * 0.62, S * 0.48]], "#ff4a18");
+    blob(g, S * 0.42, S * 0.16, S * 0.1, S * 0.08, "#6a5348");
+    blob(g, S * 0.58, S * 0.1, S * 0.08, S * 0.06, "#8a7568");
+  },
+  rock(g, S) {
+    poly(g, [[S * 0.2, S * 0.75], [S * 0.35, S * 0.35], [S * 0.62, S * 0.28], [S * 0.84, S * 0.55], [S * 0.7, S * 0.8]], "#3a2418");
+  },
+  monkey(g, S) {
+    blob(g, S * 0.5, S * 0.22, S * 0.06, S * 0.16, "#6a4424");
+    blob(g, S * 0.5, S * 0.55, S * 0.16, S * 0.18, "#c47a3a");
+    blob(g, S * 0.5, S * 0.74, S * 0.13, S * 0.12, "#e8c9a0");
+    eye(g, S * 0.44, S * 0.72, 4);
+    eye(g, S * 0.56, S * 0.72, 4);
+    poly(g, [[S * 0.28, S * 0.5], [S * 0.1, S * 0.7], [S * 0.32, S * 0.62]], "#c47a3a");
+    poly(g, [[S * 0.72, S * 0.5], [S * 0.9, S * 0.68], [S * 0.68, S * 0.62]], "#c47a3a");
+  },
+  parrot(g, S) {
+    blob(g, S * 0.48, S * 0.55, S * 0.18, S * 0.16, "#3d9a4a");
+    blob(g, S * 0.66, S * 0.46, S * 0.12, S * 0.11, "#e23b3b");
+    poly(g, [[S * 0.74, S * 0.48], [S * 0.94, S * 0.52], [S * 0.74, S * 0.58]], "#f2c14a");
+    poly(g, [[S * 0.3, S * 0.48], [S * 0.1, S * 0.3], [S * 0.36, S * 0.55]], "#f2c14a");
+    eye(g, S * 0.7, S * 0.42, 5);
+  },
+  leaf(g, S) {
+    poly(g, [[S * 0.5, S * 0.15], [S * 0.15, S * 0.7], [S * 0.5, S * 0.55], [S * 0.85, S * 0.72]], "#3d9a4a");
+    g.strokeStyle = "#1f5a28";
+    g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(S * 0.5, S * 0.22);
+    g.lineTo(S * 0.5, S * 0.7);
+    g.stroke();
+  },
+  vine(g, S) {
+    g.strokeStyle = "#2f6a32";
+    g.lineWidth = 10;
+    g.beginPath();
+    g.moveTo(S * 0.5, S * 0.05);
+    g.bezierCurveTo(S * 0.7, S * 0.3, S * 0.3, S * 0.55, S * 0.5, S * 0.95);
+    g.stroke();
+    g.strokeStyle = INK;
+    g.lineWidth = 14;
+    g.globalCompositeOperation = "destination-over";
+    g.stroke();
+    g.globalCompositeOperation = "source-over";
+    blob(g, S * 0.32, S * 0.4, S * 0.1, S * 0.06, "#7adf5a");
+    blob(g, S * 0.68, S * 0.62, S * 0.1, S * 0.06, "#3d9a4a");
+  },
+  alien(g, S, color) {
+    blob(g, S * 0.5, S * 0.58, S * 0.2, S * 0.22, color);
+    blob(g, S * 0.34, S * 0.28, S * 0.035, S * 0.12, color);
+    blob(g, S * 0.66, S * 0.28, S * 0.035, S * 0.12, color);
+    blob(g, S * 0.34, S * 0.16, S * 0.045, S * 0.045, "#f2e27a");
+    blob(g, S * 0.66, S * 0.16, S * 0.045, S * 0.045, "#f2e27a");
+    eye(g, S * 0.42, S * 0.54, 8);
+    eye(g, S * 0.58, S * 0.54, 8);
+  },
+  ufo(g, S) {
+    blob(g, S * 0.5, S * 0.58, S * 0.34, S * 0.1, "#c5ced8");
+    blob(g, S * 0.5, S * 0.46, S * 0.14, S * 0.12, "#9af0c8");
+    blob(g, S * 0.5, S * 0.48, S * 0.06, S * 0.05, "#6adf5a");
+    blob(g, S * 0.28, S * 0.62, S * 0.04, S * 0.04, "#ffe14a");
+    blob(g, S * 0.5, S * 0.64, S * 0.04, S * 0.04, "#ff5a9a");
+    blob(g, S * 0.72, S * 0.62, S * 0.04, S * 0.04, "#3ec4ff");
+    poly(g, [[S * 0.38, S * 0.68], [S * 0.5, S * 0.95], [S * 0.62, S * 0.68]], "rgba(198,242,160,0.9)");
+  },
+  sprout(g, S) {
+    blob(g, S * 0.5, S * 0.7, S * 0.08, S * 0.18, "#6a4ad0");
+    blob(g, S * 0.5, S * 0.4, S * 0.16, S * 0.16, "#c6f25a");
+    blob(g, S * 0.5, S * 0.36, S * 0.06, S * 0.06, "#f2e27a");
+  },
+  gear(g, S) {
+    blob(g, S * 0.5, S * 0.5, S * 0.22, S * 0.22, "#b7c0ca");
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      blob(g, S * 0.5 + Math.cos(a) * S * 0.28, S * 0.5 + Math.sin(a) * S * 0.28, S * 0.08, S * 0.08, "#d5dde6");
+    }
+    blob(g, S * 0.5, S * 0.5, S * 0.08, S * 0.08, "#5c646e");
+  },
+  pipe(g, S) {
+    blob(g, S * 0.5, S * 0.62, S * 0.16, S * 0.28, "#8a929c");
+    blob(g, S * 0.5, S * 0.3, S * 0.22, S * 0.08, "#c5ced8");
+  },
+  bot(g, S) {
+    blob(g, S * 0.38, S * 0.78, S * 0.08, S * 0.08, "#5c646e");
+    blob(g, S * 0.62, S * 0.78, S * 0.08, S * 0.08, "#5c646e");
+    blob(g, S * 0.5, S * 0.55, S * 0.2, S * 0.16, "#3ec4ff");
+    blob(g, S * 0.5, S * 0.32, S * 0.14, S * 0.1, "#d5dde6");
+    eye(g, S * 0.44, S * 0.3, 4);
+    eye(g, S * 0.56, S * 0.3, 4);
+  },
+};
 
 function buildWood(group, m) {
-  squirrel(group, m);
-  bird(group, m, 0x2f7dff, 1.45, m.farZ - 0.25, 6, 10);
-  const red = new THREE.Group();
-  part(red, "sph", 0xe23b3b, 0, 0.08, 0, 0.08, 0.06, 0.07, true);
-  part(red, "cone", 0xf2c14a, 0.09, 0.08, 0, 0.03, 0.05, 0.03);
-  red.children[1].rotation.z = -Math.PI / 2;
-  red.position.set(m.right - 0.1, 0.02, m.nearZ + 0.18);
-  group.add(red);
-  loop((time) => { red.rotation.x = Math.sin(time * 2) * 0.15; });
-  part(group, "sph", 0xe23b3b, m.left + 0.15, 0.08, m.nearZ + 0.16, 0.08, 0.05, 0.08);
-  part(group, "cyl", 0xf4f0ea, m.left + 0.15, 0.03, m.nearZ + 0.16, 0.03, 0.06, 0.03);
+  ground(group, m, 0x3d9a4a, m.groundZ, m.outer * 0.38);
+  const sq = stamp(group, "squirrel", draw.squirrel, 0, m.foot, m.far, 1.15, 1.05, 0.06);
+  patrol(sq, m, 6, true);
+  const blue = stamp(group, "bluebird", draw.bluebird, 0, m.foot + 0.35, m.sky, 1.15, 0.8, 0.45);
+  loop((time) => {
+    const p = (time % 6) / 6;
+    blue.position.x = (p * 2 - 1) * (m.outer + 0.2);
+    blue.position.y = m.foot + 0.55 + Math.sin(time * 8) * 0.06;
+  });
+  const red = stamp(group, "redbird", draw.redbird, m.outer * 0.55, m.low, m.near, 0.85, 0.7, 0.9);
+  loop((time) => { red.position.y = m.low + Math.sin(time * 2) * 0.04; });
+  stamp(group, "mush-red", (g, s) => draw.mushroom(g, s, "#e23b3b"), -m.outer * 0.55, m.low, m.near, 0.7, 0.6, 0.9);
+  stamp(group, "mush-tan", (g, s) => draw.mushroom(g, s, "#e8c9a0"), -m.outer * 0.2, m.low, m.near + 0.15, 0.55, 0.48, 0.9);
   for (let i = 0; i < 4; i++) {
-    const tuft = part(group, "cone", 0x3d9a4a, m.left + 0.35 + i * 0.22, 0.06, m.nearZ + 0.2, 0.05, 0.1, 0.05);
-    tuft.position.x = (i - 1.5) * 0.28;
+    stamp(group, "grass", draw.grass, -m.outer * 0.35 + i * 0.38, m.low, m.groundZ - 0.15, 0.55, 0.48, 0.85);
   }
-  tree(group, m.left - 0.05, m.farZ - 0.2);
-  tree(group, m.right + 0.02, m.farZ - 0.16);
-  bandMotes(group, 10, 0xc47a3a, m, true);
+  stamp(group, "tree", draw.tree, -m.outer * 0.72, m.foot, m.sky + 0.15, 1.35, 1.55, 0.08);
+  stamp(group, "tree", draw.tree, m.outer * 0.7, m.foot, m.sky + 0.22, 1.15, 1.35, 0.08);
+  flakes(group, 14, 0xc47a3a, m, true);
 }
 
 function buildDesert(group, m) {
-  const liz = new THREE.Group();
-  part(liz, "sph", 0xc47a3a, 0, 0.06, 0, 0.14, 0.05, 0.06, true);
-  part(liz, "cone", 0xe8a05a, -0.16, 0.06, 0, 0.04, 0.12, 0.03);
-  liz.children[1].rotation.z = Math.PI / 2;
-  liz.position.set(0, m.walkY, m.farZ);
-  group.add(liz);
-  loop((time) => {
-    const p = pingpong(time, 4);
-    liz.position.x = (p * 2 - 1) * (m.outer - 0.4);
-    liz.rotation.y = time % 4 < 2 ? Math.PI / 2 : -Math.PI / 2;
-    liz.children[1].rotation.y = Math.sin(time * 8) * 0.4;
-  });
-  cactus(group, m.left - 0.02, m.walkY, m.farZ + 0.02, 0.7);
-  cactus(group, m.left + 0.2, 0.02, m.nearZ + 0.22, 1.3);
-  const palm = new THREE.Group();
-  part(palm, "cyl", 0x8a5a32, 0, 0.28, 0, 0.05, 0.4, 0.05);
-  part(palm, "sph", 0x3d9a4a, 0, 0.52, 0, 0.16, 0.08, 0.16, true);
-  palm.position.set(m.right - 0.15, 0, m.nearZ + 0.2);
-  group.add(palm);
-  loop((time) => { palm.rotation.z = Math.sin(time * 1.5) * 0.06; });
-  part(group, "cyl", 0x2eb8a8, 0, 0.02, m.nearZ + 0.16, 0.16, 0.02, 0.1);
-  part(group, "box", 0xf4f1ea, m.right + 0.05, 0.04, m.nearZ + 0.08, 0.12, 0.03, 0.03);
-  bandMotes(group, 8, 0xe6c27a, m, false);
+  ground(group, m, 0xe6c27a, m.groundZ, m.outer * 0.36);
+  const liz = stamp(group, "lizard", draw.lizard, 0, m.foot, m.far, 1.25, 0.7, 0.08);
+  patrol(liz, m, 4, false);
+  loop((time) => { tilt(liz, Math.sin(time * 8) * 0.08); });
+  stamp(group, "cactus", draw.cactus, -m.outer * 0.78, m.foot, m.far, 0.7, 1.05, 0.08);
+  stamp(group, "cactus", draw.cactus, -m.outer * 0.45, m.low, m.groundZ, 1.15, 1.55, 0.88);
+  const palm = stamp(group, "palm", draw.palm, m.outer * 0.4, m.low, m.groundZ - 0.05, 1.35, 1.6, 0.88);
+  loop((time) => { tilt(palm, Math.sin(time * 1.5) * 0.05); });
+  stamp(group, "bone", draw.bone, m.outer * 0.72, m.foot - 0.05, m.far + 0.02, 0.7, 0.4, 0.2);
+  stamp(group, "dune", draw.dune, -m.outer * 0.2, m.foot, m.sky + 0.2, 1.6, 0.8, 0.2);
+  stamp(group, "dune", draw.dune, m.outer * 0.35, m.foot, m.sky + 0.28, 1.3, 0.7, 0.2);
+  flakes(group, 12, 0xe6c27a, m, false);
 }
 
 function buildIce(group, m) {
-  const pen = penguinBody(group, 1, false);
-  pen.g.position.set(0, m.walkY, m.farZ);
-  loop((time) => {
-    const p = pingpong(time, 6);
-    pen.g.position.x = (p * 2 - 1) * (m.outer - 0.45);
-    pen.g.rotation.z = Math.sin(time * Math.PI * 4) * 0.16;
-    pen.g.rotation.y = time % 6 < 3 ? Math.PI / 2 : -Math.PI / 2;
-    const step = Math.sin(time * Math.PI * 4);
-    pen.footL.position.z = 0.06 + step * 0.03;
-    pen.footR.position.z = 0.06 - step * 0.03;
-  });
-  const seal = new THREE.Group();
-  part(seal, "sph", 0x8aa0b4, 0, 0.08, 0, 0.16, 0.08, 0.1, true);
-  part(seal, "sph", 0xd5e4ee, 0.12, 0.1, 0.02, 0.07, 0.06, 0.06);
-  part(seal, "sph", 0x141414, 0.16, 0.12, 0.04, 0.015, 0.015, 0.015);
-  seal.position.set(m.right - 0.05, 0.02, m.nearZ + 0.2);
-  group.add(seal);
-  loop((time) => { seal.position.y = 0.02 + Math.sin(time * (Math.PI * 2 / 3)) * 0.03; });
-  const baby = penguinBody(group, 0.62, true);
-  baby.g.position.set(m.left + 0.2, 0.02, m.nearZ + 0.18);
+  ground(group, m, 0xd7f4ff, m.groundZ, m.outer * 0.4);
+  const pen = stamp(group, "penguin", draw.penguin, 0, m.foot, m.far, 1.05, 1.25, 0.05);
+  patrol(pen, m, 6, false);
+  loop((time) => { tilt(pen, Math.sin(time * Math.PI * 4) * 0.12); });
+  const seal = stamp(group, "seal", draw.seal, m.outer * 0.45, m.low, m.groundZ, 1.35, 0.85, 0.85);
+  loop((time) => { seal.position.y = m.low + Math.sin(time * 2.1) * 0.06; });
+  const baby = stamp(group, "babyPen", draw.babyPen, -m.outer * 0.45, m.low, m.near, 0.7, 0.85, 0.9);
+  const babyW = Math.abs(baby.scale.x);
   loop((time) => {
     const p = pingpong(time + 1, 6);
-    baby.g.position.x = m.left + 0.05 + p * 0.45;
+    baby.position.x = -m.outer * 0.7 + p * 0.7 * m.unit;
+    baby.scale.x = (time % 6 < 3 ? 1 : -1) * babyW;
   });
-  for (let i = 0; i < 5; i++) {
-    const ice = part(group, "cone", 0xeaf8ff, (i - 2) * 0.28, 0.16, m.nearZ + 0.02, 0.04, 0.14, 0.04);
-    ice.rotation.x = Math.PI;
+  for (let i = 0; i < 6; i++) {
+    stamp(group, "icicle", draw.icicle, -m.outer * 0.7 + i * (m.outer * 0.28), m.foot - 0.35, m.near - 0.02, 0.28, 0.55, 0.95);
   }
-  iceberg(group, m.left - 0.08, m.farZ - 0.22, 1);
-  iceberg(group, m.right + 0.06, m.farZ - 0.18, 0.75);
-  bandMotes(group, 14, 0xf4fbff, m, true);
+  stamp(group, "iceberg", draw.iceberg, -m.outer * 0.62, m.foot, m.sky + 0.25, 1.7, 1.45, 0.12);
+  stamp(group, "iceberg", draw.iceberg, m.outer * 0.68, m.foot, m.sky + 0.32, 1.35, 1.15, 0.12);
+  flakes(group, 16, 0xf4fbff, m, true);
 }
 
 function buildOcean(group, m) {
-  const crab = new THREE.Group();
-  part(crab, "sph", 0xe23b3b, 0, 0.08, 0, 0.12, 0.06, 0.1, true);
-  const clawL = part(crab, "sph", 0xff6a5a, -0.12, 0.08, 0.04, 0.05, 0.04, 0.04);
-  const clawR = part(crab, "sph", 0xff6a5a, 0.12, 0.08, 0.04, 0.05, 0.04, 0.04);
-  part(crab, "sph", 0x141414, -0.04, 0.16, 0.04, 0.02, 0.02, 0.02);
-  part(crab, "sph", 0x141414, 0.04, 0.16, 0.04, 0.02, 0.02, 0.02);
-  crab.position.set(0, m.walkY, m.farZ);
-  group.add(crab);
+  ground(group, m, 0x1471b4, m.groundZ, m.outer * 0.4);
+  const crab = stamp(group, "crab", draw.crab, 0, m.foot, m.far, 1.15, 0.95, 0.08);
+  patrol(crab, m, 6, false);
+  const gull = stamp(group, "gull", draw.gull, 0, m.foot + 0.4, m.sky, 1.2, 0.75, 0.4);
   loop((time) => {
-    const p = pingpong(time, 6);
-    crab.position.x = (p * 2 - 1) * (m.outer - 0.4);
-    crab.rotation.y = Math.PI / 2;
-    clawL.rotation.z = Math.sin(time * 4) * 0.4;
-    clawR.rotation.z = -Math.sin(time * 4) * 0.4;
+    const p = (time % 6) / 6;
+    gull.position.x = (p * 2 - 1) * (m.outer + 0.15);
   });
-  bird(group, m, 0xf7f7f7, 1.5, m.farZ - 0.28, 6, 6);
-  for (const side of [-1, 1]) {
-    const fish = new THREE.Group();
-    part(fish, "sph", side < 0 ? 0xf2a020 : 0x3ec4ff, 0, 0, 0, 0.1, 0.05, 0.04, true);
-    part(fish, "cone", side < 0 ? 0xe07a20 : 0x2f7dff, -0.1, 0, 0, 0.04, 0.05, 0.02);
-    fish.children[1].rotation.z = Math.PI / 2;
-    fish.position.set(side * 0.35, 0.02, m.nearZ + 0.22);
-    group.add(fish);
+  [-1, 1].forEach((side, i) => {
+    const key = side < 0 ? "fish-a" : "fish-b";
+    const body = side < 0 ? "#f2a020" : "#3ec4ff";
+    const fin = side < 0 ? "#e07a20" : "#2f7dff";
+    const fish = stamp(group, key, (g, s) => draw.fish(g, s, body, fin), side * m.outer * 0.35, m.low, m.groundZ, 1.05, 0.7, 0.8);
     loop((time) => {
-      const hop = Math.max(0, Math.sin(time * (Math.PI * 2 / 3) + (side < 0 ? 0 : 1.4)));
-      fish.position.y = 0.04 + hop * 0.18;
+      const hop = Math.max(0, Math.sin(time * 2.1 + i * 1.4));
+      fish.position.y = m.low + hop * 0.35;
     });
-  }
-  part(group, "cone", 0xff5a7a, m.left + 0.05, 0.08, m.nearZ + 0.16, 0.08, 0.14, 0.06);
-  part(group, "cone", 0xff8a3a, m.right - 0.2, 0.07, m.nearZ + 0.18, 0.07, 0.12, 0.05);
-  part(group, "cone", 0xc07aff, m.right + 0.02, 0.06, m.nearZ + 0.12, 0.06, 0.1, 0.05);
-  part(group, "box", 0x7fd6ff, m.left - 0.02, 0.7, m.farZ - 0.12, 0.28, 0.08, 0.08);
-  part(group, "box", 0x7fd6ff, m.right + 0.02, 0.66, m.farZ - 0.1, 0.24, 0.07, 0.07);
-  bandMotes(group, 10, 0xeaf8ff, m, true);
+  });
+  stamp(group, "coral-a", (g, s) => draw.coral(g, s, "#ff5a7a"), -m.outer * 0.7, m.low, m.groundZ - 0.1, 0.7, 0.85, 0.88);
+  stamp(group, "coral-b", (g, s) => draw.coral(g, s, "#ff8a3a"), m.outer * 0.15, m.low, m.groundZ, 0.6, 0.75, 0.88);
+  stamp(group, "coral-c", (g, s) => draw.coral(g, s, "#c07aff"), m.outer * 0.6, m.low, m.groundZ + 0.05, 0.65, 0.8, 0.88);
+  stamp(group, "wave", draw.wave, -m.outer * 0.45, m.foot, m.sky + 0.2, 1.3, 0.55, 0.3);
+  stamp(group, "wave", draw.wave, m.outer * 0.45, m.foot, m.sky + 0.28, 1.15, 0.5, 0.3);
+  flakes(group, 12, 0xeaf8ff, m, true);
 }
 
 function buildCrystal(group, m) {
-  crystal(group, m.left - 0.02, m.walkY, m.farZ, 0x9a78f0);
-  crystal(group, m.right + 0.02, m.walkY, m.farZ, 0x7eb6e8);
-  crystal(group, m.left + 0.08, 0.02, m.nearZ + 0.18, 0xb7c6e6);
-  crystal(group, m.right - 0.08, 0.02, m.nearZ + 0.16, 0x8ea0c8);
-  const fly = (x0, z0, phase) => {
-    const g = new THREE.Group();
-    part(g, "sph", 0xfff6ea, 0, 0, 0, 0.04, 0.03, 0.04, true);
-    const wing = part(g, "box", 0xd0dcff, 0, 0.02, 0, 0.1, 0.01, 0.05);
-    group.add(g);
+  ground(group, m, 0x2a2458, m.groundZ, m.outer * 0.34);
+  [[-0.7, "#9a78f0"], [0.7, "#7eb6e8"]].forEach(([x, color], i) => {
+    const gem = stamp(group, `gem-${i}`, (g, s) => draw.crystal(g, s, color), x * m.outer, m.foot, m.far, 0.85, 1.25, 0.08);
+    loop((time) => { gem.position.y = m.foot + Math.sin(time * 2 + i) * 0.04; });
+  });
+  stamp(group, "gem-c", (g, s) => draw.crystal(g, s, "#b7c6e6"), -m.outer * 0.55, m.low, m.groundZ, 0.9, 1.2, 0.88);
+  stamp(group, "gem-d", (g, s) => draw.crystal(g, s, "#8ea0c8"), m.outer * 0.5, m.low, m.groundZ, 0.75, 1.05, 0.88);
+  [0, 2].forEach((phase, i) => {
+    const fly = stamp(group, "butterfly", draw.butterfly, 0, m.foot + 0.2, i ? m.near : m.sky, 0.85, 0.7, 0.5);
     loop((time) => {
       const a = time * 1.1 + phase;
-      g.position.set(x0 + Math.sin(a) * 0.35, 1.15 + Math.sin(a * 2) * 0.12, z0 + Math.cos(a) * 0.12);
-      wing.rotation.z = Math.sin(time * 14) * 0.6;
+      fly.position.x = Math.sin(a) * m.outer * 0.55;
+      fly.position.y = (i ? m.low : m.foot) + 0.35 + Math.sin(a * 2) * 0.1;
     });
-  };
-  fly(0, m.farZ - 0.2, 0);
-  fly(0.2, m.nearZ + 0.15, 2);
-  bandMotes(group, 8, 0xe4ecff, m, false);
+  });
+  flakes(group, 10, 0xe4ecff, m, false);
 }
 
 function buildToy(group, m) {
-  robotToy(group, m);
-  for (let i = 0; i < 3; i++) {
-    const balloon = part(group, "sph", [0xff5a9a, 0x3ec4ff, 0xf2c14a][i], (i - 1) * 0.28, 0.28, m.nearZ + 0.2, 0.08, 0.1, 0.08, true);
-    part(group, "cyl", 0x5c646e, balloon.position.x, 0.1, balloon.position.z, 0.008, 0.16, 0.008);
-    const baseY = 0.28;
-    loop((time) => { balloon.position.y = baseY + Math.sin(time * 2 + i) * 0.05; });
-  }
-  part(group, "box", 0xe23b3b, m.left - 0.02, 0.85, m.farZ - 0.12, 0.14, 0.14, 0.14, true);
-  part(group, "box", 0x2f7dff, m.left - 0.02, 1.0, m.farZ - 0.12, 0.1, 0.1, 0.1);
-  part(group, "box", 0xf2c14a, m.right + 0.02, 0.82, m.farZ - 0.1, 0.12, 0.16, 0.12, true);
-}
-
-function mushroomHouse(parent, x, z, cap) {
-  const g = new THREE.Group();
-  part(g, "cyl", 0xf4f0ea, 0, 0.12, 0, 0.08, 0.2, 0.08);
-  part(g, "sph", cap, 0, 0.26, 0, 0.16, 0.1, 0.16, true);
-  part(g, "box", 0xf2c14a, 0, 0.12, 0.08, 0.04, 0.04, 0.01);
-  g.position.set(x, 0.55, z);
-  parent.add(g);
-  loop((time) => {
-    g.children[2].material = M(Math.sin(time * 1.5) > 0 ? 0xf2c14a : 0x6a4018);
+  ground(group, m, 0xf2c15a, m.groundZ, m.outer * 0.32);
+  const bot = stamp(group, "robot", draw.robot, 0, m.foot, m.far, 1.05, 1.15, 0.06);
+  patrol(bot, m, 6, true);
+  ["#ff5a9a", "#3ec4ff", "#f2c14a"].forEach((color, i) => {
+    const balloon = stamp(group, `bal-${i}`, (g, s) => draw.balloon(g, s, color), (i - 1) * m.outer * 0.4, m.low, m.groundZ, 0.7, 1.05, 0.85);
+    loop((time) => { balloon.position.y = m.low + Math.sin(time * 2 + i) * 0.08; });
   });
+  stamp(group, "block-r", (g, s) => draw.block(g, s, "#e23b3b"), -m.outer * 0.7, m.foot, m.sky + 0.2, 0.55, 0.55, 0.15);
+  stamp(group, "block-b", (g, s) => draw.block(g, s, "#2f7dff"), -m.outer * 0.7, m.foot + 0.4, m.sky + 0.2, 0.42, 0.42, 0.15);
+  stamp(group, "block-y", (g, s) => draw.block(g, s, "#f2c14a"), m.outer * 0.68, m.foot, m.sky + 0.25, 0.6, 0.7, 0.15);
+  stamp(group, "block-g", (g, s) => draw.block(g, s, "#3d9a4a"), m.outer * 0.4, m.low, m.groundZ, 0.5, 0.5, 0.85);
 }
 
 function buildMushroom(group, m) {
-  mushroomHouse(group, m.left - 0.05, m.farZ - 0.16, 0xe23b3b);
-  mushroomHouse(group, m.right + 0.02, m.nearZ + 0.16, 0xc46eb0);
-  part(group, "sph", 0xe23b3b, m.left + 0.05, m.walkY + 0.08, m.farZ, 0.08, 0.05, 0.08, true);
-  part(group, "cyl", 0xf4f0ea, m.left + 0.05, m.walkY + 0.02, m.farZ, 0.03, 0.06, 0.03);
-  part(group, "sph", 0xf08ab0, m.right - 0.05, m.walkY + 0.07, m.farZ, 0.07, 0.045, 0.07, true);
-  bandMotes(group, 8, 0xf2e27a, m, false);
+  ground(group, m, 0x3a2458, m.groundZ, m.outer * 0.34);
+  stamp(group, "house-a", (g, s) => draw.house(g, s, "#e23b3b"), -m.outer * 0.55, m.foot, m.sky + 0.2, 1.25, 1.35, 0.1);
+  stamp(group, "house-b", (g, s) => draw.house(g, s, "#c46eb0"), m.outer * 0.45, m.low, m.groundZ, 1.15, 1.2, 0.88);
+  stamp(group, "mush-s", (g, s) => draw.mushroom(g, s, "#e23b3b"), -m.outer * 0.75, m.foot, m.far, 0.6, 0.55, 0.1);
+  stamp(group, "mush-p", (g, s) => draw.mushroom(g, s, "#f08ab0"), m.outer * 0.72, m.foot, m.far, 0.55, 0.5, 0.1);
+  flakes(group, 12, 0xf2e27a, m, false);
 }
 
 function buildCandy(group, m) {
-  const cookie = new THREE.Group();
-  part(cookie, "cyl", 0xe7b07a, 0, 0.06, 0, 0.12, 0.05, 0.12, true);
-  part(cookie, "sph", 0x6a3a1a, 0.04, 0.09, 0.03, 0.03, 0.02, 0.03);
-  part(cookie, "sph", 0x6a3a1a, -0.04, 0.09, -0.02, 0.025, 0.02, 0.025);
-  cookie.position.set(m.left + 0.25, 0.02, m.nearZ + 0.2);
-  group.add(cookie);
+  ground(group, m, 0xf7b4c8, m.groundZ, m.outer * 0.34);
+  const cookie = stamp(group, "cookie", draw.cookie, -m.outer * 0.4, m.low, m.groundZ, 0.9, 0.9, 0.85);
   loop((time) => {
-    cookie.rotation.y = time * (Math.PI * 2 / 18);
-    cookie.position.x = m.left + 0.15 + pingpong(time, 8) * 0.5;
+    cookie.position.x = -m.outer * 0.65 + pingpong(time, 8) * m.outer * 0.45;
+    ownMat(cookie).rotation = time * 0.35;
   });
-  const pop = (x, z) => {
-    const g = new THREE.Group();
-    part(g, "sph", 0xff5a9a, 0, 0.22, 0, 0.08, 0.08, 0.08, true);
-    part(g, "cyl", 0xf4f7fb, 0, 0.08, 0, 0.02, 0.16, 0.02);
-    g.position.set(x, 0, z);
-    group.add(g);
-    loop((time) => { g.rotation.z = Math.sin(time * 2) * 0.12; });
-  };
-  pop(m.right - 0.1, m.nearZ + 0.18);
-  pop(m.left - 0.02, m.farZ - 0.12);
-  part(group, "sph", 0xfff6ea, m.left + 0.08, m.walkY + 0.06, m.farZ, 0.1, 0.06, 0.1, true);
-  part(group, "sph", 0xe23b3b, m.left + 0.08, m.walkY + 0.14, m.farZ, 0.04, 0.04, 0.04);
-  part(group, "sph", 0xfff6ea, m.right - 0.06, m.walkY + 0.05, m.farZ, 0.08, 0.05, 0.08);
-  bandMotes(group, 12, 0xff8ab0, m, true);
+  const popA = stamp(group, "pop", draw.pop, m.outer * 0.45, m.low, m.groundZ, 0.7, 1.15, 0.88);
+  const popB = stamp(group, "pop", draw.pop, -m.outer * 0.55, m.foot, m.sky + 0.15, 0.85, 1.3, 0.12);
+  loop((time) => {
+    tilt(popA, Math.sin(time * 2) * 0.12);
+    tilt(popB, Math.sin(time * 2 + 1) * 0.1);
+  });
+  stamp(group, "cream", draw.cream, -m.outer * 0.72, m.foot, m.far, 0.7, 0.6, 0.1);
+  stamp(group, "cream", draw.cream, m.outer * 0.7, m.foot, m.far, 0.62, 0.55, 0.1);
+  flakes(group, 14, 0xff8ab0, m, true);
 }
 
 function buildLava(group, m) {
-  const volcano = (x, z, s) => {
-    const g = new THREE.Group();
-    part(g, "cone", 0x4a2018, 0, 0.22 * s, 0, 0.2 * s, 0.4 * s, 0.18 * s, true);
-    part(g, "cyl", 0xff4a18, 0, 0.4 * s, 0, 0.06 * s, 0.04, 0.06 * s);
-    g.position.set(x, 0.55, z);
-    group.add(g);
-    const puffs = [0, 1, 2].map((i) => part(g, "sph", 0x6a5348, 0, 0.46 * s, 0, 0.06, 0.05, 0.06));
-    const puffBase = puffs.map((puff) => puff.scale.clone());
-    loop((time) => {
-      puffs.forEach((puff, i) => {
-        const t = (time / 3 + i / 3) % 1;
-        puff.position.y = 0.42 * s + t * 0.35;
-        puff.position.x = Math.sin(time + i) * 0.04;
-        const k = 0.7 + t;
-        puff.scale.copy(puffBase[i]).multiplyScalar(k);
-      });
-    });
-  };
-  volcano(m.left - 0.02, m.farZ - 0.18, 1);
-  volcano(m.right + 0.04, m.farZ - 0.14, 0.8);
-  part(group, "box", 0x3a2418, m.left + 0.15, 0.05, m.nearZ + 0.16, 0.14, 0.06, 0.1);
-  part(group, "box", 0x2a1814, m.right - 0.1, 0.04, m.nearZ + 0.18, 0.1, 0.05, 0.08);
-  const glow = part(group, "box", 0xff6a18, 0, 0.02, m.nearZ + 0.08, m.outer * 0.9, 0.02, 0.06);
-  const glowY = glow.scale.y;
-  loop((time) => { glow.scale.y = glowY * (0.85 + Math.sin(time * Math.PI) * 0.25); });
-  bandMotes(group, 12, 0xffb060, m, true);
+  ground(group, m, 0x4a2018, m.groundZ, m.outer * 0.36);
+  const v1 = stamp(group, "volcano", draw.volcano, -m.outer * 0.55, m.foot, m.sky + 0.15, 1.45, 1.4, 0.1);
+  const v2 = stamp(group, "volcano", draw.volcano, m.outer * 0.6, m.foot, m.sky + 0.28, 1.15, 1.15, 0.1);
+  loop((time) => {
+    const p = (time % 3) / 3;
+    v1.position.y = m.foot + Math.sin(p * Math.PI) * 0.04;
+    v2.position.y = m.foot + Math.sin(p * Math.PI + 1) * 0.03;
+  });
+  stamp(group, "rock", draw.rock, -m.outer * 0.35, m.low, m.groundZ, 0.9, 0.6, 0.85);
+  stamp(group, "rock", draw.rock, m.outer * 0.4, m.low, m.groundZ + 0.05, 0.75, 0.5, 0.85);
+  stamp(group, "rock", draw.rock, m.outer * 0.75, m.foot, m.far, 0.55, 0.4, 0.15);
+  flakes(group, 16, 0xffb060, m, true);
 }
 
 function buildJungle(group, m) {
-  const vine = part(group, "cyl", 0x3d7a3a, m.right + 0.02, 1.05, m.farZ, 0.03, 0.45, 0.03);
-  const monk = new THREE.Group();
-  part(monk, "sph", 0xc47a3a, 0, -0.16, 0, 0.09, 0.1, 0.08, true);
-  part(monk, "sph", 0xe8c9a0, 0, -0.26, 0.04, 0.06, 0.06, 0.05);
-  part(monk, "cyl", 0xc47a3a, 0, 0, 0, 0.02, 0.16, 0.02);
-  monk.position.set(m.right + 0.02, 1.15, m.farZ);
-  group.add(monk);
-  loop((time) => { monk.rotation.z = Math.sin(time * (Math.PI * 2 / 3)) * 0.45; });
-  const birdG = new THREE.Group();
-  part(birdG, "sph", 0x3d9a4a, 0, 0.08, 0, 0.08, 0.06, 0.07, true);
-  part(birdG, "sph", 0xe23b3b, 0.06, 0.1, 0.02, 0.04, 0.04, 0.04);
-  const wing = part(birdG, "box", 0xf2c14a, 0, 0.1, 0, 0.1, 0.015, 0.05);
-  birdG.position.set(m.left + 0.08, m.walkY, m.farZ);
-  group.add(birdG);
+  ground(group, m, 0x1e5a38, m.groundZ, m.outer * 0.38);
+  const vine = stamp(group, "vine", draw.vine, m.outer * 0.78, m.foot + 0.15, m.far, 0.55, 1.35, 0.05);
+  const monk = stamp(group, "monkey", draw.monkey, m.outer * 0.78, m.foot - 0.15, m.far, 0.85, 1.15, 0.08);
+  loop((time) => {
+    const s = Math.sin(time * 2.1);
+    monk.position.x = m.outer * 0.78 + s * 0.18 * m.unit;
+    tilt(monk, s * 0.35);
+    tilt(vine, s * 0.08);
+  });
+  const bird = stamp(group, "parrot", draw.parrot, -m.outer * 0.55, m.foot, m.far, 0.95, 0.8, 0.12);
+  const birdH = Math.abs(bird.scale.y);
   loop((time) => {
     const beat = (time % 4) < 0.35 || ((time % 4) > 0.5 && (time % 4) < 0.8);
-    wing.rotation.z = beat ? Math.sin(time * 30) * 0.7 : 0.1;
+    bird.scale.y = beat ? birdH * 0.86 : birdH;
   });
-  part(group, "cyl", 0x2f6a32, m.left - 0.02, 0.85, m.farZ - 0.05, 0.025, 0.4, 0.025);
-  part(group, "box", 0x3d9a4a, m.left + 0.15, 0.55, m.farZ - 0.18, 0.22, 0.08, 0.12);
-  part(group, "box", 0x2f8a3a, m.right - 0.2, 0.08, m.nearZ + 0.18, 0.2, 0.06, 0.12);
+  stamp(group, "leaf", draw.leaf, -m.outer * 0.4, m.foot, m.sky + 0.15, 1.3, 1.05, 0.15);
+  stamp(group, "leaf", draw.leaf, m.outer * 0.2, m.low, m.groundZ, 1.15, 0.9, 0.85);
+  stamp(group, "vine", draw.vine, -m.outer * 0.8, m.foot, m.sky + 0.1, 0.5, 1.2, 0.1);
 }
 
 function buildAlien(group, m) {
-  const alien = new THREE.Group();
-  part(alien, "sph", 0x6adf5a, 0, 0.12, 0, 0.09, 0.11, 0.08, true);
-  part(alien, "sph", 0x141414, -0.03, 0.16, 0.06, 0.02, 0.025, 0.02);
-  part(alien, "sph", 0x141414, 0.03, 0.16, 0.06, 0.02, 0.025, 0.02);
-  const ant = part(alien, "cyl", 0xc6f25a, 0, 0.24, 0, 0.012, 0.1, 0.012);
-  part(alien, "sph", 0xf2e27a, 0, 0.3, 0, 0.025, 0.025, 0.025);
-  alien.position.set(0, m.walkY, m.farZ);
-  group.add(alien);
+  ground(group, m, 0x2a1860, m.groundZ, m.outer * 0.34);
+  const alien = stamp(group, "alien-g", (g, s) => draw.alien(g, s, "#6adf5a"), 0, m.foot, m.far, 1.0, 1.15, 0.06);
+  patrol(alien, m, 6, true);
+  const ufo = stamp(group, "ufo", draw.ufo, 0, m.foot + 0.45, m.sky, 1.35, 0.9, 0.45);
   loop((time) => {
     const p = pingpong(time, 6);
-    alien.position.x = (p * 2 - 1) * (m.outer - 0.45);
-    alien.position.y = m.walkY + Math.abs(Math.sin(time * Math.PI * 2)) * 0.06;
-    ant.rotation.z = Math.sin(time * 4) * 0.2;
+    ufo.position.x = (p * 2 - 1) * (m.outer - 0.4);
   });
-  const ufo = new THREE.Group();
-  part(ufo, "cyl", 0xc5ced8, 0, 0, 0, 0.16, 0.04, 0.16, true);
-  part(ufo, "sph", 0x9af0c8, 0, 0.05, 0, 0.08, 0.06, 0.08);
-  const beam = part(ufo, "cone", 0xc6f2a0, 0, -0.12, 0, 0.08, 0.16, 0.08);
-  if (!buildAlien.beamMat) {
-    buildAlien.beamMat = new THREE.MeshBasicMaterial({ color: 0xc6f2a0, transparent: true, opacity: 0.28, depthWrite: false });
-  }
-  beam.material = buildAlien.beamMat;
-  group.add(ufo);
-  loop((time) => {
-    const p = pingpong(time, 6);
-    ufo.position.set((p * 2 - 1) * (m.outer - 0.2), 1.45, m.farZ - 0.22);
-    beam.material.opacity = 0.18 + (Math.sin(time * 6) > 0 ? 0.16 : 0);
-  });
-  const pink = new THREE.Group();
-  part(pink, "sph", 0xff8ab0, 0, 0.1, 0, 0.08, 0.09, 0.07, true);
-  part(pink, "sph", 0x141414, -0.025, 0.13, 0.05, 0.015, 0.018, 0.015);
-  part(pink, "sph", 0x141414, 0.025, 0.13, 0.05, 0.015, 0.018, 0.015);
-  pink.position.set(m.left + 0.25, 0.02, m.nearZ + 0.18);
-  group.add(pink);
-  loop((time) => { pink.position.x = m.left + 0.1 + pingpong(time, 6) * 0.4; });
-  part(group, "sph", 0xc6f25a, m.right - 0.05, 0.12, m.nearZ + 0.16, 0.06, 0.1, 0.06, true);
-  part(group, "sph", 0x9a78f0, m.left - 0.02, 0.85, m.farZ - 0.12, 0.08, 0.12, 0.08);
+  const pink = stamp(group, "alien-p", (g, s) => draw.alien(g, s, "#ff8ab0"), -m.outer * 0.3, m.low, m.groundZ, 0.85, 0.95, 0.85);
+  loop((time) => { pink.position.x = -m.outer * 0.6 + pingpong(time, 6) * m.outer * 0.4; });
+  stamp(group, "sprout", draw.sprout, m.outer * 0.5, m.low, m.groundZ, 0.7, 0.95, 0.88);
+  stamp(group, "sprout", draw.sprout, -m.outer * 0.45, m.foot, m.sky + 0.2, 0.85, 1.1, 0.12);
 }
 
 function buildMachine(group, m) {
-  const bot = new THREE.Group();
-  part(bot, "box", 0x3ec4ff, 0, 0.14, 0, 0.12, 0.1, 0.1, true);
-  part(bot, "cyl", 0x5c646e, -0.06, 0.04, 0, 0.04, 0.04, 0.04);
-  part(bot, "cyl", 0x5c646e, 0.06, 0.04, 0, 0.04, 0.04, 0.04);
-  const head = part(bot, "box", 0xd5dde6, 0, 0.24, 0, 0.08, 0.06, 0.07);
-  bot.position.set(0, m.walkY, m.farZ);
-  group.add(bot);
-  loop((time) => {
-    const p = pingpong(time, 6);
-    bot.position.x = (p * 2 - 1) * (m.outer - 0.45);
-    head.rotation.x = Math.sin(time * 2) * 0.2;
-    bot.rotation.y = time % 6 < 3 ? Math.PI / 2 : -Math.PI / 2;
+  ground(group, m, 0x2a3444, m.groundZ, m.outer * 0.32);
+  const bot = stamp(group, "bot", draw.bot, 0, m.foot, m.far, 1.05, 1.1, 0.06);
+  patrol(bot, m, 6, false);
+  const gears = [
+    [-0.72, m.far, m.foot, 0.7, 1],
+    [0.75, m.far, m.foot, 0.6, -1],
+    [-0.4, m.groundZ, m.low, 0.75, 1],
+    [0.05, m.groundZ, m.low, 0.65, -1],
+    [0.5, m.groundZ, m.low, 0.7, 1],
+  ];
+  gears.forEach(([x, z, y, size, dir], i) => {
+    const gear = stamp(group, "gear", draw.gear, x * m.outer, y, z, size, size, z < 0 ? 0.15 : 0.85);
+    loop((time) => { ownMat(gear).rotation = time * (Math.PI / 3) * dir; });
   });
-  gear(group, m.left - 0.02, m.walkY + 0.08, m.farZ + 0.02, 1);
-  gear(group, m.right + 0.02, m.walkY + 0.06, m.farZ, -1);
-  gear(group, m.left + 0.15, 0.1, m.nearZ + 0.18, 1);
-  gear(group, 0, 0.1, m.nearZ + 0.2, -1);
-  gear(group, m.right - 0.15, 0.1, m.nearZ + 0.16, 1);
-  const pipe = part(group, "cyl", 0x8a929c, m.left + 0.05, 0.85, m.farZ - 0.16, 0.05, 0.22, 0.05, true);
-  const steam = [0, 1, 2].map((i) => part(group, "sph", 0xf4f7fb, pipe.position.x, 1.05, pipe.position.z, 0.05, 0.04, 0.05));
-  loop((time) => {
-    steam.forEach((puff, i) => {
-      const t = (time / 2 + i / 3) % 1;
-      puff.position.y = 1.02 + t * 0.35;
-      puff.position.x = pipe.position.x + Math.sin(time + i) * 0.03;
-    });
-  });
-  part(group, "cyl", 0x8a929c, m.right - 0.05, 0.78, m.farZ - 0.12, 0.04, 0.28, 0.04);
-  bandMotes(group, 6, 0xd0d8e4, m, false);
+  stamp(group, "pipe", draw.pipe, -m.outer * 0.4, m.foot, m.sky + 0.2, 0.7, 1.15, 0.12);
+  stamp(group, "pipe", draw.pipe, m.outer * 0.55, m.foot, m.sky + 0.28, 0.55, 0.95, 0.12);
+  flakes(group, 8, 0xd0d8e4, m, false);
 }
 
 const BUILDERS = {
@@ -585,18 +770,12 @@ const BUILDERS = {
   machine: buildMachine,
 };
 
-export function createBoardDeco(planet, span) {
+export function createBoardDeco(planet, span, frameT = 0.46) {
   const group = new THREE.Group();
   group.name = "board-deco";
+  const m = metrics(span, frameT);
+  spriteUnit = m.unit;
   const build = BUILDERS[planet] || BUILDERS.wood;
-  build(group, metrics(span));
-  // Grow the trim in place. Positions stay outside the cells.
-  for (const child of group.children) {
-    if (child.isPoints) {
-      child.material.size = 0.16;
-      continue;
-    }
-    child.scale.multiplyScalar(2.05);
-  }
+  build(group, m);
   return group;
 }
