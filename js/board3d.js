@@ -1039,7 +1039,7 @@ export function createView(canvas) {
     spool: { color: 0xe7c4a8, emissive: 0x8a5a40, roughness: 0.55 },
     mug: { color: 0xf4f7fb, emissive: 0x000000, roughness: 0.32 },
     rind: { color: 0x1f7a3a, emissive: 0x0c3a18, roughness: 0.62 },
-    lamp: { color: 0xd8dee8, emissive: 0x8aa0c0, roughness: 0.22, metalness: 0.7, clearcoat: 0.4 },
+    lamp: { color: 0xd8dee8, emissive: 0x8aa0c0, roughness: 0.22, metalness: 0.7 },
     hoard: { color: 0xf2c14a, emissive: 0xc47a20, roughness: 0.32, metalness: 0.45 },
     paw: { color: 0xf2c9a0, emissive: 0xc48a62, roughness: 0.62 },
     pixels: { color: 0x3a6cff, emissive: 0x1a3088, roughness: 0.55 },
@@ -1336,15 +1336,20 @@ export function createView(canvas) {
       slot.base = 0.95;
       slot.mesh.scale.set(2.6, 1.45, 1);
     } else if (kind === "splat" || kind === "fur") {
-      mat.color.setHex(kind === "fur" ? 0xc4a574 : 0x2fbf3e);
-      slot.base = 0.8;
-      const s = kind === "fur" ? 0.7 + Math.random() * 0.35 : 1.05 + Math.random() * 0.45;
+      mat.color.setHex(kind === "fur" ? 0x8c5a38 : 0x2fbf3e);
+      slot.base = kind === "fur" ? 0.9 : 0.8;
+      const s = kind === "fur" ? 0.95 + Math.random() * 0.4 : 1.05 + Math.random() * 0.45;
       slot.mesh.scale.set(s, s * (0.85 + Math.random() * 0.3), 1);
       slot.group.rotation.y = Math.random() * Math.PI;
     } else if (kind === "yarn") {
-      mat.color.setHex(0xf3e6c8);
-      slot.base = 0.92;
-      slot.mesh.scale.set(1.55, 0.28, 1);
+      mat.color.setHex(0xe09080);
+      slot.base = 0.95;
+      slot.mesh.scale.set(1.85, 0.9, 1);
+    } else if (kind === "fleck") {
+      mat.color.setHex(SPRINKLE_HEX[Math.floor(Math.random() * SPRINKLE_HEX.length)]);
+      slot.base = 0.95;
+      slot.mesh.scale.set(0.62, 0.62, 1);
+      slot.group.rotation.y = Math.random() * Math.PI;
     } else if (kind === "seed") {
       mat.color.setHex(0x1a1208);
       slot.base = 0.9;
@@ -1411,7 +1416,7 @@ export function createView(canvas) {
       slot.g = noteFlip ? 0.62 : 0.82;
       slot.b = noteFlip ? 1 : 0.28;
     } else if (kind === "fleck") {
-      trailTint.setHSL(Math.random(), 0.15, 0.82 + Math.random() * 0.15);
+      trailTint.setHSL(Math.random(), 0.72, 0.58);
       slot.r = trailTint.r;
       slot.g = trailTint.g;
       slot.b = trailTint.b;
@@ -1460,7 +1465,10 @@ export function createView(canvas) {
     else if (kind === "fur") spawnDecal(x, z, dir, "fur");
     else if (kind === "pixel") spawnDecal(x, z, dir, "pixel");
     else if (kind === "footprints") spawnDecal(x, z, dir, "foot");
-    else if (kind === "sparkle" || kind === "rainbow" || kind === "hearts" || kind === "notes" || kind === "fleck" || kind === "coin" || kind === "smoke") {
+    else if (kind === "fleck") {
+      spawnDecal(x, z, dir, "fleck");
+      spawnPoint(x, z, "fleck");
+    } else if (kind === "sparkle" || kind === "rainbow" || kind === "hearts" || kind === "notes" || kind === "coin" || kind === "smoke") {
       spawnPoint(x, z, kind);
     } else if (kind === "flame") {
       spawnPoint(x, z, "flame");
@@ -1561,7 +1569,8 @@ export function createView(canvas) {
       return;
     }
     if (kind === "cup") {
-      addProp(new THREE.CylinderGeometry(0.16, 0.12, 0.2, 12, 1, true), mat, 0, BOARD_TOP + 0.2, -0.5);
+      addProp(new THREE.CylinderGeometry(0.16, 0.13, 0.22, 12, 1, true), mat, 0, BOARD_TOP + 0.2, -0.48);
+      addProp(new THREE.CylinderGeometry(0.13, 0.13, 0.03, 12), mat, 0, BOARD_TOP + 0.1, -0.48);
       return;
     }
     if (kind === "flag") {
@@ -1602,6 +1611,7 @@ export function createView(canvas) {
     if (kind === "paw") {
       const group = new THREE.Group();
       group.position.set(0, BOARD_TOP + 0.42, -0.58);
+      group.rotation.x = -0.55;
       const pad = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), mat);
       pad.scale.set(1.25, 0.42, 1.05);
       pad.userData.ownGeo = true;
@@ -2727,7 +2737,7 @@ export function createView(canvas) {
       if (pawT > 0 && pawMesh) {
         pawT += dt / 0.42;
         const k = Math.min(1, pawT);
-        pawMesh.rotation.x = Math.sin(k * Math.PI) * 0.9;
+        pawMesh.rotation.x = -0.55 + Math.sin(k * Math.PI) * 0.85;
         if (pawT >= 1) {
           pawMesh.rotation.x = 0;
           pawT = 0;
