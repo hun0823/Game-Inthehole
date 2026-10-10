@@ -14,7 +14,7 @@ import {
   makeSand, makeIce, makeJelly, makeSmog, makeMagma, makeTeleport, makeCurrent, makeButton,
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
-import { beginDeco, tickDeco } from "./boardDeco.js";
+import { beginDeco, tickDeco, decoWanted, createBoardDeco } from "./boardDeco.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -26,13 +26,21 @@ const REST_X = 0.045;
 const WALL_T = 0.52;
 const WALL_H = 0.4;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
-const FRAME_T = 0.2;
-const FRAME_H = 0.22;
+const FRAME_T = 0.4;
+const FRAME_H = 0.3;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
 
+function mixHex(a, b, t) {
+  return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
+}
+
 function framePalette(theme) {
-  return { mid: theme.frame };
+  return {
+    mid: theme.frame,
+    hi: mixHex(theme.frame, 0xffffff, 0.58),
+    low: mixHex(theme.frame, 0x141414, 0.5),
+  };
 }
 
 const geos = new Map();
@@ -146,29 +154,139 @@ function mixRgb(a, b, t) {
   return a.map((c, i) => Math.round(c + (b[i] - c) * t));
 }
 
+const BRICKS = [
+  [176, 64, 64],
+  [58, 108, 176],
+  [184, 150, 48],
+  [62, 140, 74],
+  [184, 102, 48],
+  [140, 72, 164],
+];
+
+function brickIndex(n) {
+  const used = Array.from({ length: n }, () => Array(n).fill(-1));
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      let k = (r * 2 + c * 3) % BRICKS.length;
+      const left = c > 0 ? used[r][c - 1] : -1;
+      const up = r > 0 ? used[r - 1][c] : -1;
+      while (k === left || k === up) k = (k + 1) % BRICKS.length;
+      used[r][c] = k;
+    }
+  }
+  return used;
+}
+
+function paintStuds(g, x, y, w, rgb) {
+  const lite = rgb.map((c) => Math.min(255, c + 52));
+  const dark = rgb.map((c) => Math.max(0, c - 46));
+  const s = w * 0.18;
+  for (const [u, v] of [[0.3, 0.32], [0.7, 0.32], [0.3, 0.68], [0.7, 0.68]]) {
+    const cx = x + w * u;
+    const cy = y + w * v;
+    g.fillStyle = `rgb(${dark.join(",")})`;
+    g.beginPath();
+    g.ellipse(cx, cy + s * 0.32, s, s * 0.62, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = `rgb(${rgb.join(",")})`;
+    g.beginPath();
+    g.arc(cx, cy, s * 0.9, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = `rgb(${lite.join(",")})`;
+    g.beginPath();
+    g.ellipse(cx - s * 0.16, cy - s * 0.24, s * 0.36, s * 0.2, -0.5, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+function paintMotif(g, id, x, y, w, groove) {
+  g.strokeStyle = `rgba(${groove}, 0.22)`;
+  g.fillStyle = `rgba(${groove}, 0.14)`;
+  g.lineWidth = 2;
+  g.lineCap = "round";
+  const cx = x + w * 0.5;
+  const cy = y + w * 0.5;
+  if (id === "ice") {
+    g.beginPath();
+    g.moveTo(x + w * 0.22, y + w * 0.68);
+    g.lineTo(x + w * 0.42, y + w * 0.46);
+    g.lineTo(x + w * 0.78, y + w * 0.3);
+    g.stroke();
+  } else if (id === "wood" || id === "desert" || id === "jungle") {
+    g.beginPath();
+    g.ellipse(cx, cy, w * 0.22, w * 0.12, id === "jungle" ? 0.6 : 0, 0, Math.PI * 2);
+    g.stroke();
+  } else if (id === "ocean") {
+    g.beginPath();
+    g.arc(x + w * 0.38, y + w * 0.4, w * 0.07, 0, Math.PI * 2);
+    g.arc(x + w * 0.62, y + w * 0.58, w * 0.045, 0, Math.PI * 2);
+    g.fill();
+  } else if (id === "crystal" || id === "mushroom" || id === "candy" || id === "alien") {
+    g.beginPath();
+    g.moveTo(cx, cy - w * 0.16);
+    g.lineTo(cx + w * 0.05, cy);
+    g.lineTo(cx, cy + w * 0.16);
+    g.lineTo(cx - w * 0.05, cy);
+    g.closePath();
+    g.fill();
+  } else if (id === "lava") {
+    g.strokeStyle = "rgba(255, 140, 60, 0.35)";
+    g.beginPath();
+    g.moveTo(x + w * 0.25, y + w * 0.35);
+    g.lineTo(x + w * 0.5, y + w * 0.58);
+    g.lineTo(x + w * 0.74, y + w * 0.4);
+    g.stroke();
+  } else if (id === "machine") {
+    g.strokeRect(x + w * 0.28, y + w * 0.28, w * 0.44, w * 0.44);
+  }
+}
+
 function makeBoardTexture(n, palette) {
   const cell = 96;
   const size = n * cell;
-  const floor = palette?.floor || "#e4a45e";
-  const base = rgbOf(floor);
-  const pale = mixRgb(base, [255, 255, 255], 0.5);
-  const deep = mixRgb(base, [0, 0, 0], 0.1);
-  const seam = mixRgb(base, [255, 255, 255], 0.22);
+  const id = palette?.id || "wood";
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const g = c.getContext("2d");
-  g.fillStyle = `rgb(${seam.join(",")})`;
-  g.fillRect(0, 0, size, size);
-  const gap = 2;
-  const rad = 8;
-  for (let r = 0; r < n; r++) {
-    for (let col = 0; col < n; col++) {
-      const x = col * cell + gap;
-      const y = r * cell + gap;
-      const w = cell - gap * 2;
-      const tone = (r + col) % 2 === 0 ? pale : deep;
-      g.fillStyle = `rgb(${tone.join(",")})`;
-      roundFill(g, x, y, w, w, rad);
+  if (id === "toy") {
+    g.fillStyle = "#141414";
+    g.fillRect(0, 0, size, size);
+    const used = brickIndex(n);
+    const gap = 3;
+    for (let r = 0; r < n; r++) {
+      for (let col = 0; col < n; col++) {
+        const x = col * cell + gap;
+        const y = r * cell + gap;
+        const w = cell - gap * 2;
+        const rgb = BRICKS[used[r][col]];
+        const shade = rgb.map((ch) => Math.max(0, ch - 28));
+        g.fillStyle = `rgb(${shade.join(",")})`;
+        roundFill(g, x, y + 3, w, w - 3, 7);
+        g.fillStyle = `rgb(${rgb.join(",")})`;
+        roundFill(g, x, y, w, w - 4, 7);
+        paintStuds(g, x, y, w, rgb);
+      }
+    }
+  } else {
+    const floor = palette?.floor || "#e4a45e";
+    const base = rgbOf(floor);
+    const pale = mixRgb(base, [255, 255, 255], 0.46);
+    const deep = mixRgb(base, [0, 0, 0], 0.12);
+    const seam = mixRgb(base, [255, 255, 255], 0.18);
+    const groove = palette?.groove || "80, 80, 80";
+    g.fillStyle = `rgb(${seam.join(",")})`;
+    g.fillRect(0, 0, size, size);
+    const gap = 2;
+    for (let r = 0; r < n; r++) {
+      for (let col = 0; col < n; col++) {
+        const x = col * cell + gap;
+        const y = r * cell + gap;
+        const w = cell - gap * 2;
+        const tone = (r + col) % 2 === 0 ? pale : deep;
+        g.fillStyle = `rgb(${tone.join(",")})`;
+        roundFill(g, x, y, w, w, 8);
+        paintMotif(g, id, x, y, w, groove);
+      }
     }
   }
   const tex = new THREE.CanvasTexture(c);
@@ -791,7 +909,9 @@ export function createView(canvas) {
 
   applyStudio(renderer, scene, 0.4);
 
-  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.42, metalness: 0.04 });
+  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.55, metalness: 0.02 });
+  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.4, metalness: 0.04 });
+  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.28, metalness: 0.04 });
   const frameGlossMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -864,7 +984,9 @@ export function createView(canvas) {
   function applyTheme(id) {
     activeTheme = themeById(id);
     const pal = framePalette(activeTheme);
+    frameLowMat.color.setHex(pal.low);
     frameMidMat.color.setHex(pal.mid);
+    frameHiMat.color.setHex(pal.hi);
     floorEdgeMat.color.setHex(activeTheme.edge);
     moteMat.color.set(activeTheme.mote);
     storm = !!activeTheme.storm;
@@ -1230,14 +1352,16 @@ export function createView(canvas) {
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const half = viewHalf;
-    // 82° from the floor: near top-down, screen-up stays the board's -Z.
-    // The frame fills about 94% of the free width. A short rectangle
-    // (height under that width) fits the height instead.
+    // 82° from the floor: screen-up stays the board's -Z. The frame
+    // targets about 92% of the screen width and sits against the free
+    // rectangle, so a short one falls back to the height.
     const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const fillW = 0.99;
-    const fillH = 0.96;
+    const screenW = typeof window !== "undefined" ? window.innerWidth || w : w;
+    const want = Math.min(w * 0.99, screenW * 0.92);
+    const fillW = Math.min(1.02, (want / Math.max(1, w)) * 1.035);
+    const fillH = 0.98;
     const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
     const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
     const dist = Math.max(distW, distH);
@@ -1713,13 +1837,14 @@ export function createView(canvas) {
     const unit = n / 6;
     const frameT = FRAME_T * unit;
     const frameH = FRAME_H * unit;
-    const ink = 0.055 * unit;
+    const ink = 0.05 * unit;
+    const line = 0.045 * unit;
     const outer = inner + frameT;
     viewHalf = outer + ink;
     const outerW = outer * 2;
     const holeW = inner * 2;
-    const outerR = Math.min(0.2 * unit, outer * 0.16);
-    const innerR = Math.min(0.05 * unit, 0.06);
+    const outerR = Math.min(0.62 * unit, outer * 0.2);
+    const innerR = Math.min(0.26 * unit, inner * 0.1);
     const addRing = (ow, iw, oR, iR, height, mat, y) => {
       const mesh = new THREE.Mesh(frameRingGeo(ow, iw, oR, iR, height), mat);
       mesh.position.y = y;
@@ -1729,7 +1854,10 @@ export function createView(canvas) {
       rig.add(mesh);
     };
     addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
-    addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.65, Math.max(0.04, outerR * 0.9), Math.max(0.035, frameH * 0.22), frameInkMat, 0.015 + frameH * 0.84);
+    addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9);
+    addRing(holeW + line * 2.1, holeW + 0.006 * unit, Math.max(0.05, innerR * 0.85), Math.max(0.04, innerR * 0.35), frameH * 0.1, frameLowMat, 0.025 + frameH * 0.86);
+    addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.7, Math.max(0.05, outerR * 0.92), Math.max(0.04, frameH * 0.16), frameInkMat, 0.02 + frameH * 0.9);
+    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
 
     const boardH = 0.26;
     const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
