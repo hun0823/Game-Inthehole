@@ -638,6 +638,7 @@ function loadStage(index) {
   game = new Game(LEVELS[stageIndex]);
   gameOver = false;
   hideOverlay();
+  document.querySelector(".app").classList.remove("is-map");
   mapEl.hidden = true;
   const hash = `#${LEVELS[stageIndex].id}`;
   if (location.hash !== hash || location.search) history.replaceState(null, "", hash);
@@ -990,6 +991,7 @@ function showMap() {
   hideLesson();
   hideOverlay();
   if (stageDialog.open) stageDialog.close();
+  document.querySelector(".app").classList.add("is-map");
   mapEl.hidden = false;
   if (location.hash || location.search) history.replaceState(null, "", location.pathname);
   renderMap();

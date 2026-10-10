@@ -820,14 +820,17 @@ export function createView(canvas) {
     roughness: 0.4,
   });
   const magmaHotMat = new THREE.MeshStandardMaterial({
-    color: 0x2a0c08,
-    emissive: 0xff3a10,
-    emissiveIntensity: 0.55,
-    roughness: 0.7,
+    color: 0xff4a18,
+    emissive: 0xff1a08,
+    emissiveIntensity: 1.15,
+    roughness: 0.45,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
   });
   const magmaDiscGeo = new THREE.CircleGeometry(0.46, 22);
-  const magmaRingGeo = new THREE.TorusGeometry(0.34, 0.05, 6, 20);
-  const magmaCrustGeo = new THREE.CylinderGeometry(0.46, 0.4, 0.1, 16);
+  const magmaRingGeo = new THREE.TorusGeometry(0.36, 0.07, 8, 24);
+  const magmaCrustGeo = new THREE.CylinderGeometry(0.48, 0.42, 0.16, 18);
   let smogKeys = new Set();
   let visualReveal = new Set();
   const shiftCanvas = document.createElement("canvas");
@@ -1571,11 +1574,25 @@ export function createView(canvas) {
       dune.material.roughness = 0.95;
     }
     for (const [r, c] of level.jelly || []) {
-      const blob = paintDisc(r, c, 0xff7aaa, 0.4, BOARD_TOP + 0.055, 0.84);
+      const blob = paintDisc(r, c, 0xff5a9a, 0.48, BOARD_TOP + 0.07, 0.94);
       blob.material.emissive = new THREE.Color(0xff4d88);
-      blob.material.emissiveIntensity = 0.28;
-      blob.material.roughness = 0.25;
-      blob.scale.y = 2.1;
+      blob.material.emissiveIntensity = 0.45;
+      blob.material.roughness = 0.22;
+      blob.scale.y = 2.6;
+      const { x, z } = cellXZ(r, c);
+      const lip = new THREE.Mesh(
+        new THREE.TorusGeometry(0.4, 0.06, 8, 20),
+        new THREE.MeshStandardMaterial({
+          color: 0xffd0e4,
+          emissive: 0xff7aaa,
+          emissiveIntensity: 0.35,
+          roughness: 0.3,
+        })
+      );
+      lip.rotation.x = Math.PI / 2;
+      lip.position.set(x, BOARD_TOP + 0.08, z);
+      lip.userData.ownMat = true;
+      rig.add(lip);
     }
     for (const [r, c] of level.ice || []) {
       const sheet = paintDisc(r, c, 0x3ec4ff, 0.5, BOARD_TOP + 0.025, 0.88);
@@ -1656,8 +1673,10 @@ export function createView(canvas) {
       const warn = new THREE.Mesh(magmaRingGeo, magmaWarnMat);
       warn.rotation.x = Math.PI / 2;
       warn.position.y = BOARD_TOP + 0.055;
-      const hot = new THREE.Mesh(magmaCrustGeo, magmaHotMat);
-      hot.position.y = BOARD_TOP + 0.06;
+      const hot = new THREE.Mesh(magmaDiscGeo, magmaHotMat);
+      hot.rotation.x = -Math.PI / 2;
+      hot.position.y = BOARD_TOP + 0.08;
+      hot.renderOrder = 2;
       group.add(calm, warn, hot);
       group.userData = { at, calm, warn, hot };
       rig.add(group);
@@ -1954,8 +1973,8 @@ export function createView(canvas) {
       for (const group of magmas) {
         const hot = spent >= group.userData.at;
         const warn = !hot && spent === group.userData.at - 1;
-        group.userData.calm.visible = !hot;
-        group.userData.warn.visible = warn || hot;
+        group.userData.calm.visible = !hot && !warn;
+        group.userData.warn.visible = warn;
         group.userData.hot.visible = hot;
       }
     }
@@ -2233,7 +2252,7 @@ export function createView(canvas) {
         ballRoot.position.y = BALL_Y + hop * 0.32;
       }
       if (!reduceMotion) layoutMotes(time);
-      magmaWarnMat.emissiveIntensity = 0.45 + Math.sin(time * 8) * 0.3;
+      magmaWarnMat.emissiveIntensity = 0.85 + Math.sin(time * 8) * 0.25;
       if (pinT > 0) {
         pinT = Math.min(1.2, pinT + dt / 0.38);
         const k = Math.min(1, pinT);
