@@ -86,6 +86,14 @@
             <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
           </div>
           <p id="overlay-msg"></p>
+          <div id="reward-reveal" class="reward-reveal" hidden>
+            <p id="reward-kicker"></p>
+            <div class="reward-pair">
+              <img id="reward-ball" alt="">
+              <img id="reward-goal" alt="">
+            </div>
+            <p id="reward-name"></p>
+          </div>
           <button id="overlay-btn" type="button">Next stage</button>
         </div>
       </div>
@@ -167,7 +175,10 @@
         <h1 id="map-title">Planets</h1>
         <button type="button" id="map-settings" class="gear-chip" aria-label="Settings">⚙</button>
       </div>
-      <ol id="map-list" class="map-list"></ol>
+      <div class="constellation">
+        <canvas id="constellation"></canvas>
+        <div id="constellation-labels"></div>
+      </div>
     </div>
     <div id="settings" class="settings" hidden>
       <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
@@ -185,7 +196,7 @@
   <dialog id="stage-dialog">
     <h2>Stages</h2>
     <ul id="stage-list" class="stage-list"></ul>
-    <button type="button" id="dialog-map">Star map</button>
+    <button type="button" id="dialog-map">Planets</button>
     <button type="button" id="dialog-close">Close</button>
   </dialog>
 

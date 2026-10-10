@@ -1,6 +1,8 @@
 import * as THREE from "./vendor/three.module.js";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
 import { ballById } from "./balls.js";
+import { createGoalKit, mountGoal } from "./goalMesh.js";
+import { addSportMarks } from "./ballDress.js";
 import { celebrationById, trailById } from "./cosmetics.js";
 import { themeById } from "./themes.js";
 
@@ -169,7 +171,7 @@ function paintTex(size, draw) {
   return tex;
 }
 
-function makeBallMaterials() {
+export function makeBallMaterials() {
   const std = (opts) => new THREE.MeshStandardMaterial(opts);
   const marbleMap = paintTex(128, (g, s) => {
     g.fillStyle = "#f4fbff";
@@ -312,65 +314,110 @@ function makeBallMaterials() {
       g.fill();
     }
   });
-  const baseballMap = paintTex(128, (g, s) => {
-    g.fillStyle = "#f6f3ec";
+  const baseballMap = paintTex(256, (g, s) => {
+    g.fillStyle = "#f4f1e8";
     g.fillRect(0, 0, s, s);
-    g.strokeStyle = "#c23b3b";
-    g.lineWidth = 3.5;
-    g.lineCap = "round";
-    const seam = (y0, y1, flip) => {
+    g.strokeStyle = "rgba(210, 196, 170, 0.55)";
+    g.lineWidth = 2;
+    for (let i = 0; i < 10; i++) {
       g.beginPath();
-      g.moveTo(8, y0);
-      g.bezierCurveTo(s * 0.35, y0 + (flip ? 22 : -22), s * 0.65, y1 + (flip ? -18 : 18), s - 8, y1);
-      g.stroke();
-      for (let i = 0; i < 7; i++) {
-        const t = (i + 0.5) / 7;
-        const x = 14 + t * (s - 28);
-        const y = y0 + (y1 - y0) * t + Math.sin(t * Math.PI) * (flip ? 10 : -10);
-        g.beginPath();
-        g.moveTo(x - 4, y - 5);
-        g.lineTo(x + 4, y + 5);
-        g.stroke();
-      }
-    };
-    seam(s * 0.34, s * 0.42, false);
-    seam(s * 0.66, s * 0.58, true);
-  });
-  const tennisMap = paintTex(128, (g, s) => {
-    g.fillStyle = "#d6e23a";
-    g.fillRect(0, 0, s, s);
-    g.strokeStyle = "rgba(255,255,255,0.9)";
-    g.lineWidth = 4;
-    g.beginPath();
-    g.arc(s * 0.08, s * 0.5, s * 0.42, -1.1, 1.1);
-    g.stroke();
-    g.beginPath();
-    g.arc(s * 0.92, s * 0.5, s * 0.42, Math.PI - 1.1, Math.PI + 1.1);
-    g.stroke();
-    g.strokeStyle = "rgba(255,255,255,0.28)";
-    g.lineWidth = 1;
-    for (let i = 0; i < 18; i++) {
-      g.beginPath();
-      g.moveTo(rngish(i, 3), rngish(i, 7));
-      g.lineTo(rngish(i, 11), rngish(i, 19));
+      g.moveTo(0, 18 + i * 24);
+      g.bezierCurveTo(s * 0.4, 10 + i * 24, s * 0.6, 28 + i * 24, s, 16 + i * 24);
       g.stroke();
     }
-    function rngish(i, k) {
-      return ((i * 47 + k * 19) % 120) + 4;
+  });
+  const tennisMap = paintTex(256, (g, s) => {
+    g.fillStyle = "#d2e000";
+    g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 220; i++) {
+      const x = (i * 47) % s;
+      const y = (i * 29) % s;
+      g.fillStyle = i % 2 ? "rgba(255,255,255,0.22)" : "rgba(90, 110, 0, 0.28)";
+      g.beginPath();
+      g.ellipse(x, y, 2.4, 1.3, (i % 7) * 0.4, 0, Math.PI * 2);
+      g.fill();
     }
   });
-  const golfMap = paintTex(128, (g, s) => {
+  const golfMap = paintTex(256, (g, s) => {
     g.fillStyle = "#f7f7f4";
     g.fillRect(0, 0, s, s);
-    g.fillStyle = "#d5d5ce";
-    for (let row = 0; row < 6; row++) {
-      for (let col = 0; col < 6; col++) {
-        const x = 14 + col * 18 + (row % 2) * 9;
-        const y = 14 + row * 18;
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const x = 18 + col * 30 + (row % 2) * 15;
+        const y = 18 + row * 30;
+        g.fillStyle = "#8e8e86";
         g.beginPath();
-        g.arc(x, y, 4.2, 0, Math.PI * 2);
+        g.arc(x, y, 7.5, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#c8c8c0";
+        g.beginPath();
+        g.arc(x - 1.5, y - 1.5, 4.2, 0, Math.PI * 2);
         g.fill();
       }
+    }
+  });
+  const duneMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#e6c27a";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#c9964a";
+    g.lineWidth = 4;
+    for (let y = 8; y < s; y += 10) {
+      g.beginPath();
+      g.moveTo(0, y);
+      g.bezierCurveTo(s * 0.3, y - 4, s * 0.7, y + 4, s, y);
+      g.stroke();
+    }
+  });
+  const snowMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#f7fbff";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "#c5dff5";
+    for (let i = 0; i < 28; i++) {
+      g.beginPath();
+      g.arc((i * 37) % s, (i * 19) % s, 2 + (i % 3), 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+  const cocoMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#6a3a18";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "rgba(42, 20, 8, 0.7)";
+    g.lineWidth = 2;
+    for (let i = 0; i < 16; i++) {
+      g.beginPath();
+      g.moveTo((i * 8) % s, 0);
+      g.bezierCurveTo(20 + i * 6, s * 0.4, 10 + i * 7, s * 0.6, (i * 11) % s, s);
+      g.stroke();
+    }
+  });
+  const alienMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#9a6cff";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "#b894ff";
+    g.fillRect(0, s * 0.38, s, s * 0.18);
+    g.fillStyle = "#5a38a8";
+    for (let i = 0; i < 10; i++) {
+      g.beginPath();
+      g.arc((i * 31) % s, (i * 23) % s, 6 + (i % 3) * 2, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
+  const gearMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#c5ced8";
+    g.fillRect(0, 0, s, s);
+    g.strokeStyle = "#8a96a4";
+    g.lineWidth = 3;
+    for (let i = 0; i <= 4; i++) {
+      g.beginPath();
+      g.moveTo(0, (i * s) / 4);
+      g.lineTo(s, (i * s) / 4);
+      g.stroke();
+    }
+    g.fillStyle = "#6a7482";
+    for (let i = 0; i < 6; i++) {
+      g.beginPath();
+      g.arc(24 + (i % 3) * 40, 28 + Math.floor(i / 3) * 56, 5, 0, Math.PI * 2);
+      g.fill();
     }
   });
   const yarnMap = paintTex(128, (g, s) => {
@@ -400,23 +447,24 @@ function makeBallMaterials() {
       g.fillRect(16 + (i * 22) % 100, 42 + (i % 3) * 12, 7, 7);
     });
   });
-  const melonMap = paintTex(128, (g, s) => {
-    g.fillStyle = "#1f7a3a";
-    g.fillRect(0, 0, s, s);
-    g.strokeStyle = "#14632c";
-    g.lineWidth = 10;
-    for (let i = 0; i < 5; i++) {
-      g.beginPath();
-      g.moveTo(0, 18 + i * 24);
-      g.quadraticCurveTo(s * 0.5, 6 + i * 24, s, 20 + i * 24);
-      g.stroke();
+  const melonMap = paintTex(256, (g, s) => {
+    const img = g.createImageData(s, s);
+    const dark = [18, 90, 36];
+    const light = [70, 160, 64];
+    const bands = 12;
+    for (let y = 0; y < s; y++) {
+      for (let x = 0; x < s; x++) {
+        const band = Math.floor((x / s) * bands) % 2;
+        const col = band ? light : dark;
+        const n = ((x * 13 + y * 7) % 11) - 5;
+        const i = (y * s + x) * 4;
+        img.data[i] = col[0] + n;
+        img.data[i + 1] = col[1] + n;
+        img.data[i + 2] = col[2] + (n >> 1);
+        img.data[i + 3] = 255;
+      }
     }
-    g.strokeStyle = "#8fd48a";
-    g.lineWidth = 3;
-    g.beginPath();
-    g.moveTo(0, s * 0.5);
-    g.quadraticCurveTo(s * 0.5, s * 0.38, s, s * 0.52);
-    g.stroke();
+    g.putImageData(img, 0, 0);
   });
   const discoMap = paintTex(128, (g, s) => {
     const tiles = ["#1a1c28", "#f2f4f8", "#d4dde8", "#8aa0b8", "#f7f1c8", "#c9d4e4"];
@@ -527,8 +575,8 @@ function makeBallMaterials() {
       emissive: 0xff6a18,
       emissiveIntensity: 0.45,
     }),
-    dune: std({ color: 0xe6c27a, roughness: 0.88, metalness: 0.02 }),
-    snow: std({ color: 0xf7fbff, roughness: 0.55, emissive: 0xd0e8ff, emissiveIntensity: 0.22 }),
+    dune: std({ map: duneMap, color: 0xffffff, roughness: 0.88, metalness: 0.02 }),
+    snow: std({ map: snowMap, color: 0xffffff, roughness: 0.55, emissive: 0xd0e8ff, emissiveIntensity: 0.18 }),
     beach: std({ map: beachMap, color: 0xffffff, roughness: 0.48, metalness: 0.02 }),
     toy: std({ map: toyMap, color: 0xffffff, roughness: 0.42, metalness: 0.02 }),
     mushroom: std({ map: mushMap, color: 0xffffff, roughness: 0.52, metalness: 0.02 }),
@@ -541,17 +589,18 @@ function makeBallMaterials() {
       emissive: 0xff4d88,
       emissiveIntensity: 0.22,
     }),
-    coco: std({ color: 0x6a3a18, roughness: 0.74, metalness: 0.04 }),
+    coco: std({ map: cocoMap, color: 0xffffff, roughness: 0.74, metalness: 0.04 }),
     alien: std({
-      color: 0x9a6cff,
+      map: alienMap,
+      color: 0xffffff,
       roughness: 0.28,
       metalness: 0.0,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.92,
       emissive: 0x6a3ad0,
-      emissiveIntensity: 0.45,
+      emissiveIntensity: 0.35,
     }),
-    gear: std({ color: 0xc5ced8, roughness: 0.32, metalness: 0.72 }),
+    gear: std({ map: gearMap, color: 0xffffff, roughness: 0.32, metalness: 0.72 }),
     baseball: std({ map: baseballMap, color: 0xffffff, roughness: 0.58, metalness: 0.02 }),
     tennis: std({ map: tennisMap, color: 0xffffff, roughness: 0.86, metalness: 0.0 }),
     golf: std({ map: golfMap, color: 0xffffff, roughness: 0.42, metalness: 0.04 }),
@@ -866,6 +915,7 @@ export function createView(canvas) {
   const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 32, 24), ballMaterials.oak);
   ballMesh.castShadow = true;
   ballSpin.add(ballMesh);
+  const sportMarks = addSportMarks(ballSpin);
   ballRoot.add(ballSpin);
   const contact = new THREE.Mesh(
     new THREE.CircleGeometry(BALL_R * 0.72, 20),
@@ -967,14 +1017,7 @@ export function createView(canvas) {
   let holeCell = null;
   let pinT = 0;
   const pins = [];
-  const pinWhite = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.42 });
-  const pinRed = new THREE.MeshStandardMaterial({ color: 0xd42828, roughness: 0.4 });
-  const netMat = new THREE.MeshStandardMaterial({ color: 0xf7f7f7, roughness: 0.55, side: THREE.DoubleSide });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xe85a12, roughness: 0.42 });
-  const backMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.5 });
-  const pinBodyGeo = new THREE.CylinderGeometry(0.055, 0.085, 0.3, 8);
-  const pinNeckGeo = new THREE.CylinderGeometry(0.032, 0.046, 0.08, 8);
-  const pinHeadGeo = new THREE.SphereGeometry(0.055, 8, 6);
+  const goalKit = createGoalKit(ballMaterials);
 
   const buttons = [];
   const glasses = [];
@@ -1015,57 +1058,6 @@ export function createView(canvas) {
   dancerArmR.position.set(0.13, 0.22, 0);
   dancer.add(dancerHead, dancerBody, dancerArmL, dancerArmR);
   scene.add(dancer);
-  const goalDiscGeo = new THREE.CircleGeometry(0.3, 28);
-  const goalTorusGeo = new THREE.TorusGeometry(0.4, 0.07, 8, 28);
-  const sinkMat = new THREE.MeshBasicMaterial({ color: 0x14080c });
-  const goalLooks = {
-    knot: { color: 0xc4843a, emissive: 0x6a3810, roughness: 0.62 },
-    oasis: { color: 0xd08a3a, emissive: 0x8a4a18, roughness: 0.78 },
-    crystal: { color: 0xd8e6ff, emissive: 0x88a0e0, roughness: 0.16, metalness: 0.08, clearcoat: 0.55 },
-    rim: { color: 0x1a1a1a, emissive: 0x000000, roughness: 0.9 },
-    puddle: { color: 0x2fbf3e, emissive: 0x145c22, roughness: 0.32 },
-    dish: { color: 0xff8ab0, emissive: 0xe05080, roughness: 0.32 },
-    crater: { color: 0x4a2018, emissive: 0xff6a18, roughness: 0.62 },
-    nest: { color: 0x3d7a3a, emissive: 0x1a4018, roughness: 0.74 },
-    glow: { color: 0xc8b0ff, emissive: 0x7a4ad0, roughness: 0.28 },
-    cog: { color: 0xb0b8c4, emissive: 0x5a6470, roughness: 0.34, metalness: 0.65 },
-    stump: { color: 0x8a5a32, emissive: 0x3a2010, roughness: 0.84 },
-    bucket: { color: 0xf2c15a, emissive: 0xc47a20, roughness: 0.42 },
-    pedestal: { color: 0xff5b9a, emissive: 0xc43d6c, roughness: 0.4 },
-    snowman: { color: 0xf4fbff, emissive: 0x9ec8e8, roughness: 0.42 },
-    plate: { color: 0xf4f1ea, emissive: 0x000000, roughness: 0.46 },
-    cup: { color: 0xf2f6ea, emissive: 0x000000, roughness: 0.4 },
-    flag: { color: 0xd42828, emissive: 0x6a1010, roughness: 0.42 },
-    spool: { color: 0xe7c4a8, emissive: 0x8a5a40, roughness: 0.55 },
-    mug: { color: 0xf4f7fb, emissive: 0x000000, roughness: 0.32 },
-    rind: { color: 0x1f7a3a, emissive: 0x0c3a18, roughness: 0.62 },
-    lamp: { color: 0xd8dee8, emissive: 0x8aa0c0, roughness: 0.22, metalness: 0.7 },
-    hoard: { color: 0xf2c14a, emissive: 0xc47a20, roughness: 0.32, metalness: 0.45 },
-    paw: { color: 0xf2c9a0, emissive: 0xc48a62, roughness: 0.62 },
-    pixels: { color: 0x3a6cff, emissive: 0x1a3088, roughness: 0.55 },
-    rocket: { color: 0xf4f4f6, emissive: 0x000000, roughness: 0.4 },
-    cauldron: { color: 0x3a2458, emissive: 0x6a30a0, roughness: 0.45 },
-  };
-  const goalMats = new Map();
-  const pixelBlockMats = [
-    new THREE.MeshStandardMaterial({ color: 0x3a6cff, roughness: 0.55 }),
-    new THREE.MeshStandardMaterial({ color: 0xffd24a, roughness: 0.55 }),
-    new THREE.MeshStandardMaterial({ color: 0xff5a5a, roughness: 0.55 }),
-  ];
-  function goalMaterial(kind) {
-    if (goalMats.has(kind)) return goalMats.get(kind);
-    const look = goalLooks[kind] || goalLooks.knot;
-    const mat = new THREE.MeshStandardMaterial({
-      color: look.color,
-      emissive: look.emissive,
-      emissiveIntensity: look.emissive ? 0.35 : 0,
-      roughness: look.roughness,
-      metalness: look.metalness || 0,
-      clearcoat: look.clearcoat || 0,
-    });
-    goalMats.set(kind, mat);
-    return mat;
-  }
   const magmaCalmMat = new THREE.MeshStandardMaterial({
     color: 0x5a2818,
     roughness: 0.86,
@@ -1302,7 +1294,7 @@ export function createView(canvas) {
     pawT = 0;
     danceT = 0;
     dancer.visible = false;
-    if (pawMesh) pawMesh.rotation.x = 0;
+    if (pawMesh) pawMesh.rotation.x = -0.55;
     for (const d of decals) {
       d.life = 0;
       d.group.visible = false;
@@ -1489,218 +1481,22 @@ export function createView(canvas) {
     pawT = 0;
   }
 
-  function addNet() {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.028, 6, 24), netMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = BOARD_TOP + 0.055;
-    ring.userData.ownGeo = true;
-    goalGroup.add(ring);
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.018, 0.02), netMat);
-      spoke.userData.ownGeo = true;
-      spoke.position.set(Math.cos(a) * 0.36, BOARD_TOP + 0.05, Math.sin(a) * 0.36);
-      spoke.rotation.y = -a;
-      goalGroup.add(spoke);
-    }
-  }
-
-  function addHoop() {
-    const board = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.52, 0.05), backMat);
-    board.position.set(0, BOARD_TOP + 0.78, -0.48);
-    board.userData.ownGeo = true;
-    const square = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.18, 0.02), rimMat);
-    square.position.set(0, BOARD_TOP + 0.78, -0.44);
-    square.userData.ownGeo = true;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.028, 6, 18), rimMat);
-    rim.rotation.x = Math.PI / 2;
-    rim.position.set(0, BOARD_TOP + 0.58, -0.06);
-    rim.userData.ownGeo = true;
-    goalGroup.add(board, square, rim);
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.24, 5), netMat);
-      strand.userData.ownGeo = true;
-      strand.position.set(Math.cos(a) * 0.2, BOARD_TOP + 0.44, -0.06 + Math.sin(a) * 0.2);
-      goalGroup.add(strand);
-    }
-  }
-
-  function addPins() {
-    const spots = [[0.16, 0.5], [-0.16, 0.5], [0.34, 0.7], [-0.34, 0.7]];
-    for (const [x, z] of spots) {
-      const pin = new THREE.Group();
-      pin.position.set(x, BOARD_TOP, z);
-      pin.scale.setScalar(1.35);
-      const body = new THREE.Mesh(pinBodyGeo, pinWhite);
-      body.position.y = 0.16;
-      const neck = new THREE.Mesh(pinNeckGeo, pinRed);
-      neck.position.y = 0.34;
-      const head = new THREE.Mesh(pinHeadGeo, pinWhite);
-      head.position.y = 0.42;
-      pin.add(body, neck, head);
-      goalGroup.add(pin);
-      pins.push(pin);
-    }
-  }
-
-  function addSink() {
-    const disc = new THREE.Mesh(goalDiscGeo, sinkMat);
-    disc.rotation.x = -Math.PI / 2;
-    disc.position.y = BOARD_TOP + 0.02;
-    goalGroup.add(disc);
-  }
-
-  function addProp(geo, mat, x, y, z) {
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(x, y, z);
-    mesh.userData.ownGeo = true;
-    goalGroup.add(mesh);
-    return mesh;
-  }
-
-  function addThemedGoal(kind) {
-    const mat = goalMaterial(kind);
-    const ring = new THREE.Mesh(goalTorusGeo, mat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = BOARD_TOP + 0.045;
-    if (kind === "plate") {
-      addProp(new THREE.BoxGeometry(0.46, 0.04, 0.42), pinWhite, 0, BOARD_TOP + 0.14, -0.52);
-      return;
-    }
-    if (kind === "cup") {
-      addProp(new THREE.CylinderGeometry(0.16, 0.13, 0.22, 12, 1, true), mat, 0, BOARD_TOP + 0.2, -0.48);
-      addProp(new THREE.CylinderGeometry(0.13, 0.13, 0.03, 12), mat, 0, BOARD_TOP + 0.1, -0.48);
-      return;
-    }
-    if (kind === "flag") {
-      addProp(new THREE.CylinderGeometry(0.018, 0.018, 0.52, 6), pinWhite, 0.08, BOARD_TOP + 0.36, -0.55);
-      addProp(new THREE.BoxGeometry(0.2, 0.12, 0.02), mat, 0.2, BOARD_TOP + 0.54, -0.55);
-      return;
-    }
-    if (kind === "spool") {
-      addProp(new THREE.CylinderGeometry(0.16, 0.16, 0.08, 12), mat, 0, BOARD_TOP + 0.16, -0.5);
-      addProp(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 12), mat, 0, BOARD_TOP + 0.22, -0.5);
-      addProp(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 12), mat, 0, BOARD_TOP + 0.1, -0.5);
-      return;
-    }
-    if (kind === "mug") {
-      addProp(new THREE.CylinderGeometry(0.14, 0.12, 0.22, 12, 1, true), mat, 0, BOARD_TOP + 0.2, -0.5);
-      const handle = addProp(new THREE.TorusGeometry(0.07, 0.018, 6, 10), mat, 0.16, BOARD_TOP + 0.2, -0.5);
-      handle.rotation.y = Math.PI / 2;
-      return;
-    }
-    if (kind === "rind") {
-      const left = addProp(new THREE.BoxGeometry(0.16, 0.2, 0.08), mat, -0.12, BOARD_TOP + 0.18, -0.52);
-      left.rotation.z = 0.5;
-      const right = addProp(new THREE.BoxGeometry(0.16, 0.2, 0.08), mat, 0.12, BOARD_TOP + 0.18, -0.52);
-      right.rotation.z = -0.5;
-      return;
-    }
-    if (kind === "lamp") {
-      const lamp = addProp(new THREE.SphereGeometry(0.16, 12, 10), ballMaterials.disco || mat, 0, BOARD_TOP + 0.32, -0.5);
-      lamp.userData.ownGeo = true;
-      return;
-    }
-    if (kind === "hoard") {
-      addProp(new THREE.CylinderGeometry(0.16, 0.16, 0.04, 12), mat, -0.06, BOARD_TOP + 0.1, -0.48);
-      addProp(new THREE.CylinderGeometry(0.14, 0.14, 0.04, 12), mat, 0.08, BOARD_TOP + 0.16, -0.5);
-      addProp(new THREE.CylinderGeometry(0.12, 0.12, 0.04, 12), mat, 0, BOARD_TOP + 0.22, -0.46);
-      return;
-    }
-    if (kind === "paw") {
-      const group = new THREE.Group();
-      group.position.set(0, BOARD_TOP + 0.42, -0.58);
-      group.rotation.x = -0.55;
-      const pad = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), mat);
-      pad.scale.set(1.25, 0.42, 1.05);
-      pad.userData.ownGeo = true;
-      group.add(pad);
-      for (let i = 0; i < 4; i++) {
-        const toe = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), mat);
-        toe.position.set(-0.15 + i * 0.1, 0.05, -0.12);
-        toe.scale.y = 0.55;
-        toe.userData.ownGeo = true;
-        group.add(toe);
-      }
-      goalGroup.add(group);
-      pawMesh = group;
-      return;
-    }
-    if (kind === "pixels") {
-      pixelBlockMats.forEach((blockMat, i) => {
-        addProp(new THREE.BoxGeometry(0.16, 0.16, 0.16), blockMat, (i - 1) * 0.05, BOARD_TOP + 0.14 + i * 0.16, -0.5);
-      });
-      return;
-    }
-    if (kind === "rocket") {
-      addProp(new THREE.CylinderGeometry(0.07, 0.09, 0.28, 8), pinWhite, 0, BOARD_TOP + 0.24, -0.5);
-      addProp(new THREE.ConeGeometry(0.08, 0.12, 8), goalMaterial("flag"), 0, BOARD_TOP + 0.42, -0.5);
-      return;
-    }
-    if (kind === "cauldron") {
-      const pot = addProp(new THREE.SphereGeometry(0.2, 12, 10), mat, 0, BOARD_TOP + 0.16, -0.5);
-      pot.scale.y = 0.72;
-      return;
-    }
-    if (kind === "snowman") {
-      const scales = [0.22, 0.16, 0.11];
-      let y = BOARD_TOP + 0.16;
-      scales.forEach((s, i) => {
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(s, 12, 10), mat);
-        ball.position.set(0, y, -0.55);
-        ball.userData.ownGeo = true;
-        goalGroup.add(ball);
-        y += s + scales[Math.min(i + 1, 2)] * 0.85;
-      });
-      return;
-    }
-    if (kind === "bucket") {
-      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.28, 12, 1, true), mat);
-      cup.position.set(0, BOARD_TOP + 0.24, -0.5);
-      cup.userData.ownGeo = true;
-      goalGroup.add(cup);
-    } else if (kind === "stump") {
-      const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.22, 10), mat);
-      stump.position.set(0, BOARD_TOP + 0.16, -0.48);
-      stump.userData.ownGeo = true;
-      goalGroup.add(stump);
-    } else if (kind === "pedestal") {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.28, 10), mat);
-      post.position.set(0, BOARD_TOP + 0.2, -0.46);
-      post.userData.ownGeo = true;
-      goalGroup.add(post);
-    } else if (kind === "cog") {
-      goalGroup.add(ring);
-      for (let i = 0; i < 8; i++) {
-        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.1), mat);
-        const a = (i / 8) * Math.PI * 2;
-        tooth.position.set(Math.cos(a) * 0.48, BOARD_TOP + 0.05, Math.sin(a) * 0.48);
-        tooth.userData.ownGeo = true;
-        goalGroup.add(tooth);
-      }
-      return;
-    }
-    goalGroup.add(ring);
-  }
-
   function dressGoal() {
     emptyGoal();
     const custom = !!(holeCell && equipped.goal);
     if (stockHole) stockHole.visible = !custom;
     if (!custom) return;
-    const p = cellXZ(holeCell[0], holeCell[1]);
-    goalGroup.position.set(p.x, 0, p.z);
-    addSink();
-    if (equipped.goal === "net") addNet();
-    else if (equipped.goal === "hoop") addHoop();
-    else if (equipped.goal === "pins") addPins();
-    else addThemedGoal(equipped.goal);
+    const spot = cellXZ(holeCell[0], holeCell[1]);
+    goalGroup.position.set(spot.x, 0, spot.z);
+    const built = mountGoal(goalGroup, equipped.goal, goalKit);
+    pins.push(...built.pins);
+    pawMesh = built.paw;
   }
 
   function setBall(id) {
     equipped = ballById(id);
     ballMesh.material = ballMaterials[equipped.id] || ballMaterials.oak;
+    sportMarks.show(equipped.id);
     clearFx();
     dressGoal();
   }
@@ -2739,7 +2535,7 @@ export function createView(canvas) {
         const k = Math.min(1, pawT);
         pawMesh.rotation.x = -0.55 + Math.sin(k * Math.PI) * 0.85;
         if (pawT >= 1) {
-          pawMesh.rotation.x = 0;
+          pawMesh.rotation.x = -0.55;
           pawT = 0;
         }
       }
