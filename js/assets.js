@@ -7,7 +7,44 @@ const planetBody = document.querySelector("#planet-table tbody");
 const ballBody = document.querySelector("#ball-table tbody");
 const closeups = document.getElementById("closeup-row");
 const compareGrid = document.getElementById("compare-grid");
+const restGrid = document.getElementById("rest-grid");
 const goalGrid = document.getElementById("goal-grid");
+
+const REST = [
+  ["ball", "dune"],
+  ["ball", "marble"],
+  ["ball", "soccer"],
+  ["ball", "tire"],
+  ["ball", "slime"],
+  ["ball", "snow"],
+  ["ball", "basketball"],
+  ["ball", "beach"],
+  ["ball", "bowling"],
+  ["ball", "meteor"],
+  ["ball", "toy"],
+  ["ball", "mushroom"],
+  ["ball", "gummy"],
+  ["ball", "coco"],
+  ["ball", "alien"],
+  ["ball", "gear"],
+  ["ball", "golf"],
+  ["ball", "yarn"],
+  ["ball", "donut"],
+  ["ball", "disco"],
+  ["ball", "lucky"],
+  ["ball", "cat"],
+  ["ball", "pixel"],
+  ["ball", "globe"],
+  ["ball", "skull"],
+  ["planet", "ice"],
+  ["planet", "crystal"],
+  ["planet", "toy"],
+  ["planet", "mushroom"],
+  ["planet", "candy"],
+  ["planet", "jungle"],
+  ["planet", "alien"],
+  ["planet", "machine"],
+];
 
 const COMPARE = [
   ["ball", "baseball", "야구공", "Baseball"],
@@ -116,6 +153,38 @@ const GOAL_COMPARE = [
   ["ice", "얼음 구멍", "Ice hole"],
 ];
 
+function restName(kind, id) {
+  if (kind === "planet") return [planetName("ko", id), planetName("en", id)];
+  const ko = ballCopy("ko", id);
+  const en = ballCopy("en", id);
+  return [ko.name, en.name];
+}
+
+function restCards() {
+  for (const [kind, id] of REST) {
+    const [ko, en] = restName(kind, id);
+    const card = document.createElement("article");
+    card.className = "compare-card";
+    const title = document.createElement("h3");
+    const note = id === "gummy" ? " · 맵 없음" : "";
+    title.textContent = `${ko} · ${en}${note}`;
+    const pair = document.createElement("div");
+    pair.className = "compare-pair pair-2";
+    for (const [label, caption] of [["main", "Before · 전"], ["arcade", "After · 후"]]) {
+      const figure = document.createElement("figure");
+      const picture = document.createElement("img");
+      picture.alt = `${en} ${label}`;
+      picture.dataset.rest = `${kind}|${id}|${label}`;
+      const cap = document.createElement("figcaption");
+      cap.textContent = caption;
+      figure.append(picture, cap);
+      pair.append(figure);
+    }
+    card.append(title, pair);
+    restGrid.append(card);
+  }
+}
+
 function compareCards() {
   for (const [kind, id, ko, en] of COMPARE) {
     const card = document.createElement("article");
@@ -160,38 +229,53 @@ function compareCards() {
 }
 
 async function fill() {
-  planetRows();
-  ballRows();
-  closeupRow();
-  compareCards();
-  for (const el of document.querySelectorAll("[data-planet]")) {
-    el.src = await shotPlanet(el.dataset.planet, 180);
+  const onlyRest = new URLSearchParams(location.search).get("only") === "rest";
+  if (!onlyRest) {
+    planetRows();
+    ballRows();
+    closeupRow();
+    compareCards();
   }
-  for (const el of document.querySelectorAll("[data-ball]")) {
-    el.src = await shotBall(el.dataset.ball, 160);
+  restCards();
+  if (!onlyRest) {
+    for (const el of document.querySelectorAll("[data-planet]")) {
+      el.src = await shotPlanet(el.dataset.planet, 180);
+    }
+    for (const el of document.querySelectorAll("[data-ball]")) {
+      el.src = await shotBall(el.dataset.ball, 160);
+    }
+    for (const el of document.querySelectorAll("[data-goal]")) {
+      el.src = await shotGoal(el.dataset.goal, 160);
+    }
+    for (const el of document.querySelectorAll("[data-closeup]")) {
+      el.src = await shotBall(el.dataset.closeup, 320);
+    }
+    const pairs = new Map();
+    for (const [kind, id] of COMPARE) {
+      pairs.set(`${kind}|${id}`, await shotCompare(kind, id, 360));
+    }
+    for (const el of document.querySelectorAll("[data-compare]")) {
+      const [kind, id, label] = el.dataset.compare.split("|");
+      const shot = pairs.get(`${kind}|${id}`);
+      el.src = shot[label] || "";
+    }
+    const goals = new Map();
+    for (const [id] of GOAL_COMPARE) {
+      goals.set(id, await shotCompare("goal", id, 360));
+    }
+    for (const el of document.querySelectorAll("[data-goalcompare]")) {
+      const [id, label] = el.dataset.goalcompare.split("|");
+      el.src = goals.get(id)[label];
+    }
   }
-  for (const el of document.querySelectorAll("[data-goal]")) {
-    el.src = await shotGoal(el.dataset.goal, 160);
+  const rest = new Map();
+  for (const [kind, id] of REST) {
+    rest.set(`${kind}|${id}`, await shotCompare(kind, id, 360));
   }
-  for (const el of document.querySelectorAll("[data-closeup]")) {
-    el.src = await shotBall(el.dataset.closeup, 320);
-  }
-  const pairs = new Map();
-  for (const [kind, id] of COMPARE) {
-    pairs.set(`${kind}|${id}`, await shotCompare(kind, id, 360));
-  }
-  for (const el of document.querySelectorAll("[data-compare]")) {
-    const [kind, id, label] = el.dataset.compare.split("|");
-    const shot = pairs.get(`${kind}|${id}`);
-    el.src = shot[label] || "";
-  }
-  const goals = new Map();
-  for (const [id] of GOAL_COMPARE) {
-    goals.set(id, await shotCompare("goal", id, 360));
-  }
-  for (const el of document.querySelectorAll("[data-goalcompare]")) {
-    const [id, label] = el.dataset.goalcompare.split("|");
-    el.src = goals.get(id)[label];
+  for (const el of document.querySelectorAll("[data-rest]")) {
+    const [kind, id, label] = el.dataset.rest.split("|");
+    const shot = rest.get(`${kind}|${id}`);
+    el.src = (shot && shot[label]) || "";
   }
   statusEl.textContent = "ready";
 }
