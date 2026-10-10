@@ -1,0 +1,184 @@
+html,
+body {
+  margin: 0;
+  background: #12151c;
+  color: #f4f1ea;
+  font-family: "Noto Sans KR", "WenQuanYi Micro Hei", "Apple SD Gothic Neo", "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+main {
+  width: min(1120px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 20px 0 48px;
+}
+
+h1,
+h2 {
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+
+h2 {
+  margin: 1.4rem 0 0.6rem;
+  font-size: 1.2rem;
+}
+
+.sheet-head p {
+  margin: 0;
+  color: #c9d0dc;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1c2230;
+}
+
+table.sheet th,
+table.sheet td {
+  border: 1px solid #343c4e;
+  padding: 10px;
+  vertical-align: middle;
+  text-align: left;
+}
+
+table.sheet th {
+  background: #2a3348;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+table.sheet img {
+  display: block;
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  background:
+    radial-gradient(circle at 50% 45%, #2a3344, #10141c 72%);
+  border-radius: 12px;
+}
+
+.name-ko {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.name-en {
+  color: #d5dbe6;
+}
+
+.price {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.blurb {
+  margin: 0;
+}
+
+.blurb + .blurb {
+  margin-top: 4px;
+  color: #d5dbe6;
+}
+
+.closeup-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.closeup-row figure {
+  margin: 0;
+  background: #1c2230;
+  border: 1px solid #343c4e;
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.closeup-row img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: radial-gradient(circle at 50% 45%, #2a3344, #10141c 72%);
+  border-radius: 12px;
+}
+
+.closeup-row figcaption {
+  margin-top: 8px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  main {
+    width: min(100% - 16px, 1120px);
+  }
+
+  table.sheet thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  table.sheet,
+  table.sheet tbody,
+  table.sheet td {
+    display: block;
+    width: auto;
+  }
+
+  table.sheet tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0 0 14px;
+    border: 1px solid #343c4e;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #1c2230;
+  }
+
+  #planet-table td,
+  #ball-table td:nth-child(n + 3) {
+    grid-column: 1 / -1;
+  }
+
+  table.sheet td {
+    border: 0;
+    border-bottom: 1px solid #2c3446;
+  }
+
+  table.sheet td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 4px;
+    color: #9aa6bd;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  table.sheet img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    max-height: 180px;
+  }
+
+  .closeup-row {
+    grid-template-columns: 1fr;
+  }
+}

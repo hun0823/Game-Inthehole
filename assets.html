@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rollin' Board asset sheet</title>
+  <link rel="stylesheet" href="css/assets.css">
+</head>
+<body>
+  <main>
+    <header class="sheet-head">
+      <h1>Asset sheet</h1>
+      <p>Rendered with the game's ball, goal, and planet meshes. <span id="sheet-status">rendering…</span></p>
+    </header>
+
+    <section id="planets">
+      <h2>Planets <span lang="ko">행성</span></h2>
+      <div class="table-wrap">
+        <table class="sheet" id="planet-table">
+          <thead>
+            <tr>
+              <th>Render</th>
+              <th>한국어</th>
+              <th>English</th>
+              <th>Reward set</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="sets">
+      <h2>Balls and goals <span lang="ko">공과 골</span></h2>
+      <div class="table-wrap">
+        <table class="sheet" id="ball-table">
+          <thead>
+            <tr>
+              <th>Ball</th>
+              <th>Goal</th>
+              <th>한국어</th>
+              <th>English</th>
+              <th>Price</th>
+              <th>Effect · 효과</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="closeups">
+      <h2>Close-ups</h2>
+      <div class="closeup-row" id="closeup-row"></div>
+    </section>
+  </main>
+  <script type="module" src="js/assets.js"></script>
+</body>
+</html>

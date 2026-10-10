@@ -594,10 +594,15 @@ body {
 }
 
 #stage-dialog {
+  --dlg: #2a4ea8;
+  --dlg-deep: #152a68;
+  --dlg-floor: #e4a45e;
   border: 4px solid var(--ink);
   border-radius: 22px;
   padding: 1.1rem 1rem 1rem;
-  background: linear-gradient(180deg, #2a4ea8, #152a68);
+  background:
+    radial-gradient(120% 70% at 50% -10%, color-mix(in srgb, var(--dlg-floor) 75%, white), transparent 58%),
+    linear-gradient(180deg, var(--dlg), var(--dlg-deep));
   color: var(--text);
   width: min(92vw, 380px);
   max-height: min(80dvh, 640px);
@@ -638,7 +643,7 @@ body {
   padding: 0.65rem 0.75rem;
   border: 2px solid #1a1028;
   border-radius: 14px;
-  background: linear-gradient(180deg, #3d66c4, #274894);
+  background: color-mix(in srgb, var(--dlg-deep, #152a68) 78%, var(--dlg-floor, #7aa0ff));
   color: var(--text);
   font-family: inherit;
   font-size: 0.95rem;
@@ -1540,7 +1545,133 @@ body {
     calc(env(safe-area-inset-top, 0px) + 10px)
     12px
     calc(env(safe-area-inset-bottom, 0px) + 12px);
-  background: radial-gradient(ellipse at 50% 0%, rgba(40, 70, 140, 0.28), rgba(6, 10, 24, 0.55));
+  background: #070b18;
+}
+
+.constellation {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#constellation {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#constellation-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.star-label {
+  position: absolute;
+  transform: translate(-50%, 0);
+  min-width: 76px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  text-shadow: 0 1px 2px #000;
+}
+
+.star-label strong,
+.star-label em {
+  display: block;
+}
+
+.star-label strong {
+  font-size: 0.92rem;
+  font-style: normal;
+  -webkit-text-stroke: 3px #102040;
+  paint-order: stroke fill;
+}
+
+.star-label em {
+  font-size: 0.72rem;
+  font-style: normal;
+  -webkit-text-stroke: 2px #102040;
+  paint-order: stroke fill;
+}
+
+.star-label.is-locked {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.finale-set {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 0.45rem;
+  padding: 6px 8px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.finale-set img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.finale-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+
+.stage-list li.is-finale button {
+  box-shadow: 0 0 0 2px var(--dlg-floor, #ffe14a), 0 4px 0 #142858;
+}
+
+.reward-reveal {
+  margin: 0.35rem 0 0.7rem;
+  text-align: center;
+}
+
+.reward-reveal p {
+  margin: 0.2rem 0;
+}
+
+.reward-pair {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.reward-pair img {
+  width: 84px;
+  height: 84px;
+  object-fit: contain;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+#reward-ball {
+  animation: reward-spin 0.9s ease-out;
+}
+
+@keyframes reward-spin {
+  from { transform: scale(0.45) rotate(-30deg); }
+  to { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #reward-ball {
+    animation: none;
+  }
 }
 
 .map[hidden],
@@ -1780,15 +1911,15 @@ body {
 
 .ball-preview--baseball {
   background:
-    radial-gradient(circle at 35% 32%, #fff, #f4f0e6 55%),
-    repeating-linear-gradient(115deg, transparent 0 18px, #c23b3b 19px 21px, transparent 22px 40px);
+    radial-gradient(circle at 28% 30%, transparent 0 34%, #c4232a 36% 40%, transparent 42%),
+    radial-gradient(circle at 72% 70%, transparent 0 34%, #c4232a 36% 40%, transparent 42%),
+    radial-gradient(circle at 35% 32%, #fff, #f4f1e8 58%, #e4dcc8 90%);
 }
 
 .ball-preview--tennis {
   background:
-    radial-gradient(circle at 18% 50%, transparent 0 28%, #fff 29% 33%, transparent 34%),
-    radial-gradient(circle at 82% 50%, transparent 0 28%, #fff 29% 33%, transparent 34%),
-    radial-gradient(circle at 35% 32%, #f4f6a8, #d6e23a 55%, #8aa018 85%);
+    radial-gradient(ellipse at 50% 50%, transparent 0 38%, #fff 40% 46%, transparent 48%),
+    radial-gradient(circle at 35% 32%, #e4f06a, #d2e000 55%, #8ea000 88%);
 }
 
 .ball-preview--golf {
@@ -1814,7 +1945,7 @@ body {
 }
 
 .ball-preview--melon {
-  background: repeating-linear-gradient(180deg, #1f7a3a 0 8px, #14632c 8px 14px, #8fd48a 14px 16px);
+  background: repeating-linear-gradient(90deg, #125a24 0 8px, #46a040 8px 16px);
 }
 
 .ball-preview--disco {

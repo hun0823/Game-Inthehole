@@ -2,6 +2,8 @@ import { LEVELS } from "./levels.js";
 import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
+import { createConstellation } from "./constellation.js";
+import { shotBall, shotGoal } from "./showcase.js";
 import { BALLS, ballById } from "./balls.js";
 import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, trailById } from "./cosmetics.js";
 import { detectLang, t, planetName, ballCopy, cosmeticCopy, lessonCopy } from "./i18n.js";
@@ -47,10 +49,16 @@ const storeConfirmText = document.getElementById("store-confirm-text");
 const storeClose = document.getElementById("store-close");
 const storeSpend = document.getElementById("store-spend");
 const mapEl = document.getElementById("map");
-const mapList = document.getElementById("map-list");
+const mapLabels = document.getElementById("constellation-labels");
+const rewardReveal = document.getElementById("reward-reveal");
+const rewardKicker = document.getElementById("reward-kicker");
+const rewardBallImg = document.getElementById("reward-ball");
+const rewardGoalImg = document.getElementById("reward-goal");
+const rewardName = document.getElementById("reward-name");
 const settingsEl = document.getElementById("settings");
 
 const view = createView(playfieldEl);
+const mapView = createConstellation(document.getElementById("constellation"));
 
 let lang = detectLang();
 let stageIndex = 0;
@@ -65,6 +73,8 @@ let overlayMode = null;
 let overlayReward = null;
 let overlayCoin = false;
 let overlayStarsN = 0;
+let listPlanet = 0;
+let zooming = false;
 
 const LESSON_ORDER = ["sand", "ice", "oneway", "teleport", "glass", "gates", "mixed", "smog", "jelly", "magma", "collapse", "movers"];
 
@@ -494,11 +504,36 @@ function hideClearStars() {
   overlayStars.querySelectorAll(".clear-star").forEach((el) => el.classList.remove("is-on"));
 }
 
+function hideReward() {
+  rewardReveal.hidden = true;
+}
+
+function showFinaleReward(level) {
+  if (stageIndex % 12 !== 11) {
+    hideReward();
+    return;
+  }
+  const ballId = PLANET_BALL[level.planet] || "oak";
+  const copy = ballCopy(lang, ballId);
+  rewardReveal.hidden = false;
+  rewardKicker.textContent = t(lang, "reward-kicker");
+  rewardName.textContent = copy.name;
+  rewardBallImg.alt = copy.name;
+  rewardGoalImg.alt = copy.name;
+  shotBall(ballId, 168).then((url) => {
+    rewardBallImg.src = url;
+  });
+  shotGoal(ballId, 168).then((url) => {
+    rewardGoalImg.src = url;
+  });
+}
+
 function showGameOver() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   overlayMode = "lose";
   hideClearStars();
+  hideReward();
   overlay.classList.remove("hidden");
   overlayTitle.textContent = t(lang, "out");
   const label = stageTitle(level, stageIndex);
@@ -547,6 +582,7 @@ function showWin(stars, coinBonus, rewardBall) {
     msg += ` ${t(lang, "reward", { planet: planetName(lang, level.planet), ball: copy.name })}`;
   }
   overlayMsg.textContent = msg;
+  showFinaleReward(level);
   showClearStars(stars);
   const more = stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1);
   overlayBtn.textContent = more ? t(lang, "next") : t(lang, "map-back");
@@ -564,6 +600,7 @@ function hideOverlay() {
   overlayMode = null;
   overlay.querySelectorAll(".pop-star").forEach((el) => el.remove());
   hideClearStars();
+  hideReward();
 }
 
 function handleAfterMove(won) {
@@ -701,6 +738,7 @@ function loadStage(index) {
   hideOverlay();
   document.querySelector(".app").classList.remove("is-map");
   mapEl.hidden = true;
+  mapView.stop();
   const hash = `#${LEVELS[stageIndex].id}`;
   if (location.hash !== hash || location.search) history.replaceState(null, "", hash);
   renderBoard();
@@ -722,28 +760,80 @@ function resetStage() {
   renderBoard();
 }
 
+function planetProgress(p) {
+  const cleared = getCleared();
+  let n = 0;
+  for (let i = 0; i < 12; i++) {
+    const level = LEVELS[p * 12 + i];
+    if (level && cleared.includes(level.id)) n += 1;
+  }
+  return n;
+}
+
+function openStageList(planetIndex) {
+  listPlanet = planetIndex;
+  buildStageList();
+  if (!stageDialog.open) stageDialog.showModal();
+}
+
 function buildStageList() {
   const cleared = getCleared();
-  const planet = planetOf(stageIndex);
+  const planet = listPlanet;
   const start = planet * 12;
+  const theme = themeById(LEVELS[start].planet);
+  stageDialog.style.setProperty("--dlg", theme.sky0);
+  stageDialog.style.setProperty("--dlg-deep", theme.sky2);
+  stageDialog.style.setProperty("--dlg-floor", theme.floor);
   document.querySelector("#stage-dialog h2").textContent = planetName(lang, LEVELS[start].planet);
-  stageList.innerHTML = "";
+  stageList.replaceChildren();
   for (let i = start; i < start + 12 && i < LEVELS.length; i++) {
     const lv = LEVELS[i];
     const li = document.createElement("li");
+    const finale = i % 12 === 11;
+    if (finale) li.classList.add("is-finale");
     const btn = document.createElement("button");
     btn.type = "button";
     const stars = getStars(lv.id);
     const meta = `${lv.size}×${lv.size}${stars ? " · " + starsText(stars) : ""}`;
-    btn.innerHTML = `<span>${stageTitle(lv, i)}</span><span class="stage-meta">${meta}</span>`;
+    const title = document.createElement("span");
+    title.textContent = finale ? `${stageTitle(lv, i)} · ${t(lang, "finale")}` : stageTitle(lv, i);
+    const metaEl = document.createElement("span");
+    metaEl.className = "stage-meta";
+    metaEl.textContent = meta;
+    btn.append(title, metaEl);
     if (cleared.includes(lv.id)) btn.classList.add("cleared");
     if (i === stageIndex) btn.classList.add("current");
     btn.addEventListener("click", () => {
       loadStage(i);
       stageDialog.close();
     });
-    li.appendChild(btn);
-    stageList.appendChild(li);
+    li.append(btn);
+    if (finale) {
+      const ballId = PLANET_BALL[lv.planet] || "oak";
+      const copy = ballCopy(lang, ballId);
+      const set = document.createElement("div");
+      set.className = "finale-set";
+      const ballImg = document.createElement("img");
+      const goalImg = document.createElement("img");
+      ballImg.alt = copy.name;
+      goalImg.alt = copy.name;
+      const caption = document.createElement("span");
+      caption.className = "finale-copy";
+      const strong = document.createElement("strong");
+      strong.textContent = `${ballCopy("ko", ballId).name} · ${ballCopy("en", ballId).name}`;
+      const em = document.createElement("em");
+      em.textContent = t(lang, "finale");
+      caption.append(strong, em);
+      set.append(ballImg, goalImg, caption);
+      li.append(set);
+      shotBall(ballId, 112).then((url) => {
+        ballImg.src = url;
+      });
+      shotGoal(ballId, 112).then((url) => {
+        goalImg.src = url;
+      });
+    }
+    stageList.append(li);
   }
 }
 
@@ -766,8 +856,7 @@ document.getElementById("btn-next").addEventListener("click", () => {
 });
 document.getElementById("btn-select").addEventListener("click", () => {
   if (uiBlocked()) return;
-  buildStageList();
-  stageDialog.showModal();
+  openStageList(planetOf(stageIndex));
 });
 document.getElementById("dialog-close").addEventListener("click", () => stageDialog.close());
 
@@ -1035,44 +1124,50 @@ document.querySelector(".store-tabs").addEventListener("click", (e) => {
   selectStoreTab(btn.dataset.tab);
 });
 
+function placePlanetLabels() {
+  const canvas = document.getElementById("constellation");
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  mapLabels.querySelectorAll(".star-label").forEach((btn, i) => {
+    const point = mapView.project(i, w, h);
+    btn.style.left = `${point.x}px`;
+    btn.style.top = `${point.y + 42}px`;
+  });
+}
+
+mapView.onProject(placePlanetLabels);
+
+async function openFromMap(p) {
+  if (!planetUnlocked(p) || zooming) return;
+  zooming = true;
+  try {
+    await mapView.zoomTo(p);
+    openStageList(p);
+  } finally {
+    zooming = false;
+  }
+}
+
 function renderMap() {
   document.getElementById("map-title").textContent = t(lang, "map-title");
-  const cleared = new Set(getCleared());
-  mapList.replaceChildren();
+  mapLabels.replaceChildren();
   PLANET_ORDER.forEach((id, p) => {
-    const li = document.createElement("li");
     const open = planetUnlocked(p);
-    const done = planetCleared(p);
-    let stars = 0;
-    for (let i = 0; i < 12; i++) stars += getStars(LEVELS[p * 12 + i].id);
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "map-planet" + (open ? "" : " is-locked") + (done ? " is-done" : "");
+    btn.className = "star-label" + (open ? "" : " is-locked");
     btn.disabled = !open;
-    const theme = themeById(id);
-    btn.style.setProperty("--planet", theme.floor);
-    btn.style.setProperty("--planet-edge", theme.sky0);
-    const status = !open ? t(lang, "map-locked") : done ? t(lang, "map-done") : `${stars}/36`;
-    btn.innerHTML = `<span class="map-orb"></span><span class="map-copy"><strong></strong><em></em></span>`;
-    btn.querySelector("strong").textContent = planetName(lang, id);
-    btn.querySelector("em").textContent = `${p + 1} · ${status}`;
-    btn.addEventListener("click", () => {
-      if (!planetUnlocked(p)) return;
-      let idx = p * 12;
-      let found = false;
-      for (let i = 0; i < 12; i++) {
-        if (!cleared.has(LEVELS[p * 12 + i].id)) {
-          idx = p * 12 + i;
-          found = true;
-          break;
-        }
-      }
-      if (!found) idx = p * 12 + 11;
-      loadStage(idx);
-    });
-    li.append(btn);
-    mapList.append(li);
+    const name = document.createElement("strong");
+    name.textContent = planetName(lang, id);
+    const meta = document.createElement("em");
+    const rounds = t(lang, "rounds", { n: planetProgress(p) });
+    meta.textContent = open ? rounds : `${t(lang, "map-locked")} · ${rounds}`;
+    btn.append(name, meta);
+    btn.addEventListener("click", () => openFromMap(p));
+    mapLabels.append(btn);
   });
+  mapView.setLocked((index) => !planetUnlocked(index));
+  placePlanetLabels();
 }
 
 function showMap() {
@@ -1083,6 +1178,11 @@ function showMap() {
   mapEl.hidden = false;
   if (location.hash || location.search) history.replaceState(null, "", location.pathname);
   renderMap();
+  mapView.start();
+  requestAnimationFrame(() => {
+    mapView.resize();
+    placePlanetLabels();
+  });
   paintSky();
 }
 
@@ -1161,6 +1261,9 @@ document.getElementById("dialog-map").addEventListener("click", () => {
   stageDialog.close();
   showMap();
 });
+stageDialog.addEventListener("close", () => {
+  if (!mapEl.hidden) mapView.resetCamera();
+});
 
 applyLang();
 view.setBall(equippedId());
@@ -1178,6 +1281,10 @@ requestAnimationFrame(() => view.resize());
 window.addEventListener("resize", () => {
   paintSky();
   view.resize();
+  if (!mapEl.hidden) {
+    mapView.resize();
+    placePlanetLabels();
+  }
 });
 
 if (typeof ResizeObserver !== "undefined") {
