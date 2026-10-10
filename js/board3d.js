@@ -155,12 +155,12 @@ function mixRgb(a, b, t) {
 }
 
 const BRICKS = [
-  [176, 64, 64],
-  [58, 108, 176],
-  [184, 150, 48],
-  [62, 140, 74],
-  [184, 102, 48],
-  [140, 72, 164],
+  [242, 226, 196],
+  [244, 206, 214],
+  [196, 228, 210],
+  [244, 230, 176],
+  [216, 204, 232],
+  [196, 220, 236],
 ];
 
 function brickIndex(n) {
@@ -178,23 +178,23 @@ function brickIndex(n) {
 }
 
 function paintStuds(g, x, y, w, rgb) {
-  const lite = rgb.map((c) => Math.min(255, c + 52));
-  const dark = rgb.map((c) => Math.max(0, c - 46));
-  const s = w * 0.18;
-  for (const [u, v] of [[0.3, 0.32], [0.7, 0.32], [0.3, 0.68], [0.7, 0.68]]) {
+  const lite = rgb.map((c) => Math.min(255, c + 16));
+  const dark = rgb.map((c) => Math.max(0, c - 14));
+  const s = w * 0.1;
+  for (const [u, v] of [[0.32, 0.34], [0.68, 0.34], [0.32, 0.68], [0.68, 0.68]]) {
     const cx = x + w * u;
     const cy = y + w * v;
-    g.fillStyle = `rgb(${dark.join(",")})`;
+    g.fillStyle = `rgba(${dark.join(",")}, 0.45)`;
     g.beginPath();
-    g.ellipse(cx, cy + s * 0.32, s, s * 0.62, 0, 0, Math.PI * 2);
+    g.ellipse(cx, cy + s * 0.16, s * 0.78, s * 0.36, 0, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = `rgb(${rgb.join(",")})`;
     g.beginPath();
-    g.arc(cx, cy, s * 0.9, 0, Math.PI * 2);
+    g.arc(cx, cy, s * 0.68, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = `rgb(${lite.join(",")})`;
+    g.fillStyle = `rgba(${lite.join(",")}, 0.8)`;
     g.beginPath();
-    g.ellipse(cx - s * 0.16, cy - s * 0.24, s * 0.36, s * 0.2, -0.5, 0, Math.PI * 2);
+    g.ellipse(cx - s * 0.1, cy - s * 0.12, s * 0.24, s * 0.12, -0.4, 0, Math.PI * 2);
     g.fill();
   }
 }
@@ -249,7 +249,7 @@ function makeBoardTexture(n, palette) {
   c.width = c.height = size;
   const g = c.getContext("2d");
   if (id === "toy") {
-    g.fillStyle = "#141414";
+    g.fillStyle = "#e4d5c6";
     g.fillRect(0, 0, size, size);
     const used = brickIndex(n);
     const gap = 3;
@@ -259,11 +259,11 @@ function makeBoardTexture(n, palette) {
         const y = r * cell + gap;
         const w = cell - gap * 2;
         const rgb = BRICKS[used[r][col]];
-        const shade = rgb.map((ch) => Math.max(0, ch - 28));
+        const shade = rgb.map((ch) => Math.max(0, ch - 12));
         g.fillStyle = `rgb(${shade.join(",")})`;
-        roundFill(g, x, y + 3, w, w - 3, 7);
+        roundFill(g, x, y + 2, w, w - 2, 8);
         g.fillStyle = `rgb(${rgb.join(",")})`;
-        roundFill(g, x, y, w, w - 4, 7);
+        roundFill(g, x, y, w, w - 2, 8);
         paintStuds(g, x, y, w, rgb);
       }
     }
