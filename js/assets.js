@@ -1,11 +1,24 @@
 import { BALLS } from "./balls.js";
 import { ballCopy, planetName } from "./i18n.js";
 import { PLANET_BALL, PLANET_ORDER } from "./themes.js";
-import { shotBall, shotGoal, shotPlanet } from "./showcase.js";
+import { shotBall, shotCompare, shotGoal, shotPlanet } from "./showcase.js";
 
 const planetBody = document.querySelector("#planet-table tbody");
 const ballBody = document.querySelector("#ball-table tbody");
 const closeups = document.getElementById("closeup-row");
+const compareGrid = document.getElementById("compare-grid");
+const goalGrid = document.getElementById("goal-grid");
+
+const COMPARE = [
+  ["ball", "baseball", "야구공", "Baseball"],
+  ["ball", "tennis", "테니스공", "Tennis"],
+  ["ball", "melon", "수박", "Watermelon"],
+  ["ball", "oak", "오크", "Oak"],
+  ["planet", "wood", "나무", "Wood"],
+  ["planet", "desert", "사막", "Desert"],
+  ["planet", "ocean", "바다", "Ocean"],
+  ["planet", "lava", "용암", "Lava"],
+];
 const statusEl = document.getElementById("sheet-status");
 
 function cell(label, node) {
@@ -89,10 +102,68 @@ function closeupRow() {
   }
 }
 
+const TRIO = [
+  ["main", "Main · 원래"],
+  ["trial", "Trial · 이전"],
+  ["arcade", "Arcade · 새"],
+];
+
+const GOAL_COMPARE = [
+  ["oak", "오크 매듭", "Oak knot"],
+  ["baseball", "홈 플레이트", "Home plate"],
+  ["tennis", "테니스 컵", "Tennis cup"],
+  ["melon", "수박 껍질", "Watermelon rind"],
+  ["ice", "얼음 구멍", "Ice hole"],
+];
+
+function compareCards() {
+  for (const [kind, id, ko, en] of COMPARE) {
+    const card = document.createElement("article");
+    card.className = "compare-card";
+    const title = document.createElement("h3");
+    title.textContent = `${ko} · ${en}`;
+    const pair = document.createElement("div");
+    pair.className = "compare-pair";
+    for (const [label, caption] of TRIO) {
+      const figure = document.createElement("figure");
+      const picture = document.createElement("img");
+      picture.alt = `${en} ${label}`;
+      picture.dataset.compare = `${kind}|${id}|${label}`;
+      const cap = document.createElement("figcaption");
+      cap.textContent = caption;
+      figure.append(picture, cap);
+      pair.append(figure);
+    }
+    card.append(title, pair);
+    compareGrid.append(card);
+  }
+  for (const [id, ko, en] of GOAL_COMPARE) {
+    const card = document.createElement("article");
+    card.className = "compare-card";
+    const title = document.createElement("h3");
+    title.textContent = `${ko} · ${en}`;
+    const pair = document.createElement("div");
+    pair.className = "compare-pair pair-2";
+    for (const [label, caption] of [["before", "Before · 전"], ["after", "After · 후"]]) {
+      const figure = document.createElement("figure");
+      const picture = document.createElement("img");
+      picture.alt = `${en} ${label}`;
+      picture.dataset.goalcompare = `${id}|${label}`;
+      const cap = document.createElement("figcaption");
+      cap.textContent = caption;
+      figure.append(picture, cap);
+      pair.append(figure);
+    }
+    card.append(title, pair);
+    goalGrid.append(card);
+  }
+}
+
 async function fill() {
   planetRows();
   ballRows();
   closeupRow();
+  compareCards();
   for (const el of document.querySelectorAll("[data-planet]")) {
     el.src = await shotPlanet(el.dataset.planet, 180);
   }
@@ -104,6 +175,23 @@ async function fill() {
   }
   for (const el of document.querySelectorAll("[data-closeup]")) {
     el.src = await shotBall(el.dataset.closeup, 320);
+  }
+  const pairs = new Map();
+  for (const [kind, id] of COMPARE) {
+    pairs.set(`${kind}|${id}`, await shotCompare(kind, id, 360));
+  }
+  for (const el of document.querySelectorAll("[data-compare]")) {
+    const [kind, id, label] = el.dataset.compare.split("|");
+    const shot = pairs.get(`${kind}|${id}`);
+    el.src = shot[label] || "";
+  }
+  const goals = new Map();
+  for (const [id] of GOAL_COMPARE) {
+    goals.set(id, await shotCompare("goal", id, 360));
+  }
+  for (const el of document.querySelectorAll("[data-goalcompare]")) {
+    const [id, label] = el.dataset.goalcompare.split("|");
+    el.src = goals.get(id)[label];
   }
   statusEl.textContent = "ready";
 }
