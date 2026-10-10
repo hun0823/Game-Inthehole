@@ -2,7 +2,7 @@ import { LEVELS } from "./levels.js";
 import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
-import { createConstellation } from "./constellation.js";
+import { createConstellation, mapLayout } from "./constellation.js";
 import { shotBall, shotGoal } from "./showcase.js";
 import { BALLS, ballById } from "./balls.js";
 import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, trailById } from "./cosmetics.js";
@@ -33,6 +33,8 @@ const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlay-title");
 const overlayMsg = document.getElementById("overlay-msg");
 const overlayBtn = document.getElementById("overlay-btn");
+const overlayRetry = document.getElementById("overlay-retry");
+const overlayKicker = document.getElementById("overlay-kicker");
 const stageDialog = document.getElementById("stage-dialog");
 const stageList = document.getElementById("stage-list");
 const hintNote = document.getElementById("hint-note");
@@ -50,7 +52,11 @@ const storeConfirmText = document.getElementById("store-confirm-text");
 const storeClose = document.getElementById("store-close");
 const storeSpend = document.getElementById("store-spend");
 const mapEl = document.getElementById("map");
-const mapLabels = document.getElementById("constellation-labels");
+const mapTrack = document.getElementById("constellation-track");
+const mapScroll = document.getElementById("constellation-scroll");
+const mapStars = document.getElementById("map-stars");
+const mapStarbox = document.getElementById("map-starbox");
+const constellationEl = document.querySelector(".constellation");
 const rewardReveal = document.getElementById("reward-reveal");
 const rewardKicker = document.getElementById("reward-kicker");
 const rewardBallImg = document.getElementById("reward-ball");
@@ -457,6 +463,10 @@ function updateHud() {
   const par = level.par || 0;
   const starsLeft = purse();
   scoreLabel.textContent = String(starsLeft);
+  if (mapStars) mapStars.textContent = String(starsLeft);
+  const starLabel = `${starsLeft} ${t(lang, "stars")}`;
+  document.getElementById("btn-store").setAttribute("aria-label", starLabel);
+  if (mapStarbox) mapStarbox.setAttribute("aria-label", starLabel);
   if (storeOpen()) storeStars.textContent = String(starsLeft);
   levelLabel.textContent = stageTitle(level, stageIndex);
   const tone = moveCountTone(par, game.moves);
@@ -466,7 +476,17 @@ function updateHud() {
   else if (tone === "danger") movesLabel.classList.add("move-danger");
   const stars = starsText(earnedStars().stars);
   const ratio = par > 0 ? `${game.moves}/${par}` : String(game.moves);
-  movesLabel.innerHTML = `<span class="move-num">${ratio}</span> · <span class="stars">${stars}</span>`;
+  movesLabel.replaceChildren();
+  const hudStars = document.createElement("span");
+  hudStars.className = "hud-stars";
+  hudStars.textContent = stars;
+  const pill = document.createElement("span");
+  pill.className = "move-pill";
+  const num = document.createElement("span");
+  num.className = "move-num";
+  num.textContent = ratio;
+  pill.append(num);
+  movesLabel.append(hudStars, pill);
 }
 
 function clearHintUi() {
@@ -529,23 +549,26 @@ function showFinaleReward(level) {
   });
 }
 
+function replayStage() {
+  hideOverlay();
+  game.reset();
+  gameOver = false;
+  renderBoard();
+}
+
 function showGameOver() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   overlayMode = "lose";
   hideClearStars();
   hideReward();
-  overlay.classList.remove("hidden");
+  overlay.classList.remove("hidden", "is-win");
+  overlay.classList.add("is-lose");
+  overlayKicker.textContent = stageTitle(level, stageIndex);
   overlayTitle.textContent = t(lang, "out");
-  const label = stageTitle(level, stageIndex);
-  overlayMsg.textContent = par > 0 ? `${label} · ${game.moves}/${par}` : label;
+  overlayMsg.textContent = par > 0 ? `${game.moves}/${par}` : String(game.moves);
   overlayBtn.textContent = t(lang, "retry");
-  overlayBtn.onclick = () => {
-    hideOverlay();
-    game.reset();
-    gameOver = false;
-    renderBoard();
-  };
+  overlayBtn.onclick = () => replayStage();
 }
 
 function spawnClearStars() {
@@ -572,17 +595,17 @@ function showWin(stars, coinBonus, rewardBall) {
   overlayCoin = !!coinBonus;
   overlayStarsN = stars;
   spawnClearStars();
-  overlay.classList.remove("hidden");
-  overlayTitle.textContent = t(lang, "cleared");
+  overlay.classList.remove("hidden", "is-lose");
+  overlay.classList.add("is-win");
   const label = stageTitle(level, stageIndex);
-  let msg = coinBonus
-    ? `${label} · ${game.moves}/${par} · ${t(lang, "coin-bonus")}`
-    : `${label} · ${game.moves}/${par}`;
-  if (rewardBall) {
-    const copy = ballCopy(lang, rewardBall);
-    msg += ` ${t(lang, "reward", { planet: planetName(lang, level.planet), ball: copy.name })}`;
-  }
-  overlayMsg.textContent = msg;
+  overlayKicker.textContent = label;
+  overlayTitle.textContent = t(lang, "cleared");
+  const perfect = par > 0 && game.moves <= par;
+  overlayMsg.textContent = perfect
+    ? `${t(lang, "optimal")} ${game.moves}/${par}`
+    : (par > 0 ? `${game.moves}/${par}` : String(game.moves));
+  overlayRetry.textContent = t(lang, "retry");
+  overlayRetry.onclick = () => replayStage();
   showFinaleReward(level);
   showClearStars(stars);
   const more = stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1);
@@ -598,6 +621,7 @@ function showWin(stars, coinBonus, rewardBall) {
 
 function hideOverlay() {
   overlay.classList.add("hidden");
+  overlay.classList.remove("is-win", "is-lose");
   overlayMode = null;
   overlay.querySelectorAll(".pop-star").forEach((el) => el.remove());
   hideClearStars();
@@ -738,6 +762,7 @@ function loadStage(index) {
   gameOver = false;
   hideOverlay();
   document.querySelector(".app").classList.remove("is-map");
+  document.body.classList.remove("map-open");
   mapEl.hidden = true;
   mapView.stop();
   const hash = `#${LEVELS[stageIndex].id}`;
@@ -769,6 +794,31 @@ function planetProgress(p) {
     if (level && cleared.includes(level.id)) n += 1;
   }
   return n;
+}
+
+function planetStars(p) {
+  let n = 0;
+  for (let i = 0; i < 12; i++) {
+    const level = LEVELS[p * 12 + i];
+    if (!level) continue;
+    n += Math.max(0, Math.min(3, getStars(level.id)));
+  }
+  return n;
+}
+
+function focusPlanet() {
+  const n = PLANET_ORDER.length;
+  for (let i = 0; i < n; i++) {
+    if (!planetUnlocked(i)) return Math.max(0, i - 1);
+    if (!planetCleared(i)) return i;
+  }
+  return n - 1;
+}
+
+function segmentKind(i) {
+  if (planetCleared(i)) return "cleared";
+  if (planetUnlocked(i)) return "progress";
+  return "locked";
 }
 
 function openStageList(planetIndex) {
@@ -1125,73 +1175,337 @@ document.querySelector(".store-tabs").addEventListener("click", (e) => {
   selectStoreTab(btn.dataset.tab);
 });
 
-function placePlanetLabels() {
-  const canvas = document.getElementById("constellation");
-  const w = canvas.clientWidth;
-  const h = canvas.clientHeight;
-  mapLabels.querySelectorAll(".star-label").forEach((btn, i) => {
-    const point = mapView.project(i, w, h);
-    const half = 52;
-    const x = Math.min(w - half - 4, Math.max(half + 4, point.x));
-    btn.style.left = `${x}px`;
-    btn.style.top = `${point.y + 46}px`;
-  });
+const SVG_NS = "http://www.w3.org/2000/svg";
+let pinMapToFocus = true;
+
+function svgEl(name, attrs) {
+  const el = document.createElementNS(SVG_NS, name);
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, String(value));
+  return el;
 }
 
-mapView.onProject(placePlanetLabels);
+function buildSpaceStars() {
+  const host = document.getElementById("space-stars");
+  if (!host || host.childElementCount) return;
+  for (let i = 0; i < 42; i++) {
+    const star = document.createElement("span");
+    star.className = "space-star";
+    star.style.left = `${(i * 53 + 7) % 100}%`;
+    star.style.top = `${(i * 37 + 11) % 100}%`;
+    const size = 1.6 + (i % 4) * 0.85;
+    star.style.width = `${size}px`;
+    star.style.height = `${size}px`;
+    star.style.animationDelay = `${(i % 10) * 0.28}s`;
+    star.style.animationDuration = `${2.4 + (i % 5) * 0.4}s`;
+    host.append(star);
+  }
+}
+
+function lockGraphic() {
+  const svg = svgEl("svg", { viewBox: "0 0 32 32", "aria-hidden": "true" });
+  svg.append(
+    svgEl("rect", { x: 7, y: 14, width: 18, height: 13, rx: 3, fill: "#f7f9ff", stroke: "#1a2040", "stroke-width": 2 }),
+    svgEl("path", { d: "M11 14.5v-3.2a5 5 0 0 1 10 0v3.2", fill: "none", stroke: "#f7f9ff", "stroke-width": 2.6, "stroke-linecap": "round" })
+  );
+  return svg;
+}
+
+function checkGraphic() {
+  const svg = svgEl("svg", { viewBox: "0 0 32 32", "aria-hidden": "true" });
+  svg.append(
+    svgEl("circle", { cx: 16, cy: 16, r: 13, fill: "#1ec96a", stroke: "#06381c", "stroke-width": 3 }),
+    svgEl("path", { d: "M9 16.6l4.2 4.1L23 11.4", fill: "none", stroke: "#fff", "stroke-width": 3.2, "stroke-linecap": "round", "stroke-linejoin": "round" })
+  );
+  return svg;
+}
+
+function starGraphic() {
+  return svgEl("svg", { viewBox: "0 0 20 20", "aria-hidden": "true" });
+}
+
+function rectHits(x, y, pad, rect) {
+  const cx = Math.max(rect.l, Math.min(x, rect.r));
+  const cy = Math.max(rect.t, Math.min(y, rect.b));
+  return (x - cx) ** 2 + (y - cy) ** 2 < pad * pad;
+}
+
+function dotBlocked(x, y, layout) {
+  const pad = 8;
+  for (const node of layout.nodes) {
+    const nx = (x - node.x) / (node.hReach + pad);
+    const ny = (y - node.y) / (node.vReach + pad);
+    if (nx * nx + ny * ny < 1) return true;
+    const pin = {
+      l: node.x - 58,
+      r: node.x + 58,
+      t: node.y - node.vReach - 100,
+      b: node.y - node.vReach + 4,
+    };
+    if (rectHits(x, y, pad, pin)) return true;
+    const reach = node.hReach + node.cardGap;
+    const card = node.left
+      ? { l: node.x + reach - 4, r: node.x + reach + node.cardW + 4, t: node.y - 46, b: node.y + 46 }
+      : { l: node.x - reach - node.cardW - 4, r: node.x - reach + 4, t: node.y - 46, b: node.y + 46 };
+    if (rectHits(x, y, pad, card)) return true;
+    const bx = node.x + (node.left ? -1 : 1) * node.sphere * 0.36;
+    const by = node.y + node.sphere * 0.3;
+    if ((x - bx) ** 2 + (y - by) ** 2 < (18 + pad) ** 2) return true;
+  }
+  return false;
+}
+
+function drawPathDots(layout) {
+  const svg = document.getElementById("path-dots");
+  if (!svg) return;
+  svg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
+  svg.setAttribute("width", String(layout.width));
+  svg.setAttribute("height", String(layout.height));
+  svg.replaceChildren();
+  const colors = { cleared: "#ffc21a", progress: "#ff6a00", locked: "#8e93b8" };
+  const glows = {
+    cleared: "rgba(255, 194, 26, 0.55)",
+    progress: "rgba(255, 106, 0, 0.5)",
+    locked: "rgba(142, 147, 184, 0.28)",
+  };
+  const rims = { cleared: "#fff6d2", progress: "#ffd0b0", locked: "#5c6278" };
+  for (let i = 0; i < layout.nodes.length - 1; i++) {
+    const a = layout.nodes[i];
+    const b = layout.nodes[i + 1];
+    const kind = segmentKind(i);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const mx = (a.x + b.x) / 2 - (dy / len) * 18;
+    const my = (a.y + b.y) / 2 + (dx / len) * 18;
+    const steps = Math.max(8, Math.round(len / 14));
+    let last = null;
+    for (let s = 1; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      const x = u * u * a.x + 2 * u * t * mx + t * t * b.x;
+      const y = u * u * a.y + 2 * u * t * my + t * t * b.y;
+      if (dotBlocked(x, y, layout)) continue;
+      if (last && Math.hypot(x - last.x, y - last.y) < 18) continue;
+      last = { x, y };
+      const halo = svgEl("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: 9, fill: glows[kind] });
+      const dot = svgEl("circle", {
+        cx: x.toFixed(1),
+        cy: y.toFixed(1),
+        r: 5.5,
+        fill: colors[kind],
+        stroke: rims[kind],
+        "stroke-width": 2,
+      });
+      svg.append(halo, dot);
+    }
+  }
+}
+
+function placeNode(btn, node) {
+  btn.style.left = `${node.x}px`;
+  btn.style.top = `${node.y}px`;
+  btn.style.setProperty("--sphere", String(Math.round(node.sphere)));
+  btn.style.setProperty("--reach", String(Math.round(node.hReach + node.cardGap)));
+  btn.style.setProperty("--card-max", `${Math.floor(node.cardW)}px`);
+  btn.style.setProperty("--pin", String(Math.round(node.vReach + 16)));
+  btn.dataset.x = String(Math.round(node.x));
+  btn.dataset.y = String(Math.round(node.y));
+  btn.dataset.h = String(Math.round(node.hReach));
+  btn.dataset.v = String(Math.round(node.vReach));
+}
+
+function buildPlanetNode(id, p, node, focus) {
+  const open = planetUnlocked(p);
+  const cleared = open && planetCleared(p);
+  const current = open && !cleared && p === focus;
+  const name = planetName(lang, id);
+  const stages = planetProgress(p);
+  const stars = planetStars(p);
+  const prev = p > 0 ? planetName(lang, PLANET_ORDER[p - 1]) : "";
+  const note = open ? "" : t(lang, "unlock-note", { planet: prev });
+  const btn = document.createElement("div");
+  btn.className = "star-node"
+    + (node.left ? " is-left" : " is-right")
+    + (cleared ? " is-cleared" : "")
+    + (current ? " is-current" : "")
+    + (open ? "" : " is-locked");
+  btn.dataset.planet = id;
+  btn.dataset.state = cleared ? "cleared" : current ? "current" : "locked";
+  placeNode(btn, node);
+
+  const hit = document.createElement("button");
+  hit.type = "button";
+  hit.className = "star-hit";
+  hit.disabled = !open;
+  hit.tabIndex = -1;
+  hit.setAttribute("aria-hidden", "true");
+  const ring = document.createElement("span");
+  ring.className = "star-ring";
+  btn.append(hit, ring);
+
+  if (!open) {
+    const lock = document.createElement("span");
+    lock.className = "star-lock";
+    lock.append(lockGraphic());
+    btn.append(lock);
+  }
+  if (cleared) {
+    const badge = document.createElement("span");
+    badge.className = "star-check";
+    badge.append(checkGraphic());
+    btn.append(badge);
+  }
+  if (current) {
+    const pin = document.createElement("span");
+    pin.className = "star-pin";
+    pin.textContent = t(lang, "here");
+    btn.append(pin);
+    const left = 12 - stages;
+    if (left > 0) {
+      const more = document.createElement("span");
+      more.className = "star-more";
+      more.textContent = t(lang, "more-left", { n: left });
+      btn.append(more);
+    }
+  }
+
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "star-card";
+  card.disabled = !open;
+  const line = document.createElement("span");
+  line.className = "star-line";
+  const num = document.createElement("span");
+  num.className = "star-num";
+  num.textContent = String(p + 1);
+  const label = document.createElement("span");
+  label.className = "star-name";
+  label.textContent = name;
+  line.append(num, label);
+  const meta = document.createElement("span");
+  meta.className = "star-meta";
+  const earn = document.createElement("span");
+  earn.className = "star-earn";
+  const star = starGraphic();
+  star.append(svgEl("polygon", {
+    points: "10,1.4 12.7,7.1 18.8,7.7 14.2,11.8 15.6,17.8 10,14.7 4.4,17.8 5.8,11.8 1.2,7.7 7.3,7.1",
+    fill: "#ffe14a",
+  }));
+  earn.append(star, document.createTextNode(`${stars}/36`));
+  const stage = document.createElement("span");
+  stage.className = "star-stages";
+  stage.textContent = t(lang, "stage-count", { n: stages });
+  meta.append(earn, stage);
+  card.append(line, meta);
+  if (note) {
+    const noteEl = document.createElement("span");
+    noteEl.className = "star-note";
+    noteEl.textContent = note;
+    card.append(noteEl);
+  }
+  btn.append(card);
+  const activate = () => openFromMap(p);
+  hit.addEventListener("click", activate);
+  card.addEventListener("click", activate);
+  return btn;
+}
+
+function positionMap() {
+  const w = mapScroll.clientWidth;
+  const h = mapScroll.clientHeight;
+  if (w < 2 || h < 2) return;
+  const layout = mapLayout(w);
+  mapTrack.style.height = `${layout.height}px`;
+  const buttons = mapTrack.querySelectorAll(".star-node");
+  layout.nodes.forEach((node, i) => {
+    if (buttons[i]) placeNode(buttons[i], node);
+  });
+  drawPathDots(layout);
+  if (pinMapToFocus) {
+    const focus = focusPlanet();
+    const node = layout.nodes[focus];
+    if (node) {
+      const margin = 16;
+      const prev = layout.nodes[focus - 1];
+      const pinTop = node.y - node.vReach - 102;
+      const nodeBottom = node.y + node.vReach + 12;
+      const botLimit = prev ? Math.max(nodeBottom, prev.y + prev.vReach + 14) : nodeBottom;
+      const span = botLimit - pinTop;
+      let top = node.y - h * 0.46;
+      if (span + margin * 2 <= h) {
+        const minTop = botLimit - (h - margin);
+        const maxTop = pinTop - margin;
+        top = Math.min(maxTop, Math.max(minTop, top));
+      }
+      const maxScroll = Math.max(0, layout.height - h);
+      mapScroll.scrollTop = Math.max(0, Math.min(top, maxScroll));
+    }
+    pinMapToFocus = false;
+  }
+  mapView.sync(mapScroll.scrollTop, w, h);
+  mapView.resize();
+}
 
 async function openFromMap(p) {
   if (!planetUnlocked(p) || zooming) return;
   zooming = true;
+  constellationEl.classList.add("is-zooming");
   try {
     await mapView.zoomTo(p);
     openStageList(p);
+  } catch (err) {
+    constellationEl.classList.remove("is-zooming");
+    throw err;
   } finally {
     zooming = false;
   }
 }
 
+function playFocusPlanet() {
+  const p = focusPlanet();
+  const start = p * 12;
+  const cleared = getCleared();
+  let index = Math.min(start + 11, LEVELS.length - 1);
+  for (let i = 0; i < 12; i++) {
+    const level = LEVELS[start + i];
+    if (!level) break;
+    if (!cleared.includes(level.id)) {
+      index = start + i;
+      break;
+    }
+  }
+  loadStage(index);
+}
+
 function renderMap() {
   document.getElementById("map-title").textContent = t(lang, "map-title");
-  mapLabels.replaceChildren();
+  document.getElementById("map-shop").textContent = t(lang, "shop");
+  document.getElementById("map-play").textContent = t(lang, "play");
+  buildSpaceStars();
+  mapTrack.querySelectorAll(".star-node").forEach((node) => node.remove());
+  const w = mapScroll.clientWidth || 375;
+  const layout = mapLayout(w);
+  const focus = focusPlanet();
   PLANET_ORDER.forEach((id, p) => {
-    const open = planetUnlocked(p);
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "star-label" + (open ? "" : " is-locked");
-    btn.disabled = !open;
-    const name = document.createElement("strong");
-    name.textContent = planetName(lang, id);
-    const meta = document.createElement("em");
-    const rounds = t(lang, "rounds", { n: planetProgress(p) });
-    meta.textContent = rounds;
-    if (!open) {
-      const lock = document.createElement("span");
-      lock.className = "star-lock";
-      lock.textContent = "🔒";
-      btn.append(lock);
-    }
-    btn.append(name, meta);
-    btn.addEventListener("click", () => openFromMap(p));
-    mapLabels.append(btn);
+    mapTrack.append(buildPlanetNode(id, p, layout.nodes[p], focus));
   });
   mapView.setLocked((index) => !planetUnlocked(index));
-  placePlanetLabels();
+  pinMapToFocus = true;
+  positionMap();
 }
 
 function showMap() {
   hideLesson();
   hideOverlay();
   if (stageDialog.open) stageDialog.close();
+  document.body.classList.add("map-open");
   document.querySelector(".app").classList.add("is-map");
   mapEl.hidden = false;
+  constellationEl.classList.remove("is-zooming");
   if (location.hash || location.search) history.replaceState(null, "", location.pathname);
   renderMap();
   mapView.start();
-  requestAnimationFrame(() => {
-    mapView.resize();
-    placePlanetLabels();
-  });
+  requestAnimationFrame(() => positionMap());
   paintSky();
 }
 
@@ -1221,7 +1535,10 @@ function closeSettings() {
 
 function applyLang() {
   document.documentElement.lang = lang;
-  document.getElementById("btn-store").textContent = t(lang, "shop");
+  document.getElementById("btn-store").setAttribute("aria-label", t(lang, "shop"));
+  document.getElementById("map-starbox").setAttribute("aria-label", t(lang, "shop"));
+  document.getElementById("map-shop").textContent = t(lang, "shop");
+  document.getElementById("map-play").textContent = t(lang, "play");
   document.getElementById("btn-gear").setAttribute("aria-label", t(lang, "settings"));
   document.getElementById("map-settings").setAttribute("aria-label", t(lang, "settings"));
   lessonButton.textContent = t(lang, "how");
@@ -1276,6 +1593,22 @@ document.getElementById("btn-gear").addEventListener("click", () => {
   openSettings();
 });
 document.getElementById("map-settings").addEventListener("click", () => openSettings());
+document.getElementById("map-shop").addEventListener("click", () => {
+  if (storeOpen()) closeStore();
+  else openStore();
+});
+document.getElementById("map-starbox").addEventListener("click", () => {
+  if (storeOpen()) closeStore();
+  else openStore();
+});
+document.getElementById("map-play").addEventListener("click", () => {
+  if (storeOpen() || settingsOpen() || zooming) return;
+  playFocusPlanet();
+});
+mapScroll.addEventListener("scroll", () => {
+  if (mapEl.hidden) return;
+  mapView.sync(mapScroll.scrollTop, mapScroll.clientWidth, mapScroll.clientHeight);
+}, { passive: true });
 document.getElementById("settings-close").addEventListener("click", () => closeSettings());
 document.querySelectorAll(".lang-row button[data-lang]").forEach((btn) => {
   btn.addEventListener("click", () => setLang(btn.dataset.lang));
@@ -1296,7 +1629,10 @@ document.getElementById("dialog-map").addEventListener("click", () => {
   showMap();
 });
 stageDialog.addEventListener("close", () => {
-  if (!mapEl.hidden) mapView.resetCamera();
+  if (!mapEl.hidden) {
+    constellationEl.classList.remove("is-zooming");
+    mapView.resetCamera();
+  }
 });
 
 applyLang();
@@ -1316,12 +1652,12 @@ requestAnimationFrame(() => view.resize());
 window.addEventListener("resize", () => {
   paintSky();
   view.resize();
-  if (!mapEl.hidden) {
-    mapView.resize();
-    placePlanetLabels();
-  }
+  if (!mapEl.hidden) positionMap();
 });
 
 if (typeof ResizeObserver !== "undefined") {
   new ResizeObserver(() => view.resize()).observe(boardWrapEl);
+  new ResizeObserver(() => {
+    if (!mapEl.hidden) positionMap();
+  }).observe(constellationEl);
 }

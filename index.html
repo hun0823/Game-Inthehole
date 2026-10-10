@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0c1834" />
+  <meta name="theme-color" content="#2b1f7a" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -16,10 +16,14 @@
   <canvas id="sky" class="sky" aria-hidden="true"></canvas>
   <div class="app">
     <header class="topbar">
-      <button type="button" id="btn-hint" class="arcade-btn arcade-btn--hint" aria-label="Hint">
-        <span class="arcade-face arcade-face--round">?</span>
-      </button>
-      <button type="button" id="btn-lesson" class="how-badge" hidden>How?</button>
+      <div class="hud-side">
+        <button type="button" id="btn-store" class="currency-chip" aria-label="Shop">
+          <span class="currency-star" aria-hidden="true">★</span>
+          <span id="score-label" class="score">0</span>
+          <span class="currency-plus" aria-hidden="true">+</span>
+        </button>
+        <button type="button" id="btn-gear" class="kit-icon kit-icon--charcoal" aria-label="Settings">⚙</button>
+      </div>
       <div class="hud-center">
         <div class="level-row">
           <button type="button" id="btn-prev" class="chev" aria-label="Previous stage">‹</button>
@@ -29,74 +33,14 @@
         <div id="moves-label" class="moves"></div>
         <p id="hint-note" class="hint-note" hidden></p>
       </div>
-      <div class="score-block">
-        <svg class="crown" viewBox="0 0 96 70" aria-hidden="true">
-          <defs>
-            <linearGradient id="crownGold" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#fff6cf"/>
-              <stop offset="38%" stop-color="#ffd24a"/>
-              <stop offset="72%" stop-color="#f0a818"/>
-              <stop offset="100%" stop-color="#d48410"/>
-            </linearGradient>
-            <radialGradient id="ruby" cx="38%" cy="32%" r="70%">
-              <stop offset="0%" stop-color="#ffd0dc"/>
-              <stop offset="42%" stop-color="#e4254a"/>
-              <stop offset="100%" stop-color="#8e1030"/>
-            </radialGradient>
-            <filter id="crownGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2.4" result="b"/>
-              <feMerge>
-                <feMergeNode in="b"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          <ellipse cx="48" cy="40" rx="22" ry="12" fill="#ffc83d" opacity="0.7" filter="url(#crownGlow)"/>
-          <path fill="url(#crownGold)" d="M14 48 L20 30 C22 24 26 26 28 32 L36 42 L42 20 C44 14 46 10 48 10 C50 10 52 14 54 20 L60 42 L68 32 C70 26 74 24 76 30 L82 48 Z"/>
-          <rect x="12" y="46" width="72" height="13" rx="4" fill="url(#crownGold)"/>
-          <rect x="18" y="49" width="60" height="2.4" rx="1.2" fill="rgba(255,255,255,0.55)"/>
-          <circle cx="22" cy="30" r="3.6" fill="#fff8dc" stroke="#e0a020" stroke-width="1"/>
-          <circle cx="48" cy="12" r="4.2" fill="#fff8dc" stroke="#e0a020" stroke-width="1"/>
-          <circle cx="74" cy="30" r="3.6" fill="#fff8dc" stroke="#e0a020" stroke-width="1"/>
-          <polygon points="48,26 53.5,33 48,39 42.5,33" fill="url(#ruby)" stroke="#ffe0e8" stroke-width="0.7"/>
-        </svg>
-        <div id="score-label" class="score">0</div>
-        <button type="button" id="btn-store" class="shop-chip">Shop</button>
-        <button type="button" id="btn-gear" class="gear-chip" aria-label="Settings">⚙</button>
+      <div class="hud-side hud-side--end">
+        <button type="button" id="btn-hint" class="kit-icon kit-icon--blue" aria-label="Hint">?</button>
+        <button type="button" id="btn-lesson" class="how-badge" hidden>How?</button>
       </div>
     </header>
 
     <main class="board-wrap">
       <canvas id="playfield" class="playfield" aria-label="Game board"></canvas>
-      <div id="lesson" class="lesson" hidden>
-        <div class="overlay-card lesson-card">
-          <h2 id="lesson-title">Glass</h2>
-          <div id="lesson-art" class="lesson-art" aria-hidden="true"></div>
-          <p id="lesson-body"></p>
-          <p class="lesson-replay">Tap How? by the question mark to see this again.</p>
-          <button id="lesson-btn" type="button">Got it</button>
-        </div>
-      </div>
-      <div id="overlay" class="overlay hidden">
-        <div class="overlay-card">
-          <h2 id="overlay-title">Cleared!</h2>
-          <div id="overlay-stars" class="clear-stars" hidden>
-            <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
-            <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
-            <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
-          </div>
-          <p id="overlay-msg"></p>
-          <div id="reward-reveal" class="reward-reveal" hidden>
-            <p id="reward-kicker"></p>
-            <div class="reward-pair">
-              <img id="reward-ball" alt="">
-              <img id="reward-goal" alt="">
-            </div>
-            <p id="reward-name"></p>
-          </div>
-          <button id="overlay-btn" type="button">Next stage</button>
-        </div>
-      </div>
     </main>
 
     <nav class="controls" aria-label="Tilt the board">
@@ -104,44 +48,44 @@
         <button type="button" class="arcade-btn arcade-btn--gold dpad-up" data-dir="up">
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="32,12 54,48 10,48" fill="#fff"/>
+              <polygon points="32,10 56,50 8,50" fill="#141414"/>
             </svg>
             <span class="face-caption">Up</span>
           </span>
         </button>
-        <button type="button" class="arcade-btn arcade-btn--blue dpad-left" data-dir="left">
+        <button type="button" class="arcade-btn arcade-btn--gold dpad-left" data-dir="left">
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="16,32 46,12 46,52" fill="#fff"/>
+              <polygon points="12,32 50,8 50,56" fill="#141414"/>
             </svg>
             <span class="face-caption">Left</span>
           </span>
         </button>
-        <button type="button" class="arcade-btn arcade-btn--pink dpad-right" data-dir="right">
+        <button type="button" class="arcade-btn arcade-btn--gold dpad-right" data-dir="right">
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="48,32 18,12 18,52" fill="#fff"/>
+              <polygon points="52,32 14,8 14,56" fill="#141414"/>
             </svg>
             <span class="face-caption">Right</span>
           </span>
         </button>
-        <button type="button" class="arcade-btn arcade-btn--purple dpad-down" data-dir="down">
+        <button type="button" class="arcade-btn arcade-btn--gold dpad-down" data-dir="down">
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="32,52 10,16 54,16" fill="#fff"/>
+              <polygon points="32,54 8,14 56,14" fill="#141414"/>
             </svg>
             <span class="face-caption">Down</span>
           </span>
         </button>
       </div>
-      <button type="button" class="arcade-btn arcade-btn--mint retry-btn" id="btn-reset" aria-label="Retry">
+      <button type="button" class="arcade-btn arcade-btn--purple retry-btn" id="btn-reset" aria-label="Retry">
         <span class="arcade-face arcade-face--round">
           <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
             <path d="M44 22a16 16 0 1 0 2 14" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
             <path d="M44 14v10h-10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="face-caption">Retry</span>
         </span>
+        <span class="face-caption">Retry</span>
       </button>
     </nav>
     <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. How? replays the lesson for a new mechanic. Hints are unlimited. R resets the stage. N loads the next stage. Shop spends stars on balls, trails, backgrounds, and celebrations.</p>
@@ -170,14 +114,61 @@
         </div>
       </div>
     </div>
+    <div id="lesson" class="lesson" hidden>
+      <div class="overlay-card lesson-card">
+        <h2 id="lesson-title">Glass</h2>
+        <div id="lesson-art" class="lesson-art" aria-hidden="true"></div>
+        <p id="lesson-body"></p>
+        <p class="lesson-replay">Tap How? by the question mark to see this again.</p>
+        <button id="lesson-btn" type="button" class="kit-btn kit-btn--orange">Got it</button>
+      </div>
+    </div>
+    <div id="overlay" class="overlay hidden">
+      <div class="overlay-card">
+        <p id="overlay-kicker" class="clear-kicker"></p>
+        <h2 id="overlay-title">Stage cleared!</h2>
+        <div id="overlay-stars" class="clear-stars" hidden>
+          <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
+          <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
+          <span class="clear-star"><svg class="star-outline" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg><svg class="star-fill" viewBox="0 0 64 64" aria-hidden="true"><polygon points="32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24"/></svg></span>
+        </div>
+        <p id="overlay-msg"></p>
+        <div id="reward-reveal" class="reward-reveal" hidden>
+          <p id="reward-kicker"></p>
+          <div class="reward-pair">
+            <img id="reward-ball" alt="">
+            <img id="reward-goal" alt="">
+          </div>
+          <p id="reward-name"></p>
+        </div>
+        <div class="clear-actions">
+          <button id="overlay-retry" type="button" class="kit-btn kit-btn--purple">Retry</button>
+          <button id="overlay-btn" type="button" class="kit-btn kit-btn--orange">Next</button>
+        </div>
+      </div>
+    </div>
     <div id="map" class="map" hidden>
+      <div class="space-stars" id="space-stars" aria-hidden="true"></div>
       <div class="map-head">
-        <h1 id="map-title">Planets</h1>
-        <button type="button" id="map-settings" class="gear-chip" aria-label="Settings">⚙</button>
+        <button type="button" class="currency-chip" id="map-starbox" aria-label="Shop">
+          <span class="currency-star" aria-hidden="true">★</span>
+          <span id="map-stars">0</span>
+          <span class="currency-plus" aria-hidden="true">+</span>
+        </button>
+        <h1 id="map-title" class="map-title-pill">Planet map</h1>
+        <button type="button" id="map-settings" class="kit-icon kit-icon--charcoal" aria-label="Settings">⚙</button>
       </div>
       <div class="constellation">
         <canvas id="constellation"></canvas>
-        <div id="constellation-labels"></div>
+        <div id="constellation-scroll" class="constellation-scroll">
+          <div id="constellation-track" class="constellation-track">
+            <svg id="path-dots" class="path-dots" aria-hidden="true"></svg>
+          </div>
+        </div>
+      </div>
+      <div class="map-bar">
+        <button type="button" id="map-shop" class="kit-btn kit-btn--blue">Shop</button>
+        <button type="button" id="map-play" class="kit-btn kit-btn--orange">PLAY</button>
       </div>
     </div>
     <div id="settings" class="settings" hidden>
