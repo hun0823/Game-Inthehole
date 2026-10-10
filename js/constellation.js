@@ -51,10 +51,10 @@ export function createConstellation(canvas) {
   renderer.setClearColor(0x070b18, 1);
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.02;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.08;
   const scene = new THREE.Scene();
-  applyStudio(renderer, scene, 0.85);
+  applyStudio(renderer, scene, 0.42);
   const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 60);
   const homePos = new THREE.Vector3(0, 0.05, 17.8);
   const homeLook = new THREE.Vector3(0, -0.05, 0);

@@ -31,10 +31,10 @@ with Three.js `PMREMGenerator` (Three.js itself is MIT).
 
 ## What each map is
 
-- **Baseball.** Warm white leather, a red figure-8 seam, and separated stitches. The normal map raises the stitches. Roughness is lower on the thread so the studio reflection catches it.
-- **Tennis.** Optic yellow felt with a soft nap in the normal map, and one white curved band.
-- **Watermelon.** Dark green and yellow-green stripes, irregular from pole to pole, with a brown stem cap.
-- **Oak.** Long grain around the equator, growth rings at the poles, a side knot.
+- **Baseball.** Clean white leather and a red figure-8 of two rails with V stitches. The normal map raises the thread a little.
+- **Tennis.** Optic yellow felt and one white curved band. The nap is lighter than the first trial.
+- **Watermelon.** Dark green stripes pole to pole, only slightly wavy. The light band is a saturated yellow-green.
+- **Oak.** Warm wood, soft grain lines, two knots. The normal bump is small and the studio reflection is off.
 - **Wood planet.** Forest masses and lighter meadow, low hills in the normal.
 - **Desert.** Sand dunes. Crests are lighter; the normal map carries the ridges.
 - **Ocean.** Deep water, shallows, and islands with sandy coasts. Water roughness is low so the environment reflects.
@@ -43,8 +43,10 @@ with Three.js `PMREMGenerator` (Three.js itself is MIT).
 ## Lighting and bloom
 
 `js/studioLight.js` builds one PMREM from a gray room and a few soft panels, shared
-by the board, the constellation, and the asset sheet. The renderer uses ACES Filmic
-and the existing PCF soft shadows.
+by the board, the constellation, and the asset sheet. Environment intensity stays
+low so the highlight is the key light, not a mirror. The renderer uses Neutral
+tone mapping so the arcade colors stay saturated. Balls and the four mapped
+planets have a thin charcoal (`#141414`) inverted-hull outline.
 
 Bloom (`js/bloom.js`) is an additive half-resolution blur on the brightest pixels.
 Auto mode (`js/quality.js`) enables it only when the device is not a phone, not
@@ -55,9 +57,16 @@ visit. Gaps of 400ms or more are ignored so a stalled tab does not count as one
 slow frame. The additive pass keeps the canvas alpha, so the starfield behind
 the board stays visible.
 
-The mapped planets' atmosphere is a thin fresnel shell. Its color is
-premultiplied, so the rim stays faint instead of painting a solid halo. The
-legacy shell used on the "before" shots is unchanged.
+The mapped planets' atmosphere is a premultiplied fresnel rim, tighter and
+brighter than the first trial so the edge stays a clean color instead of a halo.
+The legacy shell used on the main-branch shots is unchanged.
+
+## Goals in the floor
+
+The hole is a recess: a floor-colored bevel, a charcoal inner lip, a thin set-color
+ring, and a soft contact shadow. Wood keeps wood grain on the lip. Ice keeps a
+pale groove. The old mint glow ring is only the "before" shot. Set props (plate,
+cup, rind, knot) stay, and the hole cell does not move.
 
 ## Goals, as a set
 

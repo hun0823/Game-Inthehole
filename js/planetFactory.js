@@ -2,7 +2,7 @@
  * Procedural planet meshes for the constellation and the asset sheet.
  */
 import * as THREE from "./vendor/three.module.js";
-import { planetLook } from "./sphereMaps.js";
+import { inkOutlineMaterial, planetLook } from "./sphereMaps.js";
 
 const RADIUS = 0.5;
 
@@ -25,16 +25,19 @@ function place(parent, mesh, dir, lift = 0) {
   return mesh;
 }
 
-function atmosphere(color, subtle) {
+function atmosphere(color, era) {
+  const arcade = era === "arcade";
+  const trial = era === "trial";
+  const premul = arcade || trial;
   const mat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     side: THREE.FrontSide,
     uniforms: {
       uColor: { value: new THREE.Color(color) },
-      uPower: { value: subtle ? 4.2 : 2.15 },
-      uGain: { value: subtle ? 0.2 : 0.9 },
-      uPremul: { value: subtle ? 1 : 0 },
+      uPower: { value: arcade ? 2.2 : trial ? 4.2 : 2.15 },
+      uGain: { value: arcade ? 0.95 : trial ? 0.2 : 0.9 },
+      uPremul: { value: premul ? 1 : 0 },
     },
     vertexShader: `
       varying vec3 vNormal;
@@ -62,7 +65,8 @@ function atmosphere(color, subtle) {
       }
     `,
   });
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(RADIUS + (subtle ? 0.028 : 0.12), 40, 28), mat);
+  const pad = arcade ? 0.045 : trial ? 0.028 : 0.12;
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(RADIUS + pad, 40, 28), mat);
   mesh.renderOrder = 2;
   return mesh;
 }
@@ -346,13 +350,15 @@ function surfaceMaterial(id, map) {
 let sharedMaps = null;
 const livePlanets = [];
 
-function mappedPack(id, legacy) {
-  if (legacy || !sharedMaps) return null;
-  return sharedMaps.planets[id] || null;
+function mappedPack(entry) {
+  if (entry.legacy) return null;
+  const pack = entry.maps || sharedMaps;
+  if (!pack) return null;
+  return pack.planets[entry.id] || null;
 }
 
 function assignPlanetMaps(entry) {
-  const tex = mappedPack(entry.id, entry.legacy);
+  const tex = mappedPack(entry);
   if (!tex) return;
   const mat = entry.sphere.material;
   const look = planetLook(entry.id) || { envMapIntensity: 0.3, normalScale: 0.8 };
@@ -403,16 +409,22 @@ export function createPlanet(id, opts = {}) {
   root.userData.spin = spin;
   root.userData.moons = moons;
 
-  const legacy = !!opts.legacy;
+  const era = opts.legacy ? "main" : (opts.era || "arcade");
+  const legacy = era === "main";
   const map = paintPlanet(id);
   const sphere = new THREE.Mesh(new THREE.SphereGeometry(RADIUS, 48, 32), surfaceMaterial(id, map));
   sphere.renderOrder = 1;
   spin.add(sphere);
-  const entry = { id, sphere, legacy };
-  if (!legacy && !opts.ephemeral) livePlanets.push(entry);
+  const entry = { id, sphere, legacy, maps: opts.maps || null };
+  if (era === "arcade" && !opts.ephemeral) livePlanets.push(entry);
   assignPlanetMaps(entry);
-  const subtle = !legacy && !!planetLook(id);
-  spin.add(atmosphere(ATMOS[id] || "#ffffff", subtle));
+  if (era === "arcade" && planetLook(id)) {
+    const ink = new THREE.Mesh(sphere.geometry, inkOutlineMaterial());
+    ink.scale.setScalar(1.032);
+    ink.raycast = () => {};
+    spin.add(ink);
+  }
+  spin.add(atmosphere(ATMOS[id] || "#ffffff", planetLook(id) ? era : "main"));
 
   const leaf = new THREE.MeshStandardMaterial({ color: 0x1f7a34, roughness: 0.7 });
   const trunk = new THREE.MeshStandardMaterial({ color: 0x6a4424, roughness: 0.8 });
@@ -500,6 +512,7 @@ export function disposeObject(root) {
   });
   geos.forEach((geo) => geo.dispose());
   mats.forEach((mat) => {
+    if (mat.userData.shared) return;
     if (mat.map && !mat.map.userData.shared && mat.map !== mat.emissiveMap) mat.map.dispose();
     if (mat.emissiveMap && !mat.emissiveMap.userData.shared) mat.emissiveMap.dispose();
     if (mat.normalMap && !mat.normalMap.userData.shared) mat.normalMap.dispose();

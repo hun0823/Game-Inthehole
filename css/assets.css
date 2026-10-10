@@ -118,8 +118,12 @@ table.sheet img {
 
 .compare-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.compare-pair.pair-2 {
+  grid-template-columns: 1fr 1fr;
 }
 
 .compare-pair figure {

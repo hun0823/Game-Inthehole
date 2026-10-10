@@ -155,22 +155,25 @@ def curve_figure8(n, amp):
 
 
 def seam_field(x, y, z, pts, tang, stitch_every=7):
-    dirs_flat = np.stack([x, y, z], axis=-1).reshape(-1, 3)
+    radial = np.stack([x, y, z], axis=-1)
+    dirs_flat = radial.reshape(-1, 3)
     dots = dirs_flat @ pts.T
     dots = np.clip(dots, -1.0, 1.0)
     ang = np.arccos(dots)
     nearest = np.argmin(ang, axis=1)
-    dist = ang[np.arange(ang.shape[0]), nearest]
-    dist = dist.reshape(x.shape)
+    dist = ang[np.arange(ang.shape[0]), nearest].reshape(x.shape)
     nidx = nearest.reshape(x.shape)
+    nearest_pt = pts[nearest].reshape(x.shape + (3,))
     tvec = tang[nearest].reshape(x.shape + (3,))
-    # Perpendicular on the sphere, used only to keep the stitch mask stable.
-    radial = np.stack([x, y, z], axis=-1)
-    side = np.cross(radial, tvec)
+    side = np.cross(nearest_pt, tvec)
     side /= np.linalg.norm(side, axis=-1, keepdims=True) + 1e-8
+    signed = np.arctan2(
+        np.sum(radial * side, axis=-1),
+        np.sum(radial * nearest_pt, axis=-1),
+    ).astype(np.float32)
     phase = nidx % stitch_every
     along = np.minimum(phase, stitch_every - phase).astype(np.float32)
-    return dist, along, side
+    return dist, along, side, signed, nidx
 
 
 def mix(a, b, t):
@@ -193,99 +196,93 @@ def rgb_of(hex_color):
 
 
 def paint_baseball(x, y, z):
-    pts, tang = curve_figure8(480, 0.52)
-    dist, along, _side = seam_field(x, y, z, pts, tang, 16)
-    grain = fbm(x * 2.4, y * 2.4, z * 2.4, 3)
-    pebble = wrap_blur(fbm(x * 9.0, y * 9.0, z * 9.0, 2), 2)
-    col = rgb_of("#f6f1e6") * (0.97 + 0.06 * (grain - 0.5))[..., None]
-    groove = smoothstep(0.034, 0.012, dist)
-    along_n = along / 3.2
-    dist_n = dist / 0.05
-    stitch = smoothstep(1.05, 0.45, np.sqrt(along_n * along_n + dist_n * dist_n))
-    gap = 1.0 - stitch
-    col = mix(col, rgb_of("#ddd4c4"), groove * gap * 0.7)
-    col = mix(col, rgb_of("#a31824"), stitch * 0.75)
-    col = mix(col, rgb_of("#e02632"), stitch)
-    height = (pebble - 0.5) * 0.06 + stitch * 1.15 - groove * gap * 0.18
-    rough = np.full(x.shape, 0.48, dtype=np.float32)
-    rough = mix(rough, 0.32, stitch)
-    rough += (pebble - 0.5) * 0.04
-    return np.clip(col, 0, 1), height, np.clip(rough, 0.2, 0.7)
+    """Two thick red rails and a continuous zigzag of V stitches."""
+    pts, tang = curve_figure8(720, 0.52)
+    _dist, _along, _side, signed, nidx = seam_field(x, y, z, pts, tang, 24)
+    leather = rgb_of("#f7f4ee")
+    grain = fbm(x * 1.6, y * 1.6, z * 1.6, 2)
+    col = leather * (0.98 + 0.03 * (grain - 0.5))[..., None]
+    gap = np.float32(0.046)
+    rail = smoothstep(0.02, 0.007, np.minimum(np.abs(signed - gap), np.abs(signed + gap)))
+    period = np.float32(26.0)
+    phase = (nidx.astype(np.float32) % period) / period
+    lean = (phase - 0.5) * 0.04
+    active = smoothstep(0.08, 0.2, np.minimum(phase, 1.0 - phase))
+    left = smoothstep(0.016, 0.005, np.abs(signed + gap - lean)) * active
+    right = smoothstep(0.016, 0.005, np.abs(signed - gap + lean)) * active
+    near = smoothstep(0.18, 0.08, _dist)
+    red = np.clip(np.maximum(rail, np.maximum(left, right)), 0.0, 1.0) * near
+    col = mix(col, rgb_of("#b10e18"), red * 0.55)
+    col = mix(col, rgb_of("#e20d18"), red)
+    height = red * 0.72 + (grain - 0.5) * 0.02
+    rough = np.full(x.shape, 0.46, dtype=np.float32)
+    rough = mix(rough, 0.34, red)
+    return np.clip(col, 0, 1), height.astype(np.float32), np.clip(rough, 0.25, 0.6)
 
 
 def paint_tennis(x, y, z):
     pts, tang = curve_figure8(480, 0.64)
-    dist, _along, _side = seam_field(x, y, z, pts, tang, 14)
-    fuzz = wrap_blur(fbm(x * 26.0, y * 26.0, z * 26.0, 3), 2)
-    nap = fbm(x * 7.0, y * 4.0, z * 7.0, 3)
-    optic = rgb_of("#d4ee14")
-    col = optic * (0.94 + 0.1 * fuzz + 0.05 * (nap - 0.5))[..., None]
+    dist, *_rest = seam_field(x, y, z, pts, tang, 14)
+    fuzz = wrap_blur(fbm(x * 14.0, y * 14.0, z * 14.0, 2), 2)
+    optic = rgb_of("#d6f20c")
+    col = optic * (0.97 + 0.05 * (fuzz - 0.5))[..., None]
     band = smoothstep(0.055, 0.022, dist)
-    col = mix(col, rgb_of("#f5f6f0"), band)
-    height = (fuzz - 0.5) * 0.14 + (nap - 0.5) * 0.05 + band * 0.18
-    rough = np.full(x.shape, 0.93, dtype=np.float32)
-    rough = mix(rough, 0.74, band)
+    col = mix(col, rgb_of("#f7f8f2"), band)
+    height = (fuzz - 0.5) * 0.06 + band * 0.12
+    rough = np.full(x.shape, 0.9, dtype=np.float32)
+    rough = mix(rough, 0.72, band)
     return np.clip(col, 0, 1), height, np.clip(rough, 0.6, 1.0)
 
 
 def paint_melon(x, y, z, theta, phi):
-    wobble = np.sin(theta) * (
-        0.22 * np.sin(theta * 3.0 + 1.7)
-        + 0.12 * np.sin(phi * 2.0 + theta * 2.0)
-        + 0.08 * (fbm(x * 2.0, y * 2.0, z * 2.0, 3) - 0.5)
-    )
-    phase = phi + wobble
-    stripes = 10.0
-    wave = np.sin(phase * stripes + 0.35 * np.sin(phase * 3.0 + 0.6))
-    thresh = -0.08 + 0.18 * np.sin(phase * 2.0)
-    dark_k = smoothstep(thresh - 0.12, thresh + 0.16, wave)
-    cap = smoothstep(0.05, 0.48, theta) * smoothstep(0.05, 0.48, np.pi - theta)
-    dark_k = dark_k * cap + (1.0 - cap) * 0.62
-    mottled = fbm(x * 4.5, y * 4.5, z * 4.5, 3)
-    speckle = smoothstep(0.82, 0.93, fbm(x * 20.0, y * 20.0, z * 20.0, 2))
-    dark = rgb_of("#127338")
-    light = rgb_of("#c6d86a")
-    col = mix(light, dark, dark_k)
-    col = col * (0.95 + 0.1 * (mottled - 0.5))[..., None]
-    col = mix(col, rgb_of("#e7eeb0"), speckle * 0.22 * cap)
-    stem = smoothstep(0.22, 0.04, theta)
-    blossom = smoothstep(0.2, 0.04, np.pi - theta)
+    """Dark green ground, slightly irregular darker stripes, vivid yellow-green bands."""
+    wobble = np.sin(theta) * 0.05 * np.sin(phi * 2.0 + 0.6)
+    phase = phi + 0.55 + wobble
+    wave = np.sin(phase * 8.0)
+    dark_k = smoothstep(-0.08, 0.42, wave)
+    cap = smoothstep(0.1, 0.38, theta) * smoothstep(0.1, 0.38, np.pi - theta)
+    dark_k = dark_k * cap
+    field = rgb_of("#7ed42a")
+    stripe = rgb_of("#0c4a1e")
+    col = mix(field, stripe, dark_k)
+    stem = smoothstep(0.18, 0.03, theta)
     col = mix(col, rgb_of("#3a2414"), stem)
-    col = mix(col, rgb_of("#d5e4a0"), blossom * 0.4)
-    wax = fbm(x * 8.0, y * 8.0, z * 8.0, 3)
-    height = (1.0 - dark_k) * 0.1 * cap + (wax - 0.5) * 0.1 + stem * 0.22
-    rough = mix(np.float32(0.5), np.float32(0.36), 1.0 - dark_k)
-    rough = mix(rough, np.float32(0.66), stem)
-    return np.clip(col, 0, 1), height, np.clip(rough, 0.22, 0.75)
+    height = dark_k * 0.05 + stem * 0.16
+    rough = mix(np.float32(0.48), np.float32(0.4), dark_k)
+    rough = mix(rough, np.float32(0.62), stem)
+    return np.clip(col, 0, 1), height.astype(np.float32), np.clip(rough, 0.3, 0.7)
 
 
 def paint_oak(x, y, z):
-    radial = np.sqrt(x * x + z * z)
+    """Warm wood, a few soft grain lines, two knots. Almost no bump."""
     angle = np.arctan2(z, x)
-    end = smoothstep(0.62, 0.9, np.abs(y))
-    warp = fbm(x * 2.0, y * 2.0, z * 2.0, 4)
-    rings = np.sin(radial * 30.0 + warp * 2.4)
-    side = np.sin(angle * 11.0 + 0.45 * np.sin(y * 6.0) + warp * 1.3)
-    fine = np.sin(angle * 24.0 + y * 1.1 + warp)
-    grain = end * rings + (1.0 - end) * (0.82 * side + 0.18 * fine)
-    rays = smoothstep(0.74, 0.9, fbm(x * 5.5, y * 2.2, z * 5.5, 3)) * (1.0 - end)
-    pores = smoothstep(0.82, 0.93, fbm(x * 12.0, y * 30.0, z * 12.0, 2)) * (1.0 - end)
-    tone = np.clip(grain * 0.5 + 0.5, 0.0, 1.0)
-    col = mix(rgb_of("#8a4e22"), rgb_of("#e2b56e"), tone)
-    col = mix(col, rgb_of("#f4e0b4"), rays * 0.7)
-    col = mix(col, rgb_of("#5a3012"), np.clip(-grain, 0, 1) * 0.35)
-    col = mix(col, rgb_of("#4a2810"), pores * 0.55)
-    knot_dir = np.array([0.2, 0.08, 0.97], dtype=np.float32)
-    knot_dir /= np.linalg.norm(knot_dir)
-    knot = x * knot_dir[0] + y * knot_dir[1] + z * knot_dir[2]
-    knot_m = smoothstep(0.972, 0.996, knot)
-    ring = smoothstep(0.955, 0.972, knot) * (1.0 - knot_m)
-    col = mix(col, rgb_of("#6a3a16"), ring * 0.7)
-    col = mix(col, rgb_of("#3e220e"), knot_m)
-    height = grain * 0.16 + rays * 0.28 - pores * 0.2 - knot_m * 0.15
-    rough = mix(np.float32(0.64), np.float32(0.5), tone)
-    rough = mix(rough, np.float32(0.74), pores + knot_m)
-    return np.clip(col, 0, 1), height.astype(np.float32), np.clip(rough, 0.35, 0.85)
+    radial = np.sqrt(x * x + z * z)
+    axis = y * 0.92 + x * 0.28
+    warp = fbm(x * 1.3, y * 0.6, z * 1.3, 2)
+    flow = axis * 8.0 + 0.45 * np.sin(z * 3.0 + x) + (warp - 0.5) * 0.7
+    grain = wrap_blur(np.sin(flow).astype(np.float32), 1)
+    base = mix(rgb_of("#c9924e"), rgb_of("#f3d7ae"), np.clip(0.55 + 0.45 * grain, 0, 1))
+    line = smoothstep(0.35, -0.05, grain)
+    col = mix(base, rgb_of("#7a4e28"), line * 0.7)
+    end = smoothstep(0.8, 0.96, np.abs(y))
+    rings = 0.5 + 0.5 * np.sin(radial * 18.0 + warp * 0.8)
+    col = mix(col, mix(rgb_of("#a86a32"), rgb_of("#f0c98a"), rings), end * 0.8)
+
+    def knot_mask(dx, dy, dz, edge):
+        direction = np.array([dx, dy, dz], dtype=np.float32)
+        direction /= np.linalg.norm(direction)
+        dot = x * direction[0] + y * direction[1] + z * direction[2]
+        core = smoothstep(edge, edge + 0.01, dot)
+        halo = smoothstep(edge - 0.018, edge, dot) * (1.0 - core)
+        return core, halo
+
+    core_a, halo_a = knot_mask(0.12, 0.02, 0.99, 0.986)
+    core_b, halo_b = knot_mask(-0.62, 0.28, 0.62, 0.993)
+    col = mix(col, rgb_of("#6a3c18"), np.clip(halo_a + halo_b, 0, 1))
+    col = mix(col, rgb_of("#3e2412"), np.clip(core_a + core_b, 0, 1))
+    height = grain * 0.04 - core_a * 0.06 - core_b * 0.04
+    rough = np.full(x.shape, 0.82, dtype=np.float32)
+    return np.clip(col, 0, 1), height.astype(np.float32), rough
 
 
 def paint_wood_planet(x, y, z):
@@ -295,11 +292,11 @@ def paint_wood_planet(x, y, z):
     tone = fbm(x * 3.0, y * 3.0, z * 3.0, 3)
     canopy = fbm(x * 6.0, y * 6.0, z * 6.0, 3)
     clearing = smoothstep(0.72, 0.86, fbm(x * 1.8 + 5.0, y * 0.7, z * 1.8, 3)) * (1.0 - forest * 0.55)
-    meadow = mix(rgb_of("#9ec85a"), rgb_of("#e4eda4"), tone)
-    trees = mix(rgb_of("#145c28"), rgb_of("#2f8a3c"), tone * 0.6 + canopy * 0.4)
+    meadow = mix(rgb_of("#7ec84a"), rgb_of("#d6ee78"), tone)
+    trees = mix(rgb_of("#0f6a28"), rgb_of("#2f9a40"), tone * 0.6 + canopy * 0.4)
     col = mix(meadow, trees, forest)
-    col = mix(col, rgb_of("#c6a25a"), clearing * 0.85)
-    height = (shape - 0.5) * 0.55 + (canopy - 0.5) * 0.1 * forest + groves * 0.08
+    col = mix(col, rgb_of("#d6b25a"), clearing * 0.45)
+    height = (shape - 0.5) * 0.32 + groves * 0.04
     rough = mix(np.float32(0.9), np.float32(0.74), forest)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
@@ -308,17 +305,17 @@ def paint_desert(x, y, z):
     warp = fbm(x * 1.5, y * 1.5, z * 1.5, 4)
     phase = fbm(x * 2.1 + 3.2, y * 2.1, z * 2.1, 5) * 6.2 + warp * 2.4
     dune = np.power(0.5 + 0.5 * np.sin(phase), 1.85)
-    grit = fbm(x * 9.0, y * 9.0, z * 9.0, 3)
-    rock = smoothstep(0.76, 0.88, fbm(x * 3.4 + 8.0, y * 3.4, z * 3.4, 3))
-    valley = rgb_of("#a86a28")
-    sand = rgb_of("#e4bc78")
-    crest = rgb_of("#f8e8c4")
-    stone = rgb_of("#8d6844")
+    grit = fbm(x * 6.0, y * 6.0, z * 6.0, 2)
+    rock = smoothstep(0.78, 0.9, fbm(x * 3.4 + 8.0, y * 3.4, z * 3.4, 3))
+    valley = rgb_of("#c47a28")
+    sand = rgb_of("#f0c46a")
+    crest = rgb_of("#ffe6b0")
+    stone = rgb_of("#a07848")
     col = mix(valley, sand, dune)
     col = mix(col, crest, np.clip((dune - 0.35) * 1.5, 0.0, 1.0))
-    col = col * (0.95 + 0.1 * (grit - 0.5))[..., None]
-    col = mix(col, stone, rock * 0.75)
-    height = (dune - 0.35) * 0.85 + (grit - 0.5) * 0.06 + rock * 0.28
+    col = col * (0.97 + 0.05 * (grit - 0.5))[..., None]
+    col = mix(col, stone, rock * 0.55)
+    height = (dune - 0.35) * 0.62 + rock * 0.16
     rough = mix(np.float32(0.95), np.float32(0.82), dune)
     rough = mix(rough, np.float32(0.7), rock)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
@@ -331,9 +328,9 @@ def paint_ocean(x, y, z):
     land = smoothstep(0.56, 0.64, elev)
     coast = smoothstep(0.52, 0.58, elev) * (1.0 - land)
     depth = np.clip((0.56 - elev) / 0.56, 0, 1)
-    deep = rgb_of("#08325f")
-    mid = rgb_of("#1a6ea8")
-    shallow = rgb_of("#2eaaa8")
+    deep = rgb_of("#06306c")
+    mid = rgb_of("#1484c8")
+    shallow = rgb_of("#22c4c0")
     sand = rgb_of("#e6d09a")
     green = rgb_of("#2f8a44")
     dark_g = rgb_of("#1a5c30")
@@ -344,7 +341,7 @@ def paint_ocean(x, y, z):
     col = mix(water, sand, coast)
     col = mix(col, ground, land)
     waves = np.sin((x * 10.0 + z * 4.0) + warp_x * 3.0)
-    height = (1.0 - depth) * 0.1 + land * (0.4 + canopy * 0.18) + waves * 0.045 * (1.0 - land)
+    height = (1.0 - depth) * 0.08 + land * (0.36 + canopy * 0.12) + waves * 0.03 * (1.0 - land)
     rough = mix(0.28, 0.16, depth) 
     rough = mix(rough, 0.78, np.clip(land + coast, 0, 1))
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
@@ -356,14 +353,14 @@ def paint_lava(x, y, z):
     crack_d = np.abs(n - 0.52)
     crack = smoothstep(0.045, 0.0, crack_d)
     core = smoothstep(0.018, 0.0, crack_d)
-    rock_a = rgb_of("#4a4038")
-    rock_b = rgb_of("#241e1a")
-    hot = rgb_of("#ffb020")
+    rock_a = rgb_of("#4e4036")
+    rock_b = rgb_of("#221c18")
+    hot = rgb_of("#ffb018")
     melt = rgb_of("#ff4a10")
-    col = mix(rock_b, rock_a, fine)
+    col = mix(rock_b, rock_a, 0.35 + 0.3 * fine)
     col = mix(col, melt, crack)
     col = mix(col, hot, core)
-    height = fine * 0.22 + (n - 0.5) * 0.18 - crack * 0.7
+    height = (n - 0.5) * 0.12 - crack * 0.55
     rough = np.full(x.shape, 0.88, dtype=np.float32)
     rough = mix(rough, 0.28, np.clip(crack, 0, 1))
     emissive = np.zeros(x.shape + (3,), dtype=np.float32)
@@ -504,9 +501,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
 
     balls = {
-        "ball_baseball": (paint_baseball, 1.15, 86),
-        "ball_tennis": (paint_tennis, 0.55, 84),
-        "ball_oak": (paint_oak, 1.15, 86),
+        "ball_baseball": (paint_baseball, 0.85, 84),
+        "ball_tennis": (paint_tennis, 0.4, 82),
+        "ball_oak": (paint_oak, 0.32, 82),
     }
     previews = {}
     for name, (fn, strength, quality) in balls.items():
@@ -514,20 +511,20 @@ def main():
         color, normal = bake_one(name, fn, BALL_W, BALL_H, strength, quality)
         previews[name] = (color, normal)
     print("ball_melon")
-    color, normal = bake_one("ball_melon", paint_melon, BALL_W, BALL_H, 0.85, 84)
+    color, normal = bake_one("ball_melon", paint_melon, BALL_W, BALL_H, 0.4, 82)
     previews["ball_melon"] = (color, normal)
 
     planets = {
-        "planet_wood": (paint_wood_planet, 0.85, 82),
-        "planet_desert": (paint_desert, 1.25, 82),
-        "planet_ocean": (paint_ocean, 0.9, 82),
+        "planet_wood": (paint_wood_planet, 0.55, 80),
+        "planet_desert": (paint_desert, 0.9, 80),
+        "planet_ocean": (paint_ocean, 0.7, 80),
     }
     for name, (fn, strength, quality) in planets.items():
         print(name)
         color, normal = bake_one(name, fn, PLANET_W, PLANET_H, strength, quality)
         previews[name] = (color, normal)
     print("planet_lava")
-    color, normal = bake_one("planet_lava", paint_lava, PLANET_W, PLANET_H, 1.25, 82, with_emissive=True)
+    color, normal = bake_one("planet_lava", paint_lava, PLANET_W, PLANET_H, 0.95, 80, with_emissive=True)
     previews["planet_lava"] = (color, normal)
 
     if args.preview:

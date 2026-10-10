@@ -8,21 +8,20 @@ export const MAP_BALLS = ["baseball", "tennis", "melon", "oak"];
 export const MAP_PLANETS = ["wood", "desert", "ocean", "lava"];
 
 const BALL_LOOK = {
-  baseball: { metalness: 0.04, envMapIntensity: 0.95, normalScale: 1.25 },
-  tennis: { metalness: 0.0, envMapIntensity: 0.2, normalScale: 0.65 },
-  melon: { metalness: 0.02, envMapIntensity: 0.62, normalScale: 0.55 },
-  oak: { metalness: 0.03, envMapIntensity: 0.45, normalScale: 0.9 },
+  baseball: { metalness: 0.02, envMapIntensity: 0.18, normalScale: 0.75 },
+  tennis: { metalness: 0.0, envMapIntensity: 0.1, normalScale: 0.35 },
+  melon: { metalness: 0.0, envMapIntensity: 0.12, normalScale: 0.28 },
+  oak: { metalness: 0.0, envMapIntensity: 0.0, normalScale: 0.22 },
 };
 
 const PLANET_LOOK = {
-  wood: { envMapIntensity: 0.28, normalScale: 0.7 },
-  desert: { envMapIntensity: 0.22, normalScale: 1.45 },
-  ocean: { envMapIntensity: 0.85, normalScale: 0.55 },
-  lava: { envMapIntensity: 0.4, normalScale: 0.9 },
+  wood: { envMapIntensity: 0.12, normalScale: 0.45 },
+  desert: { envMapIntensity: 0.1, normalScale: 0.7 },
+  ocean: { envMapIntensity: 0.42, normalScale: 0.4 },
+  lava: { envMapIntensity: 0.16, normalScale: 0.65 },
 };
 
-let loading = null;
-let pack = null;
+const packs = new Map();
 
 function loadTexture(url, colorSpace) {
   const loader = new THREE.TextureLoader();
@@ -38,38 +37,50 @@ function loadTexture(url, colorSpace) {
   });
 }
 
-function fileSet(prefix, id, channels) {
+function fileSet(dir, prefix, id, channels) {
   const out = {};
   const jobs = channels.map((channel) => {
     const color = channel === "albedo" || channel === "emissive";
     const space = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-    return loadTexture(`assets/textures/${prefix}_${id}_${channel}.webp`, space).then((tex) => {
+    return loadTexture(`${dir}/${prefix}_${id}_${channel}.webp`, space).then((tex) => {
       out[channel] = tex;
     });
   });
   return Promise.all(jobs).then(() => out);
 }
 
-export function loadSphereMaps() {
-  if (pack) return Promise.resolve(pack);
-  if (loading) return loading;
-  loading = (async () => {
+export function loadSphereMaps(dir = "assets/textures") {
+  if (packs.has(dir)) return packs.get(dir);
+  const job = (async () => {
     const balls = {};
     const planets = {};
     await Promise.all([
       ...MAP_BALLS.map(async (id) => {
-        balls[id] = await fileSet("ball", id, ["albedo", "normal", "rough"]);
+        balls[id] = await fileSet(dir, "ball", id, ["albedo", "normal", "rough"]);
       }),
       ...MAP_PLANETS.map(async (id) => {
         const channels = ["albedo", "normal", "rough"];
         if (id === "lava") channels.push("emissive");
-        planets[id] = await fileSet("planet", id, channels);
+        planets[id] = await fileSet(dir, "planet", id, channels);
       }),
     ]);
-    pack = { balls, planets };
-    return pack;
+    return { balls, planets };
   })();
-  return loading;
+  packs.set(dir, job);
+  return job;
+}
+
+let inkMat = null;
+export function inkOutlineMaterial() {
+  if (!inkMat) {
+    inkMat = new THREE.MeshBasicMaterial({
+      color: 0x141414,
+      side: THREE.BackSide,
+      toneMapped: false,
+    });
+    inkMat.userData.shared = true;
+  }
+  return inkMat;
 }
 
 export function applyBallMaps(materials, maps) {
