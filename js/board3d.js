@@ -178,23 +178,26 @@ function brickIndex(n) {
 }
 
 function paintStuds(g, x, y, w, rgb) {
-  const lite = rgb.map((c) => Math.min(255, c + 16));
-  const dark = rgb.map((c) => Math.max(0, c - 14));
-  const s = w * 0.1;
-  for (const [u, v] of [[0.32, 0.34], [0.68, 0.34], [0.32, 0.68], [0.68, 0.68]]) {
+  const lite = rgb.map((c) => Math.min(255, c + 22));
+  const dark = rgb.map((c) => Math.max(0, c - 22));
+  const s = w * 0.15;
+  for (const [u, v] of [[0.3, 0.32], [0.7, 0.32], [0.3, 0.68], [0.7, 0.68]]) {
     const cx = x + w * u;
     const cy = y + w * v;
-    g.fillStyle = `rgba(${dark.join(",")}, 0.45)`;
+    g.fillStyle = `rgba(${dark.join(",")}, 0.55)`;
     g.beginPath();
-    g.ellipse(cx, cy + s * 0.16, s * 0.78, s * 0.36, 0, 0, Math.PI * 2);
+    g.ellipse(cx, cy + s * 0.22, s * 0.72, s * 0.28, 0, 0, Math.PI * 2);
     g.fill();
     g.fillStyle = `rgb(${rgb.join(",")})`;
     g.beginPath();
-    g.arc(cx, cy, s * 0.68, 0, Math.PI * 2);
+    g.arc(cx, cy, s * 0.62, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = `rgba(${lite.join(",")}, 0.8)`;
+    g.strokeStyle = `rgba(${dark.join(",")}, 0.65)`;
+    g.lineWidth = 1.5;
+    g.stroke();
+    g.fillStyle = `rgba(${lite.join(",")}, 0.9)`;
     g.beginPath();
-    g.ellipse(cx - s * 0.1, cy - s * 0.12, s * 0.24, s * 0.12, -0.4, 0, Math.PI * 2);
+    g.ellipse(cx - s * 0.12, cy - s * 0.14, s * 0.22, s * 0.1, -0.4, 0, Math.PI * 2);
     g.fill();
   }
 }
