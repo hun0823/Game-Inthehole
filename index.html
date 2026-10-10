@@ -171,13 +171,25 @@
       </div>
     </div>
     <div id="map" class="map" hidden>
+      <div class="space-stars" id="space-stars" aria-hidden="true"></div>
       <div class="map-head">
-        <h1 id="map-title">Planets</h1>
-        <button type="button" id="map-settings" class="gear-chip" aria-label="Settings">⚙</button>
+        <div class="map-starbox" id="map-starbox">
+          <span class="map-starbox-ico" aria-hidden="true">★</span>
+          <span id="map-stars">0</span>
+        </div>
+        <h1 id="map-title" class="map-title-pill">Planets</h1>
+        <div class="map-actions">
+          <button type="button" id="map-shop" class="shop-chip">Shop</button>
+          <button type="button" id="map-settings" class="gear-chip" aria-label="Settings">⚙</button>
+        </div>
       </div>
       <div class="constellation">
         <canvas id="constellation"></canvas>
-        <div id="constellation-labels"></div>
+        <div id="constellation-scroll" class="constellation-scroll">
+          <div id="constellation-track" class="constellation-track">
+            <svg id="path-dots" class="path-dots" aria-hidden="true"></svg>
+          </div>
+        </div>
       </div>
     </div>
     <div id="settings" class="settings" hidden>
