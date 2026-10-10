@@ -26,7 +26,7 @@ const REST_X = 0.045;
 const WALL_T = 0.52;
 const WALL_H = 0.4;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
-const FRAME_T = 0.15;
+const FRAME_T = 0.2;
 const FRAME_H = 0.22;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
@@ -1236,7 +1236,7 @@ export function createView(canvas) {
     const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const fillW = 0.94;
+    const fillW = 0.99;
     const fillH = 0.96;
     const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
     const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
@@ -1713,7 +1713,7 @@ export function createView(canvas) {
     const unit = n / 6;
     const frameT = FRAME_T * unit;
     const frameH = FRAME_H * unit;
-    const ink = 0.045 * unit;
+    const ink = 0.055 * unit;
     const outer = inner + frameT;
     viewHalf = outer + ink;
     const outerW = outer * 2;
