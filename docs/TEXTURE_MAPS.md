@@ -68,6 +68,19 @@ ring, and a soft contact shadow. Wood keeps wood grain on the lip. Ice keeps a
 pale groove. The old mint glow ring is only the "before" shot. Set props (plate,
 cup, rind, knot) stay, and the hole cell does not move.
 
+## Remaining balls and planets
+
+`python3 tools/bake_sphere_maps.py` now also bakes the other patterned balls and the other eight planets. It does **not** rewrite the eight maps above unless you pass `--rebuild`. The oak files are the softened grain bake (fine fibers, two knots, small bump); a plain run leaves them in place. `--rebuild` uses the same soft oak painter with normal strength 0.16.
+
+| Set | Size | Maps |
+|-----|------|------|
+| Balls (24 patterned; gummy skipped) | 512×256 | albedo, normal, roughness. Meteor, alien, and skull also emissive |
+| Planets (ice, crystal, toy, mushroom, candy, jungle, alien, machine) | 1024×512 | albedo, normal, roughness. Alien and machine also emissive |
+
+Gummy is a flat translucent pink jelly (`#ff5a9a` in `makeBallMaterials`). A speckle map would not read on the board, so it stays unmapped (`UNMAPPED_BALLS` in `js/sphereMaps.js`).
+
+Beach keeps the latitude bands from the canvas map (`#f7f7f7`, `#3ec4ff`, `#ffe14a`, `#ff5b9a`), not the vertical gores on the collection sheet. The gear ball is cool steel (`#d5dde6` / `#5c656e`) with no yellow. The 8-bit ball is six faces split once, four colors and a dark joint, not a fine pixel grid. The crystal planet is navy and deep purple facets; the brightest face stays under a mid purple, not white. Rings on crystal, toy, candy, and machine are unchanged.
+
 ## Goals, as a set
 
 The stock mint hole is unchanged. These four equipped goals were nudged so they

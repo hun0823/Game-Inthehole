@@ -96,8 +96,10 @@ function remember(key, url) {
 
 async function prepareMaps() {
   currentMaps = await loadSphereMaps();
+  prevMaps = null;
   try {
-    prevMaps = await loadSphereMaps("assets/textures_v1");
+    const probe = await fetch("assets/textures_v1/ball_oak_albedo.webp", { method: "HEAD" });
+    if (probe.ok) prevMaps = await loadSphereMaps("assets/textures_v1");
   } catch {
     prevMaps = null;
   }

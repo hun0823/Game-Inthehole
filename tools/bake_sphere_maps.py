@@ -502,48 +502,72 @@ def bake_one(label, painter, w, h, strength, albedo_q, with_emissive=False):
     return color, height_to_normal(height, strength)
 
 
+# The first eight maps shipped in the arcade pass. Leave those files byte-for-byte
+# alone unless --rebuild is set, so a later bake does not touch the oak ball.
+SHIPPED = {
+    "ball_baseball",
+    "ball_tennis",
+    "ball_melon",
+    "ball_oak",
+    "planet_wood",
+    "planet_desert",
+    "planet_ocean",
+    "planet_lava",
+}
+
+
+def _wanted(name, only):
+    if not only:
+        return True
+    short = name.split("_", 1)[1]
+    return name in only or short in only
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--preview", type=Path, default=None)
-    parser.add_argument("--only", action="append", default=[], help="Bake just these labels, e.g. ball_oak")
+    parser.add_argument(
+        "--rebuild",
+        action="store_true",
+        help="Also rewrite the eight maps that already shipped (baseball, tennis, melon, oak, wood, desert, ocean, lava).",
+    )
+    parser.add_argument(
+        "--only",
+        nargs="*",
+        default=None,
+        help="Bake just these ids (ball_soccer or soccer).",
+    )
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
 
+    # Oak bump stays small (0.16) so a --rebuild keeps the soft grain.
     balls = {
-        "ball_baseball": (paint_baseball, 0.85, 84),
-        "ball_tennis": (paint_tennis, 0.4, 82),
-        "ball_oak": (paint_oak, 0.16, 82),
+        "ball_baseball": (paint_baseball, 0.85, 84, False),
+        "ball_tennis": (paint_tennis, 0.4, 82, False),
+        "ball_oak": (paint_oak, 0.16, 82, False),
+        "ball_melon": (paint_melon, 0.4, 82, False),
+    }
+    planets = {
+        "planet_wood": (paint_wood_planet, 0.55, 80, False),
+        "planet_desert": (paint_desert, 0.9, 80, False),
+        "planet_ocean": (paint_ocean, 0.7, 80, False),
+        "planet_lava": (paint_lava, 0.95, 80, True),
     }
     previews = {}
-    def wanted(name):
-        return not args.only or name in args.only
-
-    for name, (fn, strength, quality) in balls.items():
-        if not wanted(name):
+    for name, (fn, strength, quality, emissive) in {**balls, **planets}.items():
+        if not _wanted(name, args.only):
+            continue
+        if name in SHIPPED and not args.rebuild:
+            print(f"skip {name} (shipped)")
             continue
         print(name)
-        color, normal = bake_one(name, fn, BALL_W, BALL_H, strength, quality)
+        w, h = (BALL_W, BALL_H) if name.startswith("ball_") else (PLANET_W, PLANET_H)
+        color, normal = bake_one(name, fn, w, h, strength, quality, with_emissive=emissive)
         previews[name] = (color, normal)
-    if wanted("ball_melon"):
-        print("ball_melon")
-        color, normal = bake_one("ball_melon", paint_melon, BALL_W, BALL_H, 0.4, 82)
-        previews["ball_melon"] = (color, normal)
 
-    planets = {
-        "planet_wood": (paint_wood_planet, 0.55, 80),
-        "planet_desert": (paint_desert, 0.9, 80),
-        "planet_ocean": (paint_ocean, 0.7, 80),
-    }
-    for name, (fn, strength, quality) in planets.items():
-        if not wanted(name):
-            continue
-        print(name)
-        color, normal = bake_one(name, fn, PLANET_W, PLANET_H, strength, quality)
-        previews[name] = (color, normal)
-    if wanted("planet_lava"):
-        print("planet_lava")
-        color, normal = bake_one("planet_lava", paint_lava, PLANET_W, PLANET_H, 0.95, 80, with_emissive=True)
-        previews["planet_lava"] = (color, normal)
+    from sphere_rest import bake_remaining
+
+    previews.update(bake_remaining(args.preview, args.only))
 
     if args.preview:
         for name, (color, normal) in previews.items():

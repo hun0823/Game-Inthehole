@@ -1,5 +1,7 @@
 /**
- * Twelve planets on a snake of glowing links. Labels stay in HTML so Hangul is sharp.
+ * Scrolling constellation. Planets sit on a zig-zag in world space; the camera
+ * y tracks the HTML scroller so each mesh stays under its own label.
+ * Planet meshes come from planetFactory. Arcade albedo maps are bound when they load.
  */
 import * as THREE from "./vendor/three.module.js";
 import { PLANET_ORDER } from "./themes.js";
@@ -8,6 +10,15 @@ import { bindHost } from "./showcase.js";
 import { loadSphereMaps } from "./sphereMaps.js";
 import { applyStudio } from "./studioLight.js";
 import { createBloom } from "./bloom.js";
+
+/** Pixels per world unit. Sphere diameter on screen is MAP_PPU * scale. */
+export const MAP_PPU = 70;
+
+const SCALES = [1, 0.94, 1.06, 0.92, 1.04, 0.96, 1.08, 0.93, 1.02, 0.97, 1.05, 0.95];
+/** Moon / ring swing, in world units, before scale. */
+const H_FACTOR = 1.08;
+/** Atmosphere plus a little bob, in world units, before scale. */
+const V_FACTOR = 0.8;
 
 function smoother(t) {
   const x = Math.min(1, Math.max(0, t));
@@ -20,24 +31,57 @@ function starTex() {
   const g = c.getContext("2d");
   const grd = g.createRadialGradient(16, 16, 0, 16, 16, 16);
   grd.addColorStop(0, "rgba(255,255,255,1)");
-  grd.addColorStop(0.4, "rgba(255,255,255,0.85)");
+  grd.addColorStop(0.45, "rgba(255,255,255,0.8)");
   grd.addColorStop(1, "rgba(255,255,255,0)");
   g.fillStyle = grd;
   g.fillRect(0, 0, 32, 32);
-  const tex = new THREE.CanvasTexture(c);
-  return tex;
+  return new THREE.CanvasTexture(c);
 }
 
-function linkMesh(a, b) {
-  const dir = new THREE.Vector3().subVectors(b, a);
-  const len = dir.length();
-  const mesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.012, 0.012, Math.max(0.05, len), 6),
-    new THREE.MeshBasicMaterial({ color: 0xb7e4ff, transparent: true, opacity: 0.9 })
-  );
-  mesh.position.copy(a).add(b).multiplyScalar(0.5);
-  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize());
-  return mesh;
+/**
+ * Pixel layout for the scroll track. Index 0 (Wood) is at the bottom.
+ * Even indexes sit on the left, odd indexes on the right.
+ */
+export function mapLayout(width) {
+  const count = PLANET_ORDER.length;
+  const maxScale = Math.max(...SCALES);
+  const margin = 8;
+  const hMax = H_FACTOR * MAP_PPU * maxScale;
+  const vMax = V_FACTOR * MAP_PPU * maxScale;
+  const pinH = 34;
+  const pinGap = 8;
+  const dotBand = 44;
+  const corridor = pinGap + pinH + 12 + dotBand + 12;
+  const pitch = vMax * 2 + corridor;
+  const topPad = pinGap + pinH + 64;
+  const bottomPad = 28;
+  const height = topPad + vMax + Math.max(0, count - 1) * pitch + vMax + bottomPad;
+  const nodes = [];
+  for (let i = 0; i < count; i++) {
+    const scale = SCALES[i % SCALES.length];
+    const left = i % 2 === 0;
+    const hReach = H_FACTOR * MAP_PPU * scale;
+    const vReach = V_FACTOR * MAP_PPU * scale;
+    const x = left ? margin + hMax : width - margin - hMax;
+    const y = height - bottomPad - vMax - i * pitch;
+    const cardGap = 10;
+    const cardW = left
+      ? Math.max(108, width - margin - (x + hReach + cardGap))
+      : Math.max(108, x - hReach - cardGap - margin);
+    nodes.push({
+      i,
+      scale,
+      left,
+      x,
+      y,
+      hReach,
+      vReach,
+      cardGap,
+      cardW,
+      sphere: MAP_PPU * scale,
+    });
+  }
+  return { width, height, nodes, pitch, margin, hMax, vMax, pinH, pinGap, dotBand, corridor };
 }
 
 export function createConstellation(canvas) {
@@ -45,64 +89,62 @@ export function createConstellation(canvas) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
-    alpha: false,
+    alpha: true,
+    premultipliedAlpha: false,
     preserveDrawingBuffer: true,
   });
-  renderer.setClearColor(0x070b18, 1);
+  renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.08;
   const scene = new THREE.Scene();
   applyStudio(renderer, scene, 0.42);
-  const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 60);
-  const homePos = new THREE.Vector3(0, 0.05, 17.8);
-  const homeLook = new THREE.Vector3(0, -0.05, 0);
-  const look = homeLook.clone();
-  camera.position.copy(homePos);
-  camera.lookAt(look);
+  const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 80);
+  const look = new THREE.Vector3(0, 0, 0);
+  camera.position.set(0, 0, 14);
+  scene.add(camera);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.55));
-  const key = new THREE.DirectionalLight(0xffffff, 1.25);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.62));
+  const key = new THREE.DirectionalLight(0xffffff, 1.2);
   key.position.set(4, 6, 8);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x9ec2ff, 0.45);
+  const rim = new THREE.DirectionalLight(0x9ec2ff, 0.4);
   rim.position.set(-5, 1, -3);
   scene.add(rim);
 
-  const starCount = 180;
-  const starPos = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount; i++) {
-    starPos[i * 3] = (Math.random() - 0.5) * 16;
-    starPos[i * 3 + 1] = (Math.random() - 0.5) * 12;
-    starPos[i * 3 + 2] = -2 - Math.random() * 6;
+  function makeStars(count, size, spread) {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * spread;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * spread * 0.85;
+      pos[i * 3 + 2] = -8 - Math.random() * 14;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const points = new THREE.Points(
+      geo,
+      new THREE.PointsMaterial({
+        size,
+        map: starTex(),
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.85,
+        color: 0xffffff,
+      })
+    );
+    camera.add(points);
+    return points;
   }
-  const starGeo = new THREE.BufferGeometry();
-  starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
-  const stars = new THREE.Points(
-    starGeo,
-    new THREE.PointsMaterial({
-      size: 0.07,
-      map: starTex(),
-      transparent: true,
-      depthWrite: false,
-      color: 0xffffff,
-    })
-  );
-  scene.add(stars);
+  const starsNear = makeStars(70, 0.11, 14);
+  const starsFar = makeStars(110, 0.06, 22);
 
   const planets = PLANET_ORDER.map((id, i) => {
     const planet = createPlanet(id);
-    const row = Math.floor(i / 3);
-    const col = row % 2 ? 2 - (i % 3) : i % 3;
-    planet.position.set((col - 1) * 1.38, 2.45 - row * 1.64, 0);
-    planet.userData.spin.rotation.y = 0.45 + i * 0.15;
+    planet.userData.spin.rotation.y = 0.4 + i * 0.35;
     scene.add(planet);
     return planet;
   });
-  for (let i = 0; i < planets.length - 1; i++) {
-    scene.add(linkMesh(planets[i].position, planets[i + 1].position));
-  }
 
   loadSphereMaps().then((maps) => {
     bindPlanetMaps(maps);
@@ -112,10 +154,12 @@ export function createConstellation(canvas) {
 
   let raf = 0;
   let running = false;
+  let suspendSync = false;
+  let viewW = 0;
+  let viewH = 0;
+  let viewScroll = 0;
   let useBloom = false;
   let bloomFx = null;
-  let mode = "idle";
-  let onProject = null;
   let chain = Promise.resolve();
 
   function enqueue(work) {
@@ -124,17 +168,48 @@ export function createConstellation(canvas) {
     return run;
   }
 
+  function viewCamera() {
+    const h = Math.max(1, viewH);
+    const fov = (33 * Math.PI) / 180;
+    const camZ = (h / MAP_PPU) / (2 * Math.tan(fov / 2));
+    const camY = -(viewScroll + h / 2) / MAP_PPU;
+    return { camZ, camY };
+  }
+
+  function layoutPlanets() {
+    if (viewW < 2) return;
+    const layout = mapLayout(viewW);
+    planets.forEach((planet, i) => {
+      const node = layout.nodes[i];
+      if (!node) return;
+      planet.scale.setScalar(node.scale);
+      planet.position.set((node.x - viewW / 2) / MAP_PPU, -node.y / MAP_PPU, 0);
+    });
+  }
+
+  function placeCamera() {
+    if (viewW < 2 || viewH < 2) return;
+    const { camZ, camY } = viewCamera();
+    camera.position.set(0, camY, camZ);
+    look.set(0, camY, 0);
+    camera.aspect = viewW / viewH;
+    camera.updateProjectionMatrix();
+  }
+
   function resize() {
     const w = canvas.clientWidth || 1;
     const h = canvas.clientHeight || 1;
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(w, h, false);
-    camera.aspect = w / Math.max(1, h);
-    camera.updateProjectionMatrix();
+    if (!suspendSync) placeCamera();
+    else {
+      camera.aspect = (viewW > 2 ? viewW : w) / Math.max(1, viewH > 2 ? viewH : h);
+      camera.updateProjectionMatrix();
+    }
   }
 
   function render() {
-    renderer.setClearColor(0x070b18, 1);
+    renderer.setClearColor(0x000000, 0);
     camera.lookAt(look);
     if (useBloom && bloomFx) bloomFx.render(scene, camera);
     else renderer.render(scene, camera);
@@ -150,24 +225,23 @@ export function createConstellation(canvas) {
     const time = now * 0.001;
     if (!reduce) {
       planets.forEach((planet, i) => {
-        planet.userData.spin.rotation.y += 0.004;
-        planet.userData.spin.position.y = Math.sin(time * 1.25 + i) * 0.045;
-        planet.userData.moons.rotation.y = time * 0.65 + i;
+        planet.userData.spin.rotation.y += 0.0032;
+        planet.userData.spin.position.y = Math.sin(time * 1.15 + i * 0.7) * 0.032;
+        planet.userData.moons.rotation.y = time * 0.55 + i;
       });
+      starsNear.material.opacity = 0.55 + Math.sin(time * 2.1) * 0.3;
+      starsFar.material.opacity = 0.35 + Math.sin(time * 2.8 + 1.2) * 0.25;
     }
     render();
-    if (onProject) onProject();
     raf = requestAnimationFrame(frame);
   }
 
   function animate(toPos, toLook, dur) {
-    mode = "anim";
     const fromPos = camera.position.clone();
     const fromLook = look.clone();
     if (dur <= 0) {
       camera.position.copy(toPos);
       look.copy(toLook);
-      mode = "idle";
       render();
       return Promise.resolve();
     }
@@ -178,10 +252,7 @@ export function createConstellation(canvas) {
         camera.position.lerpVectors(fromPos, toPos, k);
         look.lerpVectors(fromLook, toLook, k);
         if (k < 1) requestAnimationFrame(step);
-        else {
-          mode = "idle";
-          resolve();
-        }
+        else resolve();
       };
       requestAnimationFrame(step);
     });
@@ -199,6 +270,13 @@ export function createConstellation(canvas) {
       cancelAnimationFrame(raf);
     },
     resize,
+    sync(scrollTop, w, h) {
+      viewScroll = scrollTop || 0;
+      viewW = w || 0;
+      viewH = h || 0;
+      layoutPlanets();
+      if (!suspendSync) placeCamera();
+    },
     setLocked(pred) {
       planets.forEach((planet, i) => setPlanetLocked(planet, !!pred(i)));
     },
@@ -206,16 +284,22 @@ export function createConstellation(canvas) {
       const v = planets[i].position.clone().project(camera);
       return { x: (v.x * 0.5 + 0.5) * w, y: (-v.y * 0.5 + 0.5) * h };
     },
-    onProject(fn) {
-      onProject = fn;
-    },
     zoomTo(i) {
+      suspendSync = true;
       const target = planets[i].position.clone();
-      const to = target.clone().add(new THREE.Vector3(0.15, 0.4, 2.35));
-      return enqueue(() => animate(to, target, reduce ? 0 : 900));
+      const to = target.clone().add(new THREE.Vector3(0.08, 0.16, 2.55));
+      return enqueue(() => animate(to, target, reduce ? 0 : 880));
     },
     resetCamera(instant) {
-      return enqueue(() => animate(homePos.clone(), homeLook.clone(), instant || reduce ? 0 : 700));
+      return enqueue(() => {
+        const { camZ, camY } = viewCamera();
+        const homePos = new THREE.Vector3(0, camY, camZ);
+        const homeLook = new THREE.Vector3(0, camY, 0);
+        return animate(homePos, homeLook, instant || reduce ? 0 : 680).then(() => {
+          suspendSync = false;
+          placeCamera();
+        });
+      });
     },
     setBloom(on) {
       useBloom = !!on;
