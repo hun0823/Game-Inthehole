@@ -13,7 +13,20 @@ const ARROW = 0xf0a020;
 const ARROW_GLOW = 0xc47a08;
 const PAIR = 0xd946ef;
 const GEM = { red: 0xe23b3b, blue: 0x2f7dff, green: 0x1ea85a, purple: 0xa43adf };
-const GLYPH = { red: "circle", blue: "square", green: "triangle", purple: "star" };
+const PLATE = {
+  wood: 0x5a5148,
+  desert: 0x6a5844,
+  ice: 0x465864,
+  ocean: 0x3a4e56,
+  crystal: 0x56546c,
+  toy: 0x4a4452,
+  mushroom: 0x4a3846,
+  candy: 0x6a4a54,
+  lava: 0x4a3834,
+  jungle: 0x3a4a3c,
+  alien: 0x3a3058,
+  machine: 0x5a646e,
+};
 
 const actors = [];
 const stds = new Map();
@@ -195,43 +208,6 @@ function swirlMap() {
     }
   });
   return swirlTex;
-}
-
-const glyphTex = {};
-function glyphMap(kind) {
-  if (glyphTex[kind]) return glyphTex[kind];
-  glyphTex[kind] = canvasTex((g, s) => {
-    g.clearRect(0, 0, s, s);
-    g.fillStyle = "#fffaf0";
-    g.translate(s / 2, s / 2);
-    if (kind === "circle") {
-      g.beginPath();
-      g.arc(0, 0, 28, 0, Math.PI * 2);
-      g.fill();
-    } else if (kind === "square") {
-      g.fillRect(-24, -24, 48, 48);
-    } else if (kind === "triangle") {
-      g.beginPath();
-      g.moveTo(0, -30);
-      g.lineTo(28, 22);
-      g.lineTo(-28, 22);
-      g.fill();
-    } else {
-      g.beginPath();
-      for (let i = 0; i < 10; i++) {
-        const rad = i % 2 ? 14 : 32;
-        const a = -Math.PI / 2 + (i / 10) * Math.PI * 2;
-        const x = Math.cos(a) * rad;
-        const y = Math.sin(a) * rad;
-        if (i) g.lineTo(x, y);
-        else g.moveTo(x, y);
-      }
-      g.closePath();
-      g.fill();
-    }
-  }, 128);
-  glyphTex[kind].premultiplyAlpha = false;
-  return glyphTex[kind];
 }
 
 let faceTex = null;
@@ -592,36 +568,84 @@ export function makeCurrent(x, z, dir, variant) {
   return group;
 }
 
-const buttonGeo = new THREE.CylinderGeometry(0.22, 0.24, 0.12, 16);
-const baseGeo = new THREE.CylinderGeometry(0.3, 0.32, 0.05, 16);
-const glyphGeo = new THREE.CircleGeometry(0.11, 16);
+const plateGeo = new THREE.CylinderGeometry(0.34, 0.355, 0.055, 28);
+const rimGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.04, 28);
+const domeGeo = new THREE.SphereGeometry(0.23, 24, 16);
+const hiGeo = new THREE.SphereGeometry(0.07, 12, 8);
+const ringGeo = new THREE.RingGeometry(0.46, 0.58, 40);
+const outlineGeo = new THREE.TorusGeometry(0.225, 0.028, 8, 28);
+const hiMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-export function makeButton(x, z, color, row, col, variant) {
+function shadeHex(hex, t) {
+  return new THREE.Color(hex).lerp(new THREE.Color(INK), t).getHex();
+}
+
+function muteRay(mesh) {
+  mesh.raycast = () => {};
+  return mesh;
+}
+
+export function makeButton(x, z, color, row, col, planet) {
   const key = GEM[color] ? color : "red";
-  const mat = new THREE.MeshStandardMaterial({
-    color: GEM[key],
-    emissive: GEM[key],
-    emissiveIntensity: 0,
-    roughness: 0.48,
+  const gem = GEM[key];
+  const plateMat = new THREE.MeshStandardMaterial({
+    color: PLATE[planet] || PLATE.wood,
+    roughness: 0.62,
   });
-  const mesh = new THREE.Mesh(buttonGeo, mat);
-  mesh.position.set(x, BOARD_TOP + 0.11, z);
+  const mesh = new THREE.Mesh(plateGeo, plateMat);
+  mesh.position.set(x, BOARD_TOP + 0.055, z);
   mesh.castShadow = true;
-  const baseColor = variant === "alien" ? 0x4a3878 : variant === "machine" ? 0x8a929c : 0xfff6ea;
-  const base = new THREE.Mesh(baseGeo, std(baseColor, { roughness: variant === "machine" ? 0.35 : 0.6, metal: variant === "machine" ? 0.4 : 0 }));
-  base.position.y = -0.08;
-  const mark = new THREE.Mesh(glyphGeo, basic(glyphMap(GLYPH[key] || "circle")));
-  mark.rotation.x = -Math.PI / 2;
-  mark.position.y = 0.065;
-  mesh.add(base, mark);
+  const rim = muteRay(new THREE.Mesh(rimGeo, std(INK, { roughness: 0.7 })));
+  rim.position.y = -0.012;
+  const sideMat = new THREE.MeshStandardMaterial({ color: shadeHex(gem, 0.38), roughness: 0.5 });
+  const side = muteRay(new THREE.Mesh(domeGeo, sideMat));
+  side.scale.set(1.05, 0.58, 1.05);
+  side.position.y = 0.055;
+  side.castShadow = true;
+  const domeMat = new THREE.MeshStandardMaterial({
+    color: gem,
+    emissive: gem,
+    emissiveIntensity: 0.06,
+    roughness: 0.38,
+  });
+  const dome = muteRay(new THREE.Mesh(domeGeo, domeMat));
+  dome.scale.set(0.92, 0.62, 0.92);
+  dome.position.y = 0.1;
+  dome.castShadow = true;
+  const outline = muteRay(new THREE.Mesh(outlineGeo, std(INK, { roughness: 0.55 })));
+  outline.rotation.x = Math.PI / 2;
+  outline.position.y = 0.07;
+  const hi = muteRay(new THREE.Mesh(hiGeo, hiMat));
+  hi.scale.set(1.15, 0.42, 0.75);
+  hi.position.set(-0.04, 0.2, -0.06);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: gem,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const ring = muteRay(new THREE.Mesh(ringGeo, ringMat));
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = -0.02;
+  ring.visible = false;
+  mesh.add(rim, side, dome, outline, hi, ring);
   mesh.userData = {
     kind: "button",
     row,
     col,
     color,
-    baseY: BOARD_TOP + 0.11,
+    baseY: mesh.position.y,
+    dome,
+    side,
+    hi,
+    ring,
+    domeRest: { y: dome.position.y, sy: dome.scale.y, sideY: side.position.y, sideSy: side.scale.y, hiY: hi.position.y },
     ownMat: true,
   };
+  side.userData.ownMat = true;
+  dome.userData.ownMat = true;
+  ring.userData.ownMat = true;
   return mesh;
 }
 
@@ -745,11 +769,19 @@ export function dressGate(group, mesh, w, d, color, variant) {
       group.add(nub);
     }
   }
-  const mark = new THREE.Mesh(glyphGeo, basic(glyphMap(GLYPH[key] || "circle")));
-  mark.rotation.x = -Math.PI / 2;
-  mark.position.y = WALL_H / 2 + 0.045;
-  mark.scale.setScalar(1.35);
-  group.add(mark);
+  const icon = new THREE.Group();
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.155, 0.035, 16), std(INK, { roughness: 0.6 }));
+  const nubSide = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), std(shadeHex(GEM[key], 0.35), { roughness: 0.45 }));
+  nubSide.scale.y = 0.55;
+  nubSide.position.y = 0.04;
+  const nub = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), std(GEM[key], { roughness: 0.35 }));
+  nub.scale.y = 0.62;
+  nub.position.y = 0.055;
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 6), hiMat);
+  glint.position.set(-0.02, 0.09, -0.02);
+  icon.add(cup, nubSide, nub, glint);
+  icon.position.y = 0.24;
+  group.add(icon);
 }
 
 export function makeGateGroove(x, z, w, d, color) {

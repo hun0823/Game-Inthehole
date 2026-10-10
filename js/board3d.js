@@ -2011,7 +2011,7 @@ export function createView(canvas) {
     for (const btn of level.buttons || []) {
       const { x, z } = cellXZ(btn.row, btn.col);
       const color = GEM_HEX[btn.color] ? btn.color : "red";
-      const mesh = makeButton(x, z, color, btn.row, btn.col, skin);
+      const mesh = makeButton(x, z, color, btn.row, btn.col, activeTheme.id);
       rig.add(mesh);
       buttons.push(mesh);
     }
@@ -2155,6 +2155,10 @@ export function createView(canvas) {
   function startOpen(mesh) {
     if (!mesh.parent || mesh.userData.opening || !mesh.parent.visible) return;
     mesh.userData.opening = { t: 0, baseY: mesh.parent.position.y };
+    const hex = GEM_HEX[mesh.userData.color] || GEM_HEX.red;
+    const col = new THREE.Color(hex);
+    const p = mesh.parent.position;
+    burst(p.x, p.y + 0.15, p.z, 12, 1.25, [[col.r, col.g, col.b], [1, 0.97, 0.9]]);
   }
 
   function openColor(color, dipRow, dipCol) {
@@ -2162,10 +2166,11 @@ export function createView(canvas) {
       if (b.userData.color !== color) continue;
       b.userData.pendingSpent = false;
       b.userData.spent = true;
-      b.material.transparent = true;
-      b.material.opacity = 0.4;
-      b.position.y = BOARD_TOP + 0.05;
-      if (b.userData.row === dipRow && b.userData.col === dipCol) b.userData.dip = 1;
+      if (b.userData.row === dipRow && b.userData.col === dipCol) {
+        b.userData.dip = 1;
+        b.userData.ringT = 1;
+        b.userData.ringArmed = true;
+      }
     }
     for (const mesh of colored) {
       if (mesh.userData.color === color) startOpen(mesh);
@@ -2332,15 +2337,7 @@ export function createView(canvas) {
         mesh.userData.spent = spent;
         mesh.userData.ready =
           ready && !spent && game.ball[0] === mesh.userData.row && game.ball[1] === mesh.userData.col;
-        if (!spent) {
-          mesh.material.opacity = 1;
-          mesh.material.transparent = false;
-          mesh.position.y = mesh.userData.baseY;
-        } else {
-          mesh.material.transparent = true;
-          mesh.material.opacity = 0.4;
-          mesh.position.y = BOARD_TOP + 0.05;
-        }
+        if (!spent) mesh.position.y = mesh.userData.baseY;
       }
     }
     if (!skipGlass) {
@@ -2462,7 +2459,10 @@ export function createView(canvas) {
 
   function dipButton(row, col) {
     const mesh = buttons.find((b) => b.userData.row === row && b.userData.col === col);
-    if (mesh) mesh.userData.dip = 1;
+    if (!mesh) return;
+    mesh.userData.dip = 1;
+    mesh.userData.ringT = 1;
+    mesh.userData.ringArmed = true;
   }
 
   const raycaster = new THREE.Raycaster();
@@ -2884,14 +2884,44 @@ export function createView(canvas) {
 
       for (const mesh of buttons) {
         const dip = mesh.userData.dip || 0;
-        if (dip > 0) mesh.userData.dip = Math.max(0, dip - dt * 3.2);
-        const readyPulse = mesh.userData.ready ? 1 + Math.sin(time * 6) * 0.06 : 1;
-        const hintPulse = mesh.userData.hint ? 1.12 + Math.sin(time * 8) * 0.1 : 1;
-        const press = 1 - (mesh.userData.dip || 0) * 0.22;
-        mesh.scale.set(readyPulse * hintPulse, press, readyPulse * hintPulse);
-        if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY - (mesh.userData.dip || 0) * 0.1;
-        if (mesh.userData.hint) mesh.material.emissiveIntensity = 0.35 + Math.sin(time * 8) * 0.2;
-        else mesh.material.emissiveIntensity = 0;
+        if (dip > 0) mesh.userData.dip = Math.max(0, dip - dt * 2.3);
+        if (dip > 0.92 && !mesh.userData.ringArmed) {
+          mesh.userData.ringArmed = true;
+          mesh.userData.ringT = 1;
+        }
+        if (dip < 0.02) mesh.userData.ringArmed = false;
+        const press = mesh.userData.spent ? 1 : (mesh.userData.dip || 0);
+        const rest = mesh.userData.domeRest;
+        const dome = mesh.userData.dome;
+        if (dome && rest) {
+          const breathe = mesh.userData.ready && press < 0.15 ? 1 + Math.sin(time * 6) * 0.04 : 1;
+          const squash = 1 - press * 0.48;
+          const spread = (1 + press * 0.16) * breathe;
+          dome.scale.set(spread * 0.92, rest.sy * squash, spread * 0.92);
+          dome.position.y = rest.y - press * 0.055;
+          const side = mesh.userData.side;
+          if (side) {
+            side.scale.set(spread * 1.05, rest.sideSy * squash, spread * 1.05);
+            side.position.y = rest.sideY - press * 0.04;
+          }
+          const hi = mesh.userData.hi;
+          if (hi) hi.position.y = rest.hiY - press * 0.05;
+          const hint = mesh.userData.hint ? 0.4 + Math.sin(time * 8) * 0.2 : 0.06;
+          dome.material.emissiveIntensity = hint;
+        }
+        const ring = mesh.userData.ring;
+        const ringT = mesh.userData.ringT || 0;
+        if (ring && ringT > 0) {
+          mesh.userData.ringT = Math.max(0, ringT - dt * 2.5);
+          const t = 1 - mesh.userData.ringT;
+          ring.visible = true;
+          ring.scale.setScalar(1 + t * 1.7);
+          ring.material.opacity = 0.9 * mesh.userData.ringT;
+        } else if (ring) {
+          ring.visible = false;
+        }
+        mesh.scale.set(1, 1, 1);
+        if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY;
       }
 
       if (useBloom && bloomFx) bloomFx.render(scene, camera);
