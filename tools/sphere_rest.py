@@ -152,27 +152,35 @@ def paint_soccer(x, y, z):
 
 
 def paint_tire(x, y, z):
-    d, tangent, bitangent = _basis(FRONT)
-    lx, ly, lz = _project(x, y, z, d, tangent, bitangent)
-    radial = np.sqrt(lx * lx + ly * ly)
-    ring = 0.5 + 0.5 * np.sin(radial * 42.0)
-    groove = smoothstep(0.35, 0.05, ring)
-    sidewall = smoothstep(0.55, 0.78, radial)
-    hub = smoothstep(0.28, 0.16, radial) * smoothstep(0.15, 0.45, lz)
-    hole = smoothstep(0.07, 0.035, radial) * smoothstep(0.2, 0.55, lz)
-    rubber = rgb_of("#1a1a1a")
-    tread = rgb_of("#3c3c3c")
-    well = rgb_of("#080808")
-    col = mix(rubber, tread, sidewall * (1.0 - groove))
-    col = mix(col, well, groove * sidewall)
-    col = mix(col, rgb_of("#2a2a2a"), hub * 0.8)
-    col = mix(col, rgb_of("#0c0c0c"), hole)
-    spoke = smoothstep(0.035, 0.01, np.abs(np.sin(np.arctan2(ly, lx) * 5.0))) * hub * (1.0 - hole)
-    col = mix(col, rgb_of("#4a4a4a"), spoke)
-    height = sidewall * (0.12 - groove * 0.2) + hub * 0.05 - hole * 0.25
-    rough = np.full(x.shape, 0.94, dtype=np.float32)
-    rough = mix(rough, np.float32(0.8), hub)
-    return np.clip(col, 0, 1), height.astype(np.float32), rough
+    """Dark gray rubber with a tread belt, so the ball stays visible on a dark floor."""
+    rubber = rgb_of("#5a6168")
+    groove_c = rgb_of("#2c3138")
+    block = rgb_of("#8b939c")
+    speck = rgb_of("#d5dde6")
+    lat = np.abs(y)
+    belt = smoothstep(0.56, 0.4, lat)
+    lat_wave = 0.5 + 0.5 * np.sin(y * 46.0)
+    lon = np.arctan2(z, x)
+    lon_wave = 0.5 + 0.5 * np.sin(lon * 18.0)
+    lat_groove = smoothstep(0.72, 0.28, lat_wave)
+    lon_groove = smoothstep(0.82, 0.38, lon_wave)
+    groove = np.clip(np.maximum(lat_groove, lon_groove), 0.0, 1.0) * belt
+    raised = belt * (1.0 - groove)
+    speckle = smoothstep(0.62, 0.88, fbm(x * 14.0, y * 14.0, z * 14.0, 2))
+    col = mix(rubber, groove_c, groove)
+    col = mix(col, block, raised * 0.9)
+    col = mix(col, speck, speckle * raised * 0.75)
+    white_band = smoothstep(0.07, 0.0, np.abs(lat - 0.62))
+    yellow_band = smoothstep(0.055, 0.0, np.abs(lat - 0.74))
+    dash = smoothstep(0.42, 0.12, np.abs(np.sin(lon * 22.0))) * yellow_band
+    col = mix(col, rgb_of("#f4f6f8"), white_band)
+    col = mix(col, rgb_of("#f2c14a"), yellow_band)
+    col = mix(col, rgb_of("#1c2026"), dash)
+    height = raised * 0.62 - groove * 0.18 + white_band * 0.08 + yellow_band * 0.06
+    rough = np.full(x.shape, 0.78, dtype=np.float32)
+    rough = mix(rough, np.float32(0.42), speckle * raised)
+    rough = mix(rough, np.float32(0.5), np.maximum(white_band, yellow_band))
+    return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
 def paint_slime(x, y, z):
@@ -191,14 +199,18 @@ def paint_slime(x, y, z):
 
 
 def paint_snow(x, y, z):
-    clump = fbm(x * 1.8, y * 1.8, z * 1.8, 3)
-    soft = wrap_blur((clump - 0.5).astype(np.float32), 1)
-    shade = smoothstep(0.48, 0.7, clump)
+    lump = fbm(x * 3.4, y * 3.4, z * 3.4, 5)
+    big = fbm(x * 1.15 + 2.2, y * 1.15, z * 1.15 + 0.7, 3)
+    crevice = smoothstep(0.46, 0.18, lump)
+    peak = smoothstep(0.55, 0.84, lump)
     white = rgb_of("#f7fbff")
-    blue = rgb_of("#d5e8f8")
-    col = mix(white, blue, shade * 0.32)
-    height = soft * 0.36
-    rough = mix(np.float32(0.62), np.float32(0.5), shade)
+    blue = rgb_of("#6ea4d4")
+    col = mix(white, blue, crevice * 0.75)
+    col = mix(col, white, peak * 0.4)
+    col = mix(col, blue, smoothstep(0.5, 0.22, big) * 0.28)
+    height = wrap_blur(((lump - 0.5) * 0.85 + (big - 0.5) * 0.45).astype(np.float32), 2)
+    rough = mix(np.float32(0.74), np.float32(0.46), peak)
+    rough = mix(rough, np.float32(0.88), crevice)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
@@ -398,14 +410,38 @@ def paint_golf(x, y, z):
 
 
 def paint_yarn(x, y, z):
-    lon = np.arctan2(z, x)
-    strand = np.sin(lon * 2.0 + y * 26.0)
-    strand = wrap_blur(strand.astype(np.float32), 1)
-    wool = mix(rgb_of("#e7b8a4"), rgb_of("#f3d7c4"), smoothstep(-0.4, 0.6, strand))
-    crease = smoothstep(-0.15, -0.65, strand)
-    col = mix(wool, rgb_of("#c98474"), crease)
-    height = strand * 0.16
-    rough = mix(np.float32(0.84), np.float32(0.7), crease)
+    """Fibers wound on several axes. Creases stay thin so the ball reads as yarn, not a cage."""
+    axes = (
+        np.array([0.10, 0.98, 0.16], dtype=np.float32),
+        np.array([0.92, 0.12, 0.37], dtype=np.float32),
+        np.array([-0.22, 0.48, 0.85], dtype=np.float32),
+        np.array([0.58, -0.48, 0.66], dtype=np.float32),
+    )
+    freqs = (18.0, 13.0, 21.0, 15.0)
+    palette = (
+        rgb_of("#f6d2c4"),
+        rgb_of("#f0a0b8"),
+        rgb_of("#e7a090"),
+        rgb_of("#f3c2b4"),
+    )
+    col = np.broadcast_to(rgb_of("#f0c4b4"), x.shape + (3,)).astype(np.float32).copy()
+    height = np.zeros(x.shape, dtype=np.float32)
+    cover = np.zeros(x.shape, dtype=np.float32)
+    for axis, freq, color in zip(axes, freqs, palette):
+        axis = axis / (np.linalg.norm(axis) + 1e-8)
+        dot = x * axis[0] + y * axis[1] + z * axis[2]
+        wave = np.abs(np.sin(dot * freq))
+        fiber = smoothstep(0.08, 0.7, wave)
+        col = mix(col, color, fiber * 0.62)
+        height = height + fiber * 0.045
+        cover = np.maximum(cover, fiber)
+    fuzz = fbm(x * 8.0, y * 8.0, z * 8.0, 2)
+    crease = smoothstep(0.62, 0.18, cover)
+    col = mix(col, rgb_of("#fff1ea"), cover * fuzz * 0.16)
+    col = mix(col, rgb_of("#c48878"), crease * 0.4)
+    height = wrap_blur((height - crease * 0.04 + (fuzz - 0.5) * 0.04).astype(np.float32), 2)
+    rough = mix(np.float32(0.9), np.float32(0.72), cover)
+    rough = mix(rough, np.float32(0.94), crease * 0.5)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
@@ -721,9 +757,9 @@ BALLS = {
     "ball_dune": (paint_dune, 0.55, 82, False),
     "ball_marble": (paint_marble, 0.28, 84, False),
     "ball_soccer": (paint_soccer, 0.4, 84, False),
-    "ball_tire": (paint_tire, 0.7, 82, False),
+    "ball_tire": (paint_tire, 1.15, 82, False),
     "ball_slime": (paint_slime, 0.32, 82, False),
-    "ball_snow": (paint_snow, 0.36, 80, False),
+    "ball_snow": (paint_snow, 1.0, 80, False),
     "ball_basketball": (paint_basketball, 0.55, 84, False),
     "ball_beach": (paint_beach, 0.18, 86, False),
     "ball_bowling": (paint_bowling, 0.4, 82, False),
@@ -734,7 +770,7 @@ BALLS = {
     "ball_alien": (paint_alien_ball, 0.28, 82, True),
     "ball_gear": (paint_gear, 0.55, 82, False),
     "ball_golf": (paint_golf, 0.7, 82, False),
-    "ball_yarn": (paint_yarn, 0.45, 82, False),
+    "ball_yarn": (paint_yarn, 0.9, 82, False),
     "ball_donut": (paint_donut, 0.32, 84, False),
     "ball_disco": (paint_disco, 0.6, 82, False),
     "ball_lucky": (paint_lucky, 0.32, 84, False),
@@ -780,6 +816,14 @@ def bake_remaining(preview, only):
             r, g, b = (c / 255.0 for c in mean)
             if r > b + 0.06:
                 raise SystemExit(f"gear reads warm (mean {mean})")
+        if name == "ball_tire":
+            luma = 0.2126 * mean[0] + 0.7152 * mean[1] + 0.0722 * mean[2]
+            if luma < 70:
+                raise SystemExit(f"tire still too dark (mean {mean})")
+        if name == "ball_snow":
+            luma = 0.2126 * mean[0] + 0.7152 * mean[1] + 0.0722 * mean[2]
+            if luma < 180:
+                raise SystemExit(f"snow lost its white (mean {mean})")
         if name == "planet_crystal":
             luma = 0.2126 * mean[0] + 0.7152 * mean[1] + 0.0722 * mean[2]
             if luma > 150:
