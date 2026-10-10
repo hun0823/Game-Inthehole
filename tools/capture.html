@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>capture</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #102454; overflow: hidden; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="module">
+    import { LEVELS } from "../js/levels.js";
+    import { Game } from "../js/game.js";
+    import { createView } from "../js/board3d.js";
+
+    const errors = [];
+    window.addEventListener("error", (event) => {
+      errors.push(String(event.message || event.error));
+    });
+    window.addEventListener("unhandledrejection", (event) => {
+      errors.push(String(event.reason));
+    });
+
+    const canvas = document.getElementById("c");
+    const params = new URLSearchParams(location.search);
+    try {
+      localStorage.setItem("inthehole_deco", params.get("deco") || "on");
+    } catch { /* private mode */ }
+
+    const view = createView(canvas);
+    const id = Number(params.get("id") || 8);
+    const level = LEVELS.find((entry) => entry.id === id) || LEVELS[0];
+    const game = new Game(level);
+    const state = params.get("state") || "";
+    if (state === "calm") game.tilts = -1;
+    if (state === "hot") game.tilts = 8;
+    if (state === "open") {
+      for (const btn of level.buttons || []) game.activatedColors.add(btn.color);
+    }
+    if (state === "next") game.phase = 1;
+    if (state === "clear") {
+      for (const [r, c] of level.smog || []) game.revealed.add(`${r},${c}`);
+    }
+    if (state === "crack") {
+      const mark = (grid) => {
+        if (!grid) return;
+        for (let r = 0; r < grid.length; r++) {
+          for (let c = 0; c < grid[r].length; c++) {
+            if (grid[r][c]) {
+              const stress = r < game.hGlassStressed.length ? game.hGlassStressed : game.vGlassStressed;
+              if (grid === game.hGlass) game.hGlassStressed[r][c] = true;
+              if (grid === game.vGlass) game.vGlassStressed[r][c] = true;
+              void stress;
+            }
+          }
+        }
+      };
+      mark(game.hGlass);
+      mark(game.vGlass);
+    }
+
+    view.setBloom(false);
+    view.resize();
+    view.setStage(level, game);
+    view.resize();
+
+    const mode = params.get("mode") || "start";
+    if (mode === "press") game.pressButton();
+    if (mode === "tilt") {
+      const dir = params.get("dir") || "right";
+      const result = game.simulateTilt(dir);
+      game.applyTiltResult(result.path, result.won, result.moved);
+    }
+    if (mode !== "start") view.sync(game);
+    if (params.get("ball")) view.setBall(params.get("ball"));
+    if (params.get("react") === "1") view.previewReact();
+    if (params.get("hold")) view.holdReact(Number(params.get("hold")));
+
+    let shotNote = "";
+    if (state === "shatter") {
+      try {
+        const edge = firstGlass(level);
+        shotNote = edge ? `${edge.axis}:${edge.r},${edge.c}` : "no-glass";
+        if (edge) {
+          const path = edge.axis === "h"
+            ? [[edge.r, edge.c], [edge.r + 1, edge.c]]
+            : [[edge.r, edge.c], [edge.r, edge.c + 1]];
+          view.roll(path, edge.axis === "h" ? "down" : "right", false, { broken: [edge] });
+        }
+      } catch (err) {
+        shotNote = String(err && err.message || err);
+        errors.push(shotNote);
+      }
+    }
+
+    function firstGlass(board) {
+      const h = board.hGlass || [];
+      for (let r = 0; r < h.length; r++) {
+        for (let c = 0; c < h[r].length; c++) {
+          if (h[r][c]) return { axis: "h", r, c };
+        }
+      }
+      const v = board.vGlass || [];
+      for (let r = 0; r < v.length; r++) {
+        for (let c = 0; c < v[r].length; c++) {
+          if (v[r][c]) return { axis: "v", r, c };
+        }
+      }
+      return null;
+    }
+
+    const holdMs = state === "shatter" ? 260 : params.get("react") === "1" ? 320 : 180;
+    const started = performance.now();
+    const mark = () => {
+      if (performance.now() - started < holdMs) requestAnimationFrame(mark);
+      else document.body.dataset.ready = errors.length ? `error:${errors[0]}` : `${level.name}|${shotNote}`;
+    };
+    requestAnimationFrame(mark);
+    window.__level = level.name;
+    window.__errors = errors;
+  </script>
+</body>
+</html>
