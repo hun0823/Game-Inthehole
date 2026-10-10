@@ -125,6 +125,16 @@ function prepareBoard(level) {
   }));
   const coins = asPairs(level.coins);
   const smog = asPairs(level.smog);
+  const jelly = new Set(asPairs(level.jelly).map(([r, c]) => `${r},${c}`));
+  const magma = new Map();
+  let magmaCap = 0;
+  for (const vent of level.magma || []) {
+    const r = Array.isArray(vent) ? vent[0] : vent.row;
+    const c = Array.isArray(vent) ? vent[1] : vent.col;
+    const at = Array.isArray(vent) ? vent[2] : vent.at;
+    magma.set(`${r},${c}`, at);
+    if (at > magmaCap) magmaCap = at;
+  }
 
   return {
     n,
@@ -142,7 +152,11 @@ function prepareBoard(level) {
     shifters,
     coins,
     smog,
-    special: ice.size + sand.size + collapse.length + oneWays.size + teleport.size + shifters.length > 0,
+    jelly,
+    magma,
+    magmaCap,
+    special:
+      ice.size + sand.size + collapse.length + oneWays.size + teleport.size + shifters.length + jelly.size + magma.size > 0,
   };
 }
 
@@ -175,10 +189,26 @@ function activateAt(board, r, c, act) {
 // phase. A spent tilt flips the phase afterward. A pure button press does not.
 // Collapsing floor: a listed cell crumbles when the ball leaves it, or when a
 // spent tilt ends on it. A crumbled cell cannot be entered again.
-// Smog and coins do not change the slide. Smog only hides walls until the
-// ball has been on that cell. Coins on the path are collected; the hole is
-// still the only clear condition. All coins add one bonus star, capped at 3.
-function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0) {
+// Jelly: rolling INTO a jelly cell (not starting a tilt already on one) jumps
+// two cells ahead in the travel direction and keeps sliding. The jump ignores
+// every edge between the jelly and the landing cell — walls, glass (a jumped
+// pane does not crack), gates, one-ways, and shifting walls. The skipped cell
+// is not entered; the path records the jelly cell, then the landing cell.
+// If the landing cell is out of bounds, erupted magma, or a crumbled floor,
+// the ball stops on the jelly and the tilt ends, even on ice. Landing on
+// jelly jumps again, up to size*2 times. After a successful landing the hole
+// wins, sand stops, and ice applies to that landing cell.
+// Magma: each vent is [row, col, at]. The cell is blocked once completed spent
+// tilts >= at, so the ball cannot enter it. `tilts` is the count at the START
+// of this tilt and stays fixed for the whole slide; callers increment it after
+// a spent tilt or a press. Standing on a vent when it erupts does not bury the
+// ball: leaving is allowed, re-entry is not. Telegraph (tilts == at-1) is
+// visual only. Once tilts reaches the latest `at`, further tilts do not change
+// the schedule.
+// Smog does not change the slide. It only hides walls until the ball has been
+// on that cell. Coins, when present, are collected along the path; the hole
+// is still the only clear condition. New stages do not use coins.
+function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilts = 0) {
   if (!board.special) return slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase);
   const dir = DIR_LIST[dirIndex];
   const table = board.leave[dirIndex];
@@ -196,9 +226,31 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0) {
     if (bit) coll |= bit;
   };
 
+  const jellyChain = () => {
+    let guard = 0;
+    while (board.jelly.has(`${r},${c}`) && guard < n * 2) {
+      guard += 1;
+      const lr = r + dir.dr * 2;
+      const lc = c + dir.dc * 2;
+      if (lr < 0 || lc < 0 || lr >= n || lc >= n) return "stop";
+      if (magmaBlocks(board, lr, lc, tilts)) return "stop";
+      const landBit = board.collapseIndex.get(`${lr},${lc}`);
+      if (landBit && coll & landBit) return "stop";
+      crumble(r, c);
+      r = lr;
+      c = lc;
+      path.push([r, c]);
+      moved = true;
+      newAct = activateAt(board, r, c, newAct);
+      if (r === board.holeR && c === board.holeC) return "won";
+      if (board.sand.has(`${r},${c}`)) return "stop";
+    }
+    return "go";
+  };
+
   for (let steps = 0; steps < limit; steps++) {
     const info = table[r * n + c];
-    if (blocked(board, info, dir.name, newAct, coll, phase)) break;
+    if (blocked(board, info, dir.name, newAct, coll, phase, tilts)) break;
     if (info.glassIndex >= 0) {
       const base = POW3[info.glassIndex];
       const st = Math.floor(gstate / base) % 3;
@@ -218,6 +270,7 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0) {
     if (hop) {
       const exitBit = board.collapseIndex.get(`${hop[0]},${hop[1]}`);
       if (exitBit && coll & exitBit) break;
+      if (magmaBlocks(board, hop[0], hop[1], tilts)) break;
       via = [info.nr, info.nc];
       destR = hop[0];
       destC = hop[1];
@@ -233,6 +286,13 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0) {
       return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, broken);
     }
     if (board.sand.has(`${r},${c}`)) break;
+    if (board.jelly.has(`${r},${c}`)) {
+      const outcome = jellyChain();
+      if (outcome === "won") {
+        return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, broken);
+      }
+      if (outcome === "stop") break;
+    }
     const nowIce = board.ice.has(`${r},${c}`);
     if (iceRun && !nowIce) break;
     if (nowIce) iceRun = true;
@@ -280,7 +340,12 @@ function slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase) {
   return finish(board, r, c, gstate, act, newAct, collapse, phase, moved, false, path, broken);
 }
 
-function blocked(board, info, dirName, act, collapse, phase) {
+function magmaBlocks(board, r, c, tilts) {
+  const at = board.magma.get(`${r},${c}`);
+  return at !== undefined && tilts >= at;
+}
+
+function blocked(board, info, dirName, act, collapse, phase, tilts = 0) {
   if (!info || info.wall) return true;
   if (info.colorBit && (act & info.colorBit) === 0) return true;
   const allow = board.oneWays.get(info.edgeKey);
@@ -288,6 +353,7 @@ function blocked(board, info, dirName, act, collapse, phase) {
   if (shifterBlocks(board, info.edgeKey, phase)) return true;
   const bit = board.collapseIndex.get(`${info.nr},${info.nc}`);
   if (bit && collapse & bit) return true;
+  if (magmaBlocks(board, info.nr, info.nc, tilts)) return true;
   return false;
 }
 
@@ -304,8 +370,12 @@ function finish(board, r, c, gstate, act, newAct, collapse, phase, moved, won, p
   return { r, c, gstate, act: newAct, collapse, phase: nextPhase, moved, won, path, broken };
 }
 
-function stateKey(r, c, gstate, act, collapse, phase, n) {
-  return `${r},${c},${gstate},${act},${collapse},${phase},${n}`;
+function stateKey(r, c, gstate, act, collapse, phase, tilts) {
+  return `${r},${c},${gstate},${act},${collapse},${phase},${tilts}`;
+}
+
+function bumpTilts(board, tilts) {
+  return tilts >= board.magmaCap ? tilts : tilts + 1;
 }
 
 export class Game {
@@ -333,6 +403,7 @@ export class Game {
     this.won = false;
     this.collapse = 0;
     this.phase = 0;
+    this.tilts = 0;
     this.board = prepareBoard(level);
     this.coinsGot = new Set();
     this.revealed = new Set([`${this.ball[0]},${this.ball[1]}`]);
@@ -414,7 +485,8 @@ export class Game {
       return { path: [this.ball.slice()], moved: false, won: false, glassBroken: [] };
     }
     const result = slide(
-      this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct(), this.collapse, this.phase
+      this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct(),
+      this.collapse, this.phase, this.tilts
     );
     this.writeGlass(result.gstate);
     if (result.moved) {
@@ -446,7 +518,10 @@ export class Game {
       }
     }
     if (path.length > 0) this.ball = path[path.length - 1].slice();
-    if (spent) this.moves += 1;
+    if (spent) {
+      this.moves += 1;
+      this.tilts = bumpTilts(this.board, this.tilts);
+    }
     if (won) this.won = true;
   }
 
@@ -458,6 +533,7 @@ export class Game {
     if (this.won) return false;
     if (!this.tryActivateButton()) return false;
     this.moves += 1;
+    this.tilts = bumpTilts(this.board, this.tilts);
     return true;
   }
 
@@ -481,14 +557,17 @@ export class Game {
     let act = this.packAct();
     let collapse = this.collapse;
     let phase = this.phase;
+    let tilts = this.tilts;
     const cells = [[r, c]];
     const stops = [[r, c]];
     for (const action of actions) {
       if (action === "press") {
         act = activateAt(this.board, r, c, act);
+        tilts = bumpTilts(this.board, tilts);
         continue;
       }
-      const result = slide(this.board, r, c, DIR_INDEX[action], gstate, act, collapse, phase);
+      const result = slide(this.board, r, c, DIR_INDEX[action], gstate, act, collapse, phase, tilts);
+      if (result.moved) tilts = bumpTilts(this.board, tilts);
       for (let i = 1; i < result.path.length; i++) cells.push(result.path[i].slice());
       r = result.r;
       c = result.c;
@@ -512,33 +591,36 @@ export class Game {
     const a0 = this.packAct();
     const c0 = this.collapse;
     const p0 = this.phase;
-    const startKey = stateKey(sr, sc, g0, a0, c0, p0, n);
+    const t0 = this.tilts;
+    const startKey = stateKey(sr, sc, g0, a0, c0, p0, t0);
     if (this.hintCache.has(startKey)) return this.hintCache.get(startKey);
 
     const parent = new Map();
     parent.set(startKey, null);
-    const queue = [[sr, sc, g0, a0, c0, p0, 0]];
+    const queue = [[sr, sc, g0, a0, c0, p0, t0, 0]];
     let answer = null;
 
     for (let qi = 0; qi < queue.length; qi++) {
-      const [r, c, gstate, act, collapse, phase, depth] = queue[qi];
+      const [r, c, gstate, act, collapse, phase, tilts, depth] = queue[qi];
       if (depth >= limit) continue;
-      const here = stateKey(r, c, gstate, act, collapse, phase, n);
+      const here = stateKey(r, c, gstate, act, collapse, phase, tilts);
 
       const pressBit = activateAt(board, r, c, act) ^ act;
       if (pressBit) {
         const nextAct = act | pressBit;
-        const key = stateKey(r, c, gstate, nextAct, collapse, phase, n);
+        const nextTilts = bumpTilts(board, tilts);
+        const key = stateKey(r, c, gstate, nextAct, collapse, phase, nextTilts);
         if (!parent.has(key)) {
           parent.set(key, { prev: here, action: "press" });
-          queue.push([r, c, gstate, nextAct, collapse, phase, depth + 1]);
+          queue.push([r, c, gstate, nextAct, collapse, phase, nextTilts, depth + 1]);
         }
       }
 
       for (let dirIndex = 0; dirIndex < DIR_LIST.length; dirIndex++) {
-        const result = slide(board, r, c, dirIndex, gstate, act, collapse, phase);
+        const result = slide(board, r, c, dirIndex, gstate, act, collapse, phase, tilts);
         if (!result.moved) continue;
-        const key = stateKey(result.r, result.c, result.gstate, result.act, result.collapse, result.phase, n);
+        const nextTilts = bumpTilts(board, tilts);
+        const key = stateKey(result.r, result.c, result.gstate, result.act, result.collapse, result.phase, nextTilts);
         if (result.won) {
           const actions = [DIR_LIST[dirIndex].name];
           let cursor = here;
@@ -554,7 +636,9 @@ export class Game {
         }
         if (!parent.has(key)) {
           parent.set(key, { prev: here, action: DIR_LIST[dirIndex].name });
-          queue.push([result.r, result.c, result.gstate, result.act, result.collapse, result.phase, depth + 1]);
+          queue.push([
+            result.r, result.c, result.gstate, result.act, result.collapse, result.phase, nextTilts, depth + 1,
+          ]);
         }
       }
     }

@@ -10,7 +10,7 @@ function mulberry32(a) {
   };
 }
 
-export function drawSky(canvas) {
+export function drawSky(canvas, theme) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -20,8 +20,16 @@ export function drawSky(canvas) {
   canvas.style.height = `${h}px`;
   const ctx = canvas.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  const rng = mulberry32(520);
+  const sky0 = theme?.sky0 || "#1b3d86";
+  const sky1 = theme?.sky1 || "#102454";
+  const sky2 = theme?.sky2 || "#081428";
+  const wash = ctx.createLinearGradient(0, 0, 0, h);
+  wash.addColorStop(0, sky0);
+  wash.addColorStop(0.46, sky1);
+  wash.addColorStop(1, sky2);
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, w, h);
+  const rng = mulberry32(theme ? theme.id.length * 97 + 520 : 520);
   const count = Math.round((w * h) / 3800);
   for (let i = 0; i < count; i++) {
     const x = rng() * w;

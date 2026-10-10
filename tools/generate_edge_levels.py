@@ -371,9 +371,10 @@ def glass_ok(level, target, glass_n):
     return base is not None and len(base) < target
 
 
-def search_walls(sid, n, target, rng, strict, used):
+def search_walls(sid, n, target, rng, strict, used, attempts=None):
     motifs = 1 if n <= 3 else 2 if n <= 5 else 3
-    attempts = 700 if n <= 4 else 1100 if n <= 5 else 1600
+    if attempts is None:
+        attempts = 700 if n <= 4 else 1100 if n <= 5 else 1600
     for _ in range(attempts):
         ball, hole = far_pairs(n, rng)[0]
         H, V = set(), set()

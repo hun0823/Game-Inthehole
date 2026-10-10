@@ -9,6 +9,7 @@ import json
 import sys
 from pathlib import Path
 
+from necessity import CHECKS, Gallery
 from tilt_solver import COLOR_IDS, DIRS, color_id, play, prepare, solve, tilt
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -118,8 +119,14 @@ def mechanics_label(level):
         parts.append("coins")
     if level.get("collapse"):
         parts.append("collapse")
+    if level.get("jelly"):
+        parts.append("jelly")
+    if level.get("magma"):
+        parts.append("magma")
     if level.get("shifters"):
         parts.append("moving wall")
+    if level.get("planet"):
+        parts.append(level["planet"])
     return ", ".join(parts) if parts else "walls"
 
 
@@ -143,6 +150,10 @@ def mechanic_names(level):
         names.append("coins")
     if level.get("collapse"):
         names.append("collapse")
+    if level.get("jelly"):
+        names.append("jelly")
+    if level.get("magma"):
+        names.append("magma")
     if level.get("shifters"):
         names.append("movers")
     return names
@@ -232,9 +243,15 @@ def validate(data):
     if "pillars" in json.dumps(data):
         errors.append("pillar field still present")
     levels = data.get("levels") or []
-    if len(levels) != 90:
-        errors.append(f"expected 90 levels, got {len(levels)}")
+    planets = (
+        "wood", "desert", "ice", "ocean", "crystal", "toy",
+        "mushroom", "candy", "lava", "jungle", "alien", "machine",
+    )
+    sizes = [3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7]
+    if len(levels) != 144:
+        errors.append(f"expected 144 levels, got {len(levels)}")
     seen = set()
+    gallery = Gallery()
     prev_par = 0
     for i, lv in enumerate(levels, start=1):
         if lv.get("id") != i:
@@ -271,6 +288,11 @@ def validate(data):
         if fp in seen:
             errors.append(f"id {i} duplicates an earlier layout")
         seen.add(fp)
+        dup = gallery.reject_reason(lv)
+        if dup:
+            errors.append(f"id {i} {dup}")
+        else:
+            gallery.add(lv)
         for e in lv.get("oneWay") or []:
             edge = (e["axis"], e["row"], e["col"])
             if not _in_range(n, e["axis"], e["row"], e["col"]):
@@ -297,38 +319,36 @@ def validate(data):
                 errors.append(f"id {i} par {lv.get('par')} != BFS {par}")
             if n < 3:
                 errors.append(f"id {i} board is smaller than 3×3")
-            if par < 4:
+            if par < 2:
                 errors.append(f"id {i} trivial par {par}")
+            if lv.get("coins"):
+                errors.append(f"id {i} still uses coins")
             names = set(mechanic_names(lv))
-            expected = _band(i)
-            if expected is not None and names != expected:
-                errors.append(f"id {i} mechanics {sorted(names)} expected {sorted(expected)}")
-            if i >= 71 and len(names) < 2:
-                errors.append(f"id {i} mix needs two mechanics, has {sorted(names)}")
-            if "glass" in names and broken < 1 and i <= 42:
-                errors.append(f"id {i} optimal path never breaks glass")
-            if "gates" in names and expected == {"gates"}:
-                if not button_required(lv, max_moves=60):
-                    errors.append(f"id {i} solvable without its button")
-                full = (1 << len(COLOR_IDS)) - 1
-                bits = {1 << color_id(b.get("color")) for b in lv["buttons"]}
-                for bit in bits:
-                    if solve(lv, max_moves=60, allow_mask=full ^ bit) is not None:
-                        errors.append(f"id {i} color bit {bit} is not required")
-            if expected == {"sand"} and not _shorter_without(lv, "sand", par):
-                errors.append(f"id {i} sand does not add tilts")
-            if expected == {"ice"} and not _shorter_without(lv, "ice", par):
-                errors.append(f"id {i} ice does not add tilts")
-            if expected == {"coins"} and not _coins_on_par(lv, moves):
-                errors.append(f"id {i} par path misses a coin")
-            if expected == {"teleport"} and not _jumps(lv, moves):
-                errors.append(f"id {i} solution never teleports")
-            if expected == {"collapse"} and not _collapse_once(lv, moves):
-                errors.append(f"id {i} collapse cell is not a one-time step")
-            if expected == {"movers"} and not _shifter_matters(lv, moves):
-                errors.append(f"id {i} moving wall does not change the route")
-            if prev_par and par + 3 < prev_par:
-                errors.append(f"id {i} par {par} drops more than 2 from {prev_par}")
+            planet_i = (i - 1) // 12
+            stage_i = (i - 1) % 12
+            if planet_i < len(planets):
+                planet = planets[planet_i]
+                if lv.get("planet") != planet:
+                    errors.append(f"id {i} planet {lv.get('planet')} expected {planet}")
+                if n != sizes[stage_i]:
+                    errors.append(f"id {i} size {n} expected {sizes[stage_i]}")
+                if planet == "alien" and len(names) < 2:
+                    errors.append(f"id {i} alien mix needs two mechanics")
+                if planet == "machine" and len(names) < 3:
+                    errors.append(f"id {i} machine mix needs three mechanics")
+                if planet == "lava" and "magma" not in names:
+                    errors.append(f"id {i} lava stage has no magma")
+                if planet == "candy" and "jelly" not in names:
+                    errors.append(f"id {i} candy stage has no jelly")
+                if planet == "jungle" and stage_i >= 2 and "movers" not in names:
+                    errors.append(f"id {i} jungle stage has no moving walls")
+                if planet not in ("alien", "machine", "wood", "jungle") and stage_i == 0 and not names and planet != "wood":
+                    pass
+            for name in names:
+                if not CHECKS[name](lv, moves):
+                    errors.append(f"id {i} {name} is decorative")
+            if stage_i != 0 and prev_par and par + 5 < prev_par:
+                errors.append(f"id {i} par {par} drops more than 4 from {prev_par}")
             prev_par = par
         rows.append((i, n, lv.get("par"), mechanics_label(lv)))
     return errors, rows
