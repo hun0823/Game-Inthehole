@@ -1752,8 +1752,10 @@ function measureBoardRect() {
   const hud = document.querySelector(".topbar").getBoundingClientRect();
   const controls = document.querySelector(".controls").getBoundingClientRect();
   const wrap = boardWrapEl.getBoundingClientRect();
+  const up = document.querySelector(".dpad-up");
+  const upTop = up ? up.getBoundingClientRect().top : controls.top;
   const top = hud.bottom;
-  const bottom = controls.top;
+  const bottom = wrap.bottom;
   const left = wrap.left;
   const right = wrap.right;
   return {
@@ -1765,6 +1767,7 @@ function measureBoardRect() {
     bottom,
     width: Math.max(0, right - left),
     height: Math.max(0, bottom - top),
+    dpadOverlap: Math.max(0, Math.round(bottom - upTop)),
   };
 }
 
