@@ -1309,9 +1309,45 @@ export function createView(canvas) {
     }
   }
 
+  function measuredCanvas() {
+    return {
+      w: canvas.clientWidth || canvas.parentElement?.clientWidth || 300,
+      h: canvas.clientHeight || canvas.parentElement?.clientHeight || 300,
+    };
+  }
+
+  function cssPx(name) {
+    if (typeof document === "undefined") return 0;
+    const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // The HUD publishes the free rectangle between the top bar and the D-pad.
+  // Until that exists, fit the camera to the canvas the same way as before.
+  function boardFitSize() {
+    const api = typeof window !== "undefined" ? window.RB_LAYOUT : null;
+    if (api && typeof api.boardRect === "function") {
+      try {
+        const rect = api.boardRect();
+        if (rect && rect.width > 2 && rect.height > 2) return { w: rect.width, h: rect.height };
+      } catch {
+        /* publisher not ready */
+      }
+    }
+    const span = cssPx("--dpad-top") - cssPx("--hud-bottom");
+    if (span > 2) {
+      const box = canvas.parentElement?.getBoundingClientRect();
+      const w = box && box.width > 2 ? box.width : measuredCanvas().w;
+      return { w, h: span };
+    }
+    return measuredCanvas();
+  }
+
   function frameCamera() {
-    const w = canvas.clientWidth || 300;
-    const h = canvas.clientHeight || 300;
+    const fit = boardFitSize();
+    const w = fit.w;
+    const h = fit.h;
     const aspect = w / Math.max(1, h);
     const fov = 28;
     camera.fov = fov;
