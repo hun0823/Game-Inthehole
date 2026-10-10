@@ -14,7 +14,7 @@ import {
   makeSand, makeIce, makeJelly, makeSmog, makeMagma, makeTeleport, makeCurrent, makeButton,
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
-import { beginDeco, tickDeco, decoWanted, createBoardDeco, layoutDeco } from "./boardDeco.js";
+import { beginDeco, tickDeco } from "./boardDeco.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -26,24 +26,13 @@ const REST_X = 0.045;
 const WALL_T = 0.52;
 const WALL_H = 0.4;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
-const FRAME_T = 1.24;
-const FRAME_H = 0.72;
+const FRAME_T = 0.15;
+const FRAME_H = 0.22;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
 
-function mixHex(a, b, t) {
-  return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
-}
-
 function framePalette(theme) {
-  if (theme.id === "wood") return { hi: 0xfffaf2, mid: 0xfff3e4, low: 0xd7c2a2 };
-  if (theme.id === "ice") return { hi: 0xffffff, mid: 0xc5e9f8, low: 0x3d7496 };
-  if (theme.id === "machine") return { hi: 0xf4f7fb, mid: 0xb7c2ce, low: 0x4e5964 };
-  return {
-    hi: mixHex(theme.frame, 0xffffff, 0.7),
-    mid: mixHex(theme.frame, 0xffffff, 0.16),
-    low: mixHex(theme.edge, 0x000000, 0.18),
-  };
+  return { mid: theme.frame };
 }
 
 const geos = new Map();
@@ -161,9 +150,6 @@ function makeBoardTexture(n, palette) {
   const cell = 96;
   const size = n * cell;
   const floor = palette?.floor || "#e4a45e";
-  const groove = palette?.groove || "112, 62, 24";
-  const light = palette?.light || "255, 220, 168";
-  const id = palette?.id || "wood";
   const base = rgbOf(floor);
   const pale = mixRgb(base, [255, 255, 255], 0.5);
   const deep = mixRgb(base, [0, 0, 0], 0.1);
@@ -173,8 +159,8 @@ function makeBoardTexture(n, palette) {
   const g = c.getContext("2d");
   g.fillStyle = `rgb(${seam.join(",")})`;
   g.fillRect(0, 0, size, size);
-  const gap = 3;
-  const rad = 22;
+  const gap = 2;
+  const rad = 8;
   for (let r = 0; r < n; r++) {
     for (let col = 0; col < n; col++) {
       const x = col * cell + gap;
@@ -183,119 +169,12 @@ function makeBoardTexture(n, palette) {
       const tone = (r + col) % 2 === 0 ? pale : deep;
       g.fillStyle = `rgb(${tone.join(",")})`;
       roundFill(g, x, y, w, w, rad);
-      g.save();
-      g.beginPath();
-      roundFillPath(g, x, y, w, w, rad);
-      g.clip();
-      paintCellMotif(g, id, x, y, w, r, col, groove, light);
-      g.restore();
     }
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
-}
-
-function roundFillPath(g, x, y, w, h, r) {
-  const rad = Math.min(r, w / 2, h / 2);
-  g.moveTo(x + rad, y);
-  g.arcTo(x + w, y, x + w, y + h, rad);
-  g.arcTo(x + w, y + h, x, y + h, rad);
-  g.arcTo(x, y + h, x, y, rad);
-  g.arcTo(x, y, x + w, y, rad);
-  g.closePath();
-}
-
-function paintCellMotif(g, id, x, y, w, r, col, groove, light) {
-  g.strokeStyle = `rgba(${groove}, 0.28)`;
-  g.fillStyle = `rgba(${groove}, 0.16)`;
-  g.lineWidth = 2;
-  g.lineCap = "round";
-  if (id === "ice" && (r * 3 + col) % 2 === 0) {
-    g.beginPath();
-    g.moveTo(x + w * 0.2, y + w * 0.7);
-    g.lineTo(x + w * 0.4, y + w * 0.45);
-    g.lineTo(x + w * 0.55, y + w * 0.62);
-    g.lineTo(x + w * 0.8, y + w * 0.28);
-    g.stroke();
-    return;
-  }
-  if (id === "wood") {
-    g.beginPath();
-    const cx = x + w / 2;
-    const cy = y + w / 2;
-    const rad = w * 0.28;
-    for (let i = 0; i < 6; i++) {
-      const a = -Math.PI / 2 + (i / 6) * Math.PI * 2;
-      const px = cx + Math.cos(a) * rad;
-      const py = cy + Math.sin(a) * rad;
-      if (i) g.lineTo(px, py);
-      else g.moveTo(px, py);
-    }
-    g.closePath();
-    g.stroke();
-    return;
-  }
-  if (id === "desert") {
-    g.beginPath();
-    g.ellipse(x + w * 0.5, y + w * 0.62, w * 0.28, w * 0.1, 0, 0, Math.PI * 2);
-    g.stroke();
-    return;
-  }
-  if (id === "ocean") {
-    g.beginPath();
-    g.arc(x + w * 0.35, y + w * 0.4, w * 0.08, 0, Math.PI * 2);
-    g.arc(x + w * 0.62, y + w * 0.58, w * 0.05, 0, Math.PI * 2);
-    g.fill();
-    return;
-  }
-  if (id === "crystal" || id === "toy") {
-    const cx = x + w * 0.5;
-    const cy = y + w * 0.5;
-    g.beginPath();
-    g.moveTo(cx, cy - w * 0.16);
-    g.lineTo(cx + w * 0.05, cy - w * 0.05);
-    g.lineTo(cx + w * 0.16, cy);
-    g.lineTo(cx + w * 0.05, cy + w * 0.05);
-    g.lineTo(cx, cy + w * 0.16);
-    g.lineTo(cx - w * 0.05, cy + w * 0.05);
-    g.lineTo(cx - w * 0.16, cy);
-    g.lineTo(cx - w * 0.05, cy - w * 0.05);
-    g.closePath();
-    g.fill();
-    return;
-  }
-  if (id === "candy") {
-    const colors = ["#ff5a9a", "#7adf5a", "#ffe14a", "#3ec4ff"];
-    for (let i = 0; i < 5; i++) {
-      g.fillStyle = colors[(r + col + i) % colors.length];
-      g.fillRect(x + 10 + ((i * 17 + col * 5) % (w - 16)), y + 12 + ((i * 13 + r * 7) % (w - 16)), 7, 3);
-    }
-    return;
-  }
-  if (id === "lava" && (r + col) % 3 === 0) {
-    g.strokeStyle = "rgba(255, 120, 40, 0.55)";
-    g.beginPath();
-    g.moveTo(x + w * 0.2, y + w * 0.3);
-    g.lineTo(x + w * 0.5, y + w * 0.55);
-    g.lineTo(x + w * 0.75, y + w * 0.4);
-    g.stroke();
-    return;
-  }
-  if (id === "jungle") {
-    g.beginPath();
-    g.ellipse(x + w * 0.5, y + w * 0.5, w * 0.22, w * 0.12, 0.6, 0, Math.PI * 2);
-    g.stroke();
-    return;
-  }
-  if (id === "machine") {
-    g.strokeStyle = `rgba(${light}, 0.35)`;
-    g.strokeRect(x + w * 0.22, y + w * 0.22, w * 0.56, w * 0.56);
-    g.beginPath();
-    g.arc(x + w * 0.5, y + w * 0.5, 3, 0, Math.PI * 2);
-    g.fill();
-  }
 }
 
 function makeOakBallMap() {
@@ -912,9 +791,7 @@ export function createView(canvas) {
 
   applyStudio(renderer, scene, 0.4);
 
-  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.48, metalness: 0.04 });
-  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.32, metalness: 0.06 });
-  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.18, metalness: 0.05 });
+  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.42, metalness: 0.04 });
   const frameGlossMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -987,9 +864,7 @@ export function createView(canvas) {
   function applyTheme(id) {
     activeTheme = themeById(id);
     const pal = framePalette(activeTheme);
-    frameLowMat.color.setHex(pal.low);
     frameMidMat.color.setHex(pal.mid);
-    frameHiMat.color.setHex(pal.hi);
     floorEdgeMat.color.setHex(activeTheme.edge);
     moteMat.color.set(activeTheme.mote);
     storm = !!activeTheme.storm;
@@ -1355,21 +1230,17 @@ export function createView(canvas) {
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const half = viewHalf;
-    // 82° from the floor: near top-down, still enough pitch that screen-up
-    // stays the board's -Z (the "up" tilt). A tall free rectangle fits the
-    // width and leaves vertical bands for the trim. A short one (375×667,
-    // where the free height is under the width) fits the height instead,
-    // and the trim moves into the side gutters.
+    // 82° from the floor: near top-down, screen-up stays the board's -Z.
+    // The frame fills about 94% of the free width. A short rectangle
+    // (height under that width) fits the height instead.
     const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const sideGutters = h + 1 < w;
-    const fillW = sideGutters ? 1 : 0.98;
-    const fillH = sideGutters ? 0.93 : 0.74;
+    const fillW = 0.94;
+    const fillH = 0.96;
     const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
     const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
-    const dist = sideGutters ? distH : Math.max(distW, distH);
-    layoutDeco(rig.getObjectByName("board-deco"), sideGutters ? "sides" : "frame", half);
+    const dist = Math.max(distW, distH);
     const lookY = 0.42;
     camera.position.set(0, lookY + dist * sinE, dist * cosE);
     camera.lookAt(0, lookY, 0);
@@ -1836,19 +1707,19 @@ export function createView(canvas) {
     clearRig();
     clearFx();
     const span = n * STEP;
-    const inner = span / 2 - 0.02;
-    // 6×6 is the look the trim was drawn for. Thickness and margin track
-    // the board so 3×3 through 8×8 keep the same frame weight on screen.
+    const inner = span / 2 - 0.01;
+    // Thickness tracks board size so 3×3 through 8×8 keep about the same
+    // outline weight: a charcoal stroke and one theme-color band.
     const unit = n / 6;
     const frameT = FRAME_T * unit;
     const frameH = FRAME_H * unit;
+    const ink = 0.045 * unit;
     const outer = inner + frameT;
-    const skirt = 0.22 * unit;
-    viewHalf = outer + skirt + 0.04 * unit;
+    viewHalf = outer + ink;
     const outerW = outer * 2;
     const holeW = inner * 2;
-    const outerR = Math.min(frameT * 0.9, outer * 0.46);
-    const innerR = Math.min(frameT * 0.58, inner * 0.34);
+    const outerR = Math.min(0.2 * unit, outer * 0.16);
+    const innerR = Math.min(0.05 * unit, 0.06);
     const addRing = (ow, iw, oR, iR, height, mat, y) => {
       const mesh = new THREE.Mesh(frameRingGeo(ow, iw, oR, iR, height), mat);
       mesh.position.y = y;
@@ -1857,12 +1728,8 @@ export function createView(canvas) {
       mesh.receiveShadow = mat !== frameInkMat;
       rig.add(mesh);
     };
-    addRing(outerW + skirt * 2, outerW - skirt * 0.15, outerR + skirt * 0.7, Math.max(0.08, outerR * 0.9), frameH * 0.5, frameInkMat, 0);
     addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
-    addRing(outerW - 0.02 * unit, outerW - frameT * 0.36, outerR * 0.92, Math.max(0.08, outerR * 0.72), frameH * 0.14, frameHiMat, 0.03 + frameH * 0.88);
-    addRing(holeW + 0.18 * unit, holeW + 0.015 * unit, Math.max(0.08, innerR * 0.82), Math.max(0.05, innerR * 0.32), frameH * 0.12, frameLowMat, 0.035 + frameH * 0.92);
-    addRing(outerW + skirt * 2, outerW - 0.03 * unit, outerR + skirt * 0.55, Math.max(0.08, outerR * 0.96), frameH * 0.12, frameInkMat, 0.04 + frameH * 0.92);
-    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
+    addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.65, Math.max(0.04, outerR * 0.9), Math.max(0.035, frameH * 0.22), frameInkMat, 0.015 + frameH * 0.84);
 
     const boardH = 0.26;
     const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
