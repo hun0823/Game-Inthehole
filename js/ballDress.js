@@ -64,7 +64,7 @@ export function addSportMarks(parent) {
   const white = new THREE.MeshStandardMaterial({ color: 0xf4f6f2, roughness: 0.48 });
   for (const sign of [1, -1]) {
     const pts = sideSeam(sign);
-    baseball.add(tube(pts, 0.015, red, false));
+    baseball.add(tube(pts, 0.018, red, false));
     stitches(baseball, pts, red);
   }
   tennis.add(tube(tennisCurve(), 0.02, white, true));

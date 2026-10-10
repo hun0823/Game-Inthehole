@@ -1130,8 +1130,10 @@ function placePlanetLabels() {
   const h = canvas.clientHeight;
   mapLabels.querySelectorAll(".star-label").forEach((btn, i) => {
     const point = mapView.project(i, w, h);
-    btn.style.left = `${point.x}px`;
-    btn.style.top = `${point.y + 42}px`;
+    const half = 52;
+    const x = Math.min(w - half - 4, Math.max(half + 4, point.x));
+    btn.style.left = `${x}px`;
+    btn.style.top = `${point.y + 46}px`;
   });
 }
 
@@ -1161,7 +1163,13 @@ function renderMap() {
     name.textContent = planetName(lang, id);
     const meta = document.createElement("em");
     const rounds = t(lang, "rounds", { n: planetProgress(p) });
-    meta.textContent = open ? rounds : `${t(lang, "map-locked")} · ${rounds}`;
+    meta.textContent = rounds;
+    if (!open) {
+      const lock = document.createElement("span");
+      lock.className = "star-lock";
+      lock.textContent = "🔒";
+      btn.append(lock);
+    }
     btn.append(name, meta);
     btn.addEventListener("click", () => openFromMap(p));
     mapLabels.append(btn);

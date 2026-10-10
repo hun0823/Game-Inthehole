@@ -49,8 +49,8 @@ export function createConstellation(canvas) {
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 60);
-  const homePos = new THREE.Vector3(0, 0.05, 12.6);
-  const homeLook = new THREE.Vector3(0, -0.15, 0);
+  const homePos = new THREE.Vector3(0, 0.05, 17.8);
+  const homeLook = new THREE.Vector3(0, -0.05, 0);
   const look = homeLook.clone();
   camera.position.copy(homePos);
   camera.lookAt(look);
@@ -88,7 +88,7 @@ export function createConstellation(canvas) {
     const planet = createPlanet(id);
     const row = Math.floor(i / 3);
     const col = row % 2 ? 2 - (i % 3) : i % 3;
-    planet.position.set((col - 1) * 1.48, 2.15 - row * 1.5, 0);
+    planet.position.set((col - 1) * 1.38, 2.45 - row * 1.64, 0);
     planet.userData.spin.rotation.y = 0.45 + i * 0.15;
     scene.add(planet);
     return planet;

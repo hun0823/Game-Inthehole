@@ -56,7 +56,7 @@ function atmosphere(color) {
   return mesh;
 }
 
-function ring(color, tilt, radius = 0.78) {
+function ring(color, tilt, radius = 0.66) {
   const mesh = new THREE.Mesh(
     new THREE.TorusGeometry(radius, 0.03, 8, 48),
     new THREE.MeshStandardMaterial({ color, roughness: 0.35, metalness: 0.25, side: THREE.DoubleSide })
@@ -404,7 +404,7 @@ export function createPlanet(id) {
   if (id === "crystal" || id === "toy" || id === "candy" || id === "machine") {
     const colors = { crystal: 0xd5e6ff, toy: 0xffe14a, candy: 0xff8ad0, machine: 0xd5dde6 };
     spin.add(ring(colors[id], 1.15));
-    if (id === "crystal") spin.add(ring(0xffffff, 1.35, 0.92));
+    if (id === "crystal") spin.add(ring(0xffffff, 1.35, 0.8));
   }
   if (id === "ice") {
     const moon = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 12), snow);

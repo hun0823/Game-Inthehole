@@ -1569,7 +1569,7 @@ body {
 .star-label {
   position: absolute;
   transform: translate(-50%, 0);
-  min-width: 76px;
+  width: 104px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -1580,6 +1580,12 @@ body {
   cursor: pointer;
   pointer-events: auto;
   text-shadow: 0 1px 2px #000;
+}
+
+.star-lock {
+  display: block;
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .star-label strong,
@@ -1595,8 +1601,10 @@ body {
 }
 
 .star-label em {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-style: normal;
+  line-height: 1.15;
+  white-space: nowrap;
   -webkit-text-stroke: 2px #102040;
   paint-order: stroke fill;
 }

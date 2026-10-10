@@ -85,9 +85,9 @@ export function shotBall(id, size = 160) {
   const { scene, camera } = stage();
   ballMesh.material = mats[id] || mats.oak;
   sport.show(id);
-  ballSpin.rotation.set(0.15, 0.35, 0);
+  ballSpin.rotation.set(0.08, 0.12, 0);
   scene.add(ballSpin);
-  camera.position.set(0.55, 0.32, 1.42);
+  camera.position.set(0.02, 0.18, 1.55);
   camera.lookAt(0, 0, 0);
   return Promise.resolve(remember(key, snap(scene, camera, size)));
 }

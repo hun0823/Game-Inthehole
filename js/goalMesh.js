@@ -256,7 +256,6 @@ export function createGoalKit(ballMaterials) {
       emissiveIntensity: look.emissive ? 0.35 : 0,
       roughness: look.roughness,
       metalness: look.metalness || 0,
-      clearcoat: look.clearcoat || 0,
     });
     goalMats.set(kind, mat);
     return mat;
