@@ -16,27 +16,33 @@
   <canvas id="sky" class="sky" aria-hidden="true"></canvas>
   <div class="app">
     <header class="topbar">
-      <div class="hud-side">
+      <div class="hud-top">
         <button type="button" id="btn-store" class="currency-chip" aria-label="Shop">
-          <span class="currency-star" aria-hidden="true">★</span>
+          <svg class="currency-star" viewBox="0 0 64 64" aria-hidden="true">
+            <polygon points="32,6 39.2,23.2 58,24.8 43.8,37.4 48,56.2 32,46.6 16,56.2 20.2,37.4 6,24.8 24.8,23.2" fill="#FFD93A" stroke="#141414" stroke-width="5" stroke-linejoin="round"/>
+          </svg>
           <span id="score-label" class="score">0</span>
           <span class="currency-plus" aria-hidden="true">+</span>
         </button>
-        <button type="button" id="btn-gear" class="kit-icon kit-icon--charcoal" aria-label="Settings">⚙</button>
       </div>
-      <div class="hud-center">
-        <div class="level-row">
-          <button type="button" id="btn-prev" class="chev" aria-label="Previous stage">‹</button>
-          <button type="button" id="btn-select" class="level-btn">Lvl. 1</button>
-          <button type="button" id="btn-next" class="chev" aria-label="Next stage">›</button>
+      <div class="hud-stage">
+        <button type="button" id="btn-pause" class="hud-sq hud-sq--pause" aria-label="Pause" aria-expanded="false" aria-controls="pause-menu">
+          <span class="hud-sq-depth" aria-hidden="true"></span>
+          <span class="hud-sq-face" aria-hidden="true"><span class="pause-bars"></span></span>
+        </button>
+        <div class="stage-banner">
+          <div class="stage-banner-depth" aria-hidden="true"></div>
+          <div class="stage-banner-face">
+            <div id="btn-select" class="level-title">Lvl. 1</div>
+            <div id="moves-label" class="moves"></div>
+          </div>
         </div>
-        <div id="moves-label" class="moves"></div>
-        <p id="hint-note" class="hint-note" hidden></p>
+        <button type="button" id="btn-hint" class="hud-sq hud-sq--hint" aria-label="Hint">
+          <span class="hud-sq-depth" aria-hidden="true"></span>
+          <span class="hud-sq-face">?</span>
+        </button>
       </div>
-      <div class="hud-side hud-side--end">
-        <button type="button" id="btn-hint" class="kit-icon kit-icon--blue" aria-label="Hint">?</button>
-        <button type="button" id="btn-lesson" class="how-badge" hidden>How?</button>
-      </div>
+      <p id="hint-note" class="hint-note" hidden></p>
     </header>
 
     <main class="board-wrap">
@@ -46,49 +52,58 @@
     <nav class="controls" aria-label="Tilt the board">
       <div class="dpad">
         <button type="button" class="arcade-btn arcade-btn--gold dpad-up" data-dir="up">
+          <span class="arcade-depth" aria-hidden="true"></span>
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="32,10 56,50 8,50" fill="#141414"/>
+              <polygon points="32,12 54,50 10,50" fill="#ffffff" stroke="#141414" stroke-width="6" stroke-linejoin="round"/>
             </svg>
             <span class="face-caption">Up</span>
           </span>
         </button>
         <button type="button" class="arcade-btn arcade-btn--gold dpad-left" data-dir="left">
+          <span class="arcade-depth" aria-hidden="true"></span>
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="12,32 50,8 50,56" fill="#141414"/>
+              <polygon points="12,32 52,10 52,54" fill="#ffffff" stroke="#141414" stroke-width="6" stroke-linejoin="round"/>
             </svg>
             <span class="face-caption">Left</span>
           </span>
         </button>
         <button type="button" class="arcade-btn arcade-btn--gold dpad-right" data-dir="right">
+          <span class="arcade-depth" aria-hidden="true"></span>
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="52,32 14,8 14,56" fill="#141414"/>
+              <polygon points="52,32 12,10 12,54" fill="#ffffff" stroke="#141414" stroke-width="6" stroke-linejoin="round"/>
             </svg>
             <span class="face-caption">Right</span>
           </span>
         </button>
         <button type="button" class="arcade-btn arcade-btn--gold dpad-down" data-dir="down">
+          <span class="arcade-depth" aria-hidden="true"></span>
           <span class="arcade-face">
             <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-              <polygon points="32,54 8,14 56,14" fill="#141414"/>
+              <polygon points="32,52 10,14 54,14" fill="#ffffff" stroke="#141414" stroke-width="6" stroke-linejoin="round"/>
             </svg>
             <span class="face-caption">Down</span>
           </span>
         </button>
       </div>
       <button type="button" class="arcade-btn arcade-btn--purple retry-btn" id="btn-reset" aria-label="Retry">
-        <span class="arcade-face arcade-face--round">
-          <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
-            <path d="M44 22a16 16 0 1 0 2 14" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
-            <path d="M44 14v10h-10" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <span class="retry-stack">
+          <span class="arcade-depth arcade-depth--round" aria-hidden="true"></span>
+          <span class="arcade-face arcade-face--round">
+            <svg class="arrow" viewBox="0 0 64 64" aria-hidden="true">
+              <path d="M44 24a15 15 0 1 0 2.4 13" fill="none" stroke="#141414" stroke-width="11" stroke-linecap="round"/>
+              <path d="M44 24a15 15 0 1 0 2.4 13" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+              <path d="M44 13v13h-13" fill="none" stroke="#141414" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M44 13v13h-13" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
         </span>
         <span class="face-caption">Retry</span>
       </button>
     </nav>
-    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. The question mark shows the next best move. How? replays the lesson for a new mechanic. Hints are unlimited. R resets the stage. N loads the next stage. Shop spends stars on balls, trails, backgrounds, and celebrations.</p>
+    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. Pause opens the menu for retry, stages, the lesson, settings, and the shop. The question mark shows the next best move. Hints are unlimited. R resets the stage. N loads the next stage. Shop spends stars on balls, trails, backgrounds, and celebrations.</p>
     <div id="store" class="store" hidden>
       <div class="store-card" role="dialog" aria-modal="true" aria-labelledby="store-title">
         <div class="store-head">
@@ -119,7 +134,7 @@
         <h2 id="lesson-title">Glass</h2>
         <div id="lesson-art" class="lesson-art" aria-hidden="true"></div>
         <p id="lesson-body"></p>
-        <p class="lesson-replay">Tap How? by the question mark to see this again.</p>
+        <p class="lesson-replay">Open Pause and tap How? to see this again.</p>
         <button id="lesson-btn" type="button" class="kit-btn kit-btn--orange">Got it</button>
       </div>
     </div>
@@ -169,6 +184,19 @@
       <div class="map-bar">
         <button type="button" id="map-shop" class="kit-btn kit-btn--blue">Shop</button>
         <button type="button" id="map-play" class="kit-btn kit-btn--orange">PLAY</button>
+      </div>
+    </div>
+    <div id="pause-menu" class="pause-menu" hidden>
+      <div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+        <h2 id="pause-title">Paused</h2>
+        <button type="button" id="pause-resume" class="kit-btn kit-btn--orange">Resume</button>
+        <button type="button" id="pause-retry" class="kit-btn kit-btn--purple">Retry</button>
+        <button type="button" id="pause-stages" class="kit-btn kit-btn--blue">Stage list</button>
+        <button type="button" id="pause-prev" class="kit-btn kit-btn--yellow">Previous stage</button>
+        <button type="button" id="pause-next" class="kit-btn kit-btn--orange">Next stage</button>
+        <button type="button" id="pause-how" class="kit-btn kit-btn--yellow">How?</button>
+        <button type="button" id="pause-settings" class="kit-btn kit-btn--charcoal">Settings</button>
+        <button type="button" id="pause-shop" class="kit-btn kit-btn--blue">Shop</button>
       </div>
     </div>
     <div id="settings" class="settings" hidden>

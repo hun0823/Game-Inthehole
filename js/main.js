@@ -43,7 +43,10 @@ const lessonTitle = document.getElementById("lesson-title");
 const lessonArt = document.getElementById("lesson-art");
 const lessonBody = document.getElementById("lesson-body");
 const lessonBtn = document.getElementById("lesson-btn");
-const lessonButton = document.getElementById("btn-lesson");
+const pauseMenuEl = document.getElementById("pause-menu");
+const pausePrevBtn = document.getElementById("pause-prev");
+const pauseNextBtn = document.getElementById("pause-next");
+const pauseHowBtn = document.getElementById("pause-how");
 const storeEl = document.getElementById("store");
 const storeList = document.getElementById("store-list");
 const storeStars = document.getElementById("store-stars");
@@ -227,7 +230,8 @@ function ackLesson() {
 }
 
 function updateLessonButton() {
-  lessonButton.hidden = lessonsOn(LEVELS[stageIndex]).length === 0;
+  if (!pauseHowBtn) return;
+  pauseHowBtn.disabled = lessonsOn(LEVELS[stageIndex]).length === 0;
 }
 
 function maybeAutoLesson() {
@@ -449,8 +453,12 @@ function settingsOpen() {
   return !settingsEl.hidden;
 }
 
+function pauseMenuOpen() {
+  return pauseMenuEl && !pauseMenuEl.hidden;
+}
+
 function uiBlocked() {
-  return storeOpen() || mapOpen() || settingsOpen() || lessonOpen;
+  return storeOpen() || mapOpen() || settingsOpen() || lessonOpen || pauseMenuOpen();
 }
 
 function stageTitle(level, index) {
@@ -474,12 +482,13 @@ function updateHud() {
   if (gameOver) movesLabel.classList.add("move-over");
   else if (tone === "warn") movesLabel.classList.add("move-warn");
   else if (tone === "danger") movesLabel.classList.add("move-danger");
-  const stars = starsText(earnedStars().stars);
+  const earned = earnedStars().stars;
   const ratio = par > 0 ? `${game.moves}/${par}` : String(game.moves);
   movesLabel.replaceChildren();
   const hudStars = document.createElement("span");
   hudStars.className = "hud-stars";
-  hudStars.textContent = stars;
+  hudStars.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < 3; i++) hudStars.append(hudStar(i < earned));
   const pill = document.createElement("span");
   pill.className = "move-pill";
   const num = document.createElement("span");
@@ -487,6 +496,38 @@ function updateHud() {
   num.textContent = ratio;
   pill.append(num);
   movesLabel.append(hudStars, pill);
+  movesLabel.setAttribute("aria-label", `${starsText(earned)} ${ratio}`);
+  syncPauseLocks();
+  fitStageTitle();
+}
+
+function hudStar(on) {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 64 64");
+  svg.setAttribute("class", on ? "hud-star is-on" : "hud-star");
+  const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+  poly.setAttribute("points", "32,6 39.5,24 59,25.5 44,38.5 48.5,58 32,48 15.5,58 20,38.5 5,25.5 24.5,24");
+  svg.append(poly);
+  return svg;
+}
+
+function fitStageTitle() {
+  const el = levelLabel;
+  if (!el) return;
+  el.style.fontSize = "";
+  if (el.clientWidth < 24) return;
+  const width = el.scrollWidth;
+  const box = el.clientWidth;
+  if (width <= box + 1) return;
+  const natural = parseFloat(getComputedStyle(el).fontSize);
+  el.style.fontSize = `${Math.max(14, Math.floor(natural * (box / width) * 0.94))}px`;
+}
+
+function syncPauseLocks() {
+  if (!pausePrevBtn) return;
+  pausePrevBtn.disabled = !canStepTo(stageIndex - 1);
+  pauseNextBtn.disabled = !(stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1));
+  updateLessonButton();
 }
 
 function clearHintUi() {
@@ -757,6 +798,7 @@ function hasDeepLink() {
 }
 
 function loadStage(index) {
+  closePause();
   stageIndex = Math.max(0, Math.min(index, LEVELS.length - 1));
   game = new Game(LEVELS[stageIndex]);
   gameOver = false;
@@ -888,28 +930,78 @@ function buildStageList() {
   }
 }
 
+function pressFeedback(btn) {
+  const down = () => btn.classList.add("is-down");
+  const up = () => btn.classList.remove("is-down");
+  btn.addEventListener("pointerdown", down);
+  btn.addEventListener("pointerup", up);
+  btn.addEventListener("pointercancel", up);
+  btn.addEventListener("pointerleave", up);
+}
+
 document.querySelectorAll(".arcade-btn[data-dir]").forEach((btn) => {
+  pressFeedback(btn);
   btn.addEventListener("click", () => handleTilt(btn.dataset.dir));
 });
+pressFeedback(document.getElementById("btn-reset"));
+pressFeedback(document.getElementById("btn-pause"));
+pressFeedback(document.getElementById("btn-hint"));
 
 document.getElementById("btn-reset").addEventListener("click", () => resetStage());
 document.getElementById("btn-hint").addEventListener("click", () => showHint());
-lessonButton.addEventListener("click", () => {
-  if (uiBlocked() || animating) return;
-  playLessonQueue(lessonsOn(LEVELS[stageIndex]));
-});
 lessonBtn.addEventListener("click", () => ackLesson());
-document.getElementById("btn-prev").addEventListener("click", () => {
-  if (!uiBlocked() && !animating && canStepTo(stageIndex - 1)) loadStage(stageIndex - 1);
+document.getElementById("dialog-close").addEventListener("click", () => stageDialog.close());
+
+function setPauseChrome(paused) {
+  document.querySelector(".topbar").inert = paused;
+  document.querySelector(".board-wrap").inert = paused;
+  document.querySelector(".controls").inert = paused;
+}
+
+function openPause() {
+  if (pauseMenuOpen() || uiBlocked() || animating || !overlay.classList.contains("hidden")) return;
+  pauseMenuEl.hidden = false;
+  document.getElementById("btn-pause").setAttribute("aria-expanded", "true");
+  syncPauseLocks();
+  setPauseChrome(true);
+  document.getElementById("pause-resume").focus();
+}
+
+function closePause() {
+  if (!pauseMenuEl || pauseMenuEl.hidden) return;
+  pauseMenuEl.hidden = true;
+  document.getElementById("btn-pause").setAttribute("aria-expanded", "false");
+  setPauseChrome(false);
+}
+
+document.getElementById("btn-pause").addEventListener("click", () => openPause());
+document.getElementById("pause-resume").addEventListener("click", () => closePause());
+pauseMenuEl.addEventListener("click", (e) => {
+  if (e.target === pauseMenuEl) closePause();
 });
-document.getElementById("btn-next").addEventListener("click", () => {
-  if (!uiBlocked() && !animating && canStepTo(stageIndex + 1)) loadStage(stageIndex + 1);
+document.getElementById("pause-retry").addEventListener("click", () => {
+  closePause();
+  resetStage();
 });
-document.getElementById("btn-select").addEventListener("click", () => {
-  if (uiBlocked()) return;
+document.getElementById("pause-stages").addEventListener("click", () => {
   openStageList(planetOf(stageIndex));
 });
-document.getElementById("dialog-close").addEventListener("click", () => stageDialog.close());
+pausePrevBtn.addEventListener("click", () => {
+  if (animating || !canStepTo(stageIndex - 1)) return;
+  loadStage(stageIndex - 1);
+});
+pauseNextBtn.addEventListener("click", () => {
+  if (animating || !(stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1))) return;
+  loadStage(stageIndex + 1);
+});
+pauseHowBtn.addEventListener("click", () => {
+  if (pauseHowBtn.disabled || animating) return;
+  const ids = lessonsOn(LEVELS[stageIndex]);
+  closePause();
+  playLessonQueue(ids);
+});
+document.getElementById("pause-settings").addEventListener("click", () => openSettings());
+document.getElementById("pause-shop").addEventListener("click", () => openStore());
 
 const KEY_MAP = {
   ArrowUp: "up",
@@ -935,9 +1027,14 @@ document.addEventListener("keydown", (e) => {
       else closeStore();
       return;
     }
+    if (pauseMenuOpen()) {
+      e.preventDefault();
+      closePause();
+      return;
+    }
     if (mapOpen()) return;
   }
-  if (storeOpen() || mapOpen() || settingsOpen()) return;
+  if (storeOpen() || mapOpen() || settingsOpen() || pauseMenuOpen()) return;
   if (stageDialog.open) return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (key === "r") {
@@ -998,6 +1095,7 @@ document.addEventListener(
     if (storeOpen() && storeEl.contains(e.target)) return;
     if (mapOpen() && mapEl.contains(e.target)) return;
     if (settingsOpen() && settingsEl.contains(e.target)) return;
+    if (pauseMenuOpen() && pauseMenuEl.contains(e.target)) return;
     e.preventDefault();
   },
   { passive: false }
@@ -1495,6 +1593,7 @@ function renderMap() {
 }
 
 function showMap() {
+  closePause();
   hideLesson();
   hideOverlay();
   if (stageDialog.open) stageDialog.close();
@@ -1539,9 +1638,17 @@ function applyLang() {
   document.getElementById("map-starbox").setAttribute("aria-label", t(lang, "shop"));
   document.getElementById("map-shop").textContent = t(lang, "shop");
   document.getElementById("map-play").textContent = t(lang, "play");
-  document.getElementById("btn-gear").setAttribute("aria-label", t(lang, "settings"));
+  document.getElementById("btn-pause").setAttribute("aria-label", t(lang, "pause"));
   document.getElementById("map-settings").setAttribute("aria-label", t(lang, "settings"));
-  lessonButton.textContent = t(lang, "how");
+  document.getElementById("pause-title").textContent = t(lang, "paused");
+  document.getElementById("pause-resume").textContent = t(lang, "resume");
+  document.getElementById("pause-retry").textContent = t(lang, "retry");
+  document.getElementById("pause-stages").textContent = t(lang, "stage-list");
+  pausePrevBtn.textContent = t(lang, "prev");
+  pauseNextBtn.textContent = t(lang, "next-stage");
+  pauseHowBtn.textContent = t(lang, "how");
+  document.getElementById("pause-settings").textContent = t(lang, "settings");
+  document.getElementById("pause-shop").textContent = t(lang, "shop");
   document.querySelector(".lesson-replay").textContent = t(lang, "replay");
   lessonBtn.textContent = t(lang, "got-it");
   document.getElementById("store-title").textContent = t(lang, "shop-title");
@@ -1564,8 +1671,6 @@ function applyLang() {
   document.querySelector(".dpad-right .face-caption").textContent = t(lang, "right");
   document.querySelector(".retry-btn .face-caption").textContent = t(lang, "retry");
   document.getElementById("btn-reset").setAttribute("aria-label", t(lang, "retry"));
-  document.getElementById("btn-prev").setAttribute("aria-label", t(lang, "prev"));
-  document.getElementById("btn-next").setAttribute("aria-label", t(lang, "next"));
   document.getElementById("btn-hint").setAttribute("aria-label", t(lang, "hint"));
   if (lessonOpen && lessonQueue[0]) showLessonCard(lessonQueue[0]);
   if (!storeEl.hidden) renderStore();
@@ -1588,10 +1693,6 @@ function setLang(next) {
   if (settingsOpen()) openSettings();
 }
 
-document.getElementById("btn-gear").addEventListener("click", () => {
-  if (storeOpen() || lessonOpen || animating) return;
-  openSettings();
-});
 document.getElementById("map-settings").addEventListener("click", () => openSettings());
 document.getElementById("map-shop").addEventListener("click", () => {
   if (storeOpen()) closeStore();
@@ -1647,16 +1748,63 @@ else {
   renderBoard();
   showMap();
 }
-requestAnimationFrame(() => view.resize());
+function measureBoardRect() {
+  const hud = document.querySelector(".topbar").getBoundingClientRect();
+  const controls = document.querySelector(".controls").getBoundingClientRect();
+  const wrap = boardWrapEl.getBoundingClientRect();
+  const top = hud.bottom;
+  const bottom = controls.top;
+  const left = wrap.left;
+  const right = wrap.right;
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    right,
+    bottom,
+    width: Math.max(0, right - left),
+    height: Math.max(0, bottom - top),
+  };
+}
 
-window.addEventListener("resize", () => {
+function publishLayout() {
+  const hud = document.querySelector(".topbar").getBoundingClientRect();
+  const controls = document.querySelector(".controls").getBoundingClientRect();
+  const root = document.documentElement;
+  root.style.setProperty("--hud-bottom", `${Math.round(hud.bottom)}px`);
+  root.style.setProperty("--dpad-top", `${Math.round(controls.top)}px`);
+}
+
+window.RB_LAYOUT = {
+  boardRect() {
+    return measureBoardRect();
+  },
+};
+
+function refreshLayout() {
+  fitStageTitle();
+  publishLayout();
   paintSky();
   view.resize();
   if (!mapEl.hidden) positionMap();
-});
+}
+
+requestAnimationFrame(() => refreshLayout());
+window.addEventListener("resize", () => refreshLayout());
+window.addEventListener("orientationchange", () => refreshLayout());
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", () => refreshLayout());
+}
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => refreshLayout());
+}
 
 if (typeof ResizeObserver !== "undefined") {
-  new ResizeObserver(() => view.resize()).observe(boardWrapEl);
+  new ResizeObserver(() => {
+    publishLayout();
+    view.resize();
+  }).observe(boardWrapEl);
   new ResizeObserver(() => {
     if (!mapEl.hidden) positionMap();
   }).observe(constellationEl);
