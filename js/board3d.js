@@ -1649,13 +1649,19 @@ export function createView(canvas) {
     clearFx();
     const span = n * STEP;
     const inner = span / 2 - 0.02;
-    const outer = inner + FRAME_T;
-    viewHalf = outer + 0.05;
+    // 6×6 is the look the trim was drawn for. Thickness and margin track
+    // the board so 3×3 through 8×8 keep the same frame weight on screen.
+    const unit = n / 6;
+    const frameT = FRAME_T * unit;
+    const frameH = FRAME_H * unit;
+    const frameY = 0.04 + frameH / 2;
+    const outer = inner + frameT;
+    viewHalf = outer + 0.05 * unit;
     const bars = [
-      [outer * 2 + 0.02, FRAME_H, FRAME_T, 0, FRAME_Y, -(inner + FRAME_T / 2)],
-      [outer * 2 + 0.02, FRAME_H, FRAME_T, 0, FRAME_Y, inner + FRAME_T / 2],
-      [FRAME_T, FRAME_H, inner * 2, -(inner + FRAME_T / 2), FRAME_Y, 0],
-      [FRAME_T, FRAME_H, inner * 2, inner + FRAME_T / 2, FRAME_Y, 0],
+      [outer * 2 + 0.02, frameH, frameT, 0, frameY, -(inner + frameT / 2)],
+      [outer * 2 + 0.02, frameH, frameT, 0, frameY, inner + frameT / 2],
+      [frameT, frameH, inner * 2, -(inner + frameT / 2), frameY, 0],
+      [frameT, frameH, inner * 2, inner + frameT / 2, frameY, 0],
     ];
     for (const [w, h, d, x, y, z] of bars) {
       const body = new THREE.Mesh(roundGeo(w, h, d, 2, 0.08), frameLowMat);
@@ -1668,7 +1674,7 @@ export function createView(canvas) {
       body.add(ink);
       rig.add(body);
       const alongX = w >= d;
-      const capH = 0.12;
+      const capH = 0.12 * unit;
       const cw = alongX ? w * 0.99 : w * 0.56;
       const cd = alongX ? d * 0.56 : d * 0.99;
       const cap = new THREE.Mesh(roundGeo(cw, capH, cd, 2, 0.04), frameHiMat);
@@ -1686,13 +1692,14 @@ export function createView(canvas) {
       gloss.position.set(cap.position.x, cap.position.y + capH * 0.35, cap.position.z);
       rig.add(gloss);
     }
-    const boltY = FRAME_Y + FRAME_H / 2 + 0.02;
+    const boltY = frameY + frameH / 2 + 0.02 * unit;
     const boltGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.07, 10);
     const boltCapGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.035, 10);
     for (const sx of [-1, 1]) {
       for (const sz of [-1, 1]) {
         const bolt = new THREE.Mesh(boltGeo, boltDarkMat);
-        bolt.position.set(sx * (outer - 0.2), boltY, sz * (outer - 0.2));
+        bolt.scale.setScalar(unit);
+        bolt.position.set(sx * (outer - 0.22 * unit), boltY, sz * (outer - 0.22 * unit));
         bolt.castShadow = true;
         const boltInk = new THREE.Mesh(boltGeo, inkOutlineMaterial());
         boltInk.scale.setScalar(1.16);
@@ -1704,7 +1711,7 @@ export function createView(canvas) {
         rig.add(bolt);
       }
     }
-    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, FRAME_T));
+    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
 
     const boardH = 0.26;
     const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
@@ -2590,10 +2597,10 @@ export function createView(canvas) {
             pin.userData.hz = pin.position.z;
           }
           const ang = (i / Math.max(1, pins.length)) * Math.PI * 2 + 0.5;
-          pin.rotation.x = e * (1.35 + (i % 3) * 0.18);
-          pin.rotation.z = (i % 2 ? -1 : 1) * e * 0.85;
-          pin.position.x = pin.userData.hx + Math.cos(ang) * e * 0.26;
-          pin.position.z = pin.userData.hz + Math.sin(ang) * e * 0.2;
+          pin.rotation.x = e * (1.05 + (i % 3) * 0.12);
+          pin.rotation.z = (i % 2 ? -1 : 1) * e * 0.55;
+          pin.position.x = pin.userData.hx + Math.cos(ang) * e * 0.16;
+          pin.position.z = pin.userData.hz + Math.sin(ang) * e * 0.12;
         });
         if (reactHold == null && pinT >= 1) {
           pins.forEach((pin) => {

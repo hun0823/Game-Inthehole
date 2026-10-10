@@ -305,7 +305,7 @@ function netGoal(group, api, kit) {
   const mid = (near + far) * 0.5;
   const h = api.hh(0.56);
   const goal = grp(group, 0, Y0, 0);
-  goal.rotation.x = api.tuck ? 0.28 : 0.48;
+  goal.rotation.x = api.tuck ? 0.12 : 0.22;
   const white = kit.netMat;
   const depth = Math.abs(far - near);
   const postX = api.tuck ? 0.36 : 0.5;
@@ -408,30 +408,42 @@ function snowmanGoal(group, api) {
 }
 
 function hoopGoal(group, api, kit) {
-  const z = api.zb(-0.52);
-  const boardW = api.tuck ? 0.74 : 1.08;
-  const boardH = api.tuck ? 0.38 : 0.58;
-  const board = grp(group, 0, Y0 + 0.1, z);
-  board.rotation.x = api.tuck ? 0.72 : 1.08;
-  mesh(board, G.box, shade(0xffffff, 0.5), 0, 0, 0, {
-    s: [boardW, boardH, 0.04],
+  const z = api.zb(api.tuck ? -0.5 : -0.7);
+  const boardW = api.tuck ? 0.62 : 0.92;
+  const boardH = api.tuck ? 0.2 : 0.5;
+  const board = grp(group, 0, Y0 + (api.tuck ? 0.03 : 0.18), z);
+  // Top-row holes have no room to stand a board, so the face lies on the floor
+  // behind the rim. Elsewhere a small pitch shows the face from 82°.
+  if (!api.tuck) board.rotation.x = 0.4;
+  const face = api.tuck ? [boardW, 0.02, boardH] : [boardW, boardH, 0.045];
+  mesh(board, G.box, shade(0xffffff, 0.45), 0, 0, 0, {
+    s: face,
     ink: 1.06,
     shadow: true,
   });
-  const flash = mesh(board, G.box, hoopFlash, 0, -boardH * 0.02, 0.026, {
-    s: [boardW * 0.42, boardH * 0.5, 0.012],
+  const flash = mesh(board, G.box, hoopFlash, 0, api.tuck ? 0.012 : -boardH * 0.02, api.tuck ? 0 : 0.03, {
+    s: api.tuck ? [boardW * 0.46, 0.012, boardH * 0.52] : [boardW * 0.46, boardH * 0.52, 0.012],
   });
-  mesh(board, G.box, kit.rimMat, 0, -boardH * 0.02, 0.034, { s: [boardW * 0.46, boardH * 0.55, 0.01] });
-  mesh(board, G.box, shade(0xffffff, 0.5), 0, -boardH * 0.02, 0.042, { s: [boardW * 0.26, boardH * 0.32, 0.01] });
-  const rim = mesh(group, G.thinTorus, kit.rimMat, 0, Y0 + 0.055, -0.02, {
+  mesh(board, G.box, kit.rimMat, 0, api.tuck ? 0.02 : -boardH * 0.02, api.tuck ? 0 : 0.04, {
+    s: api.tuck ? [boardW * 0.5, 0.01, boardH * 0.58] : [boardW * 0.5, boardH * 0.58, 0.01],
+  });
+  mesh(board, G.box, shade(0xffffff, 0.45), 0, api.tuck ? 0.028 : -boardH * 0.02, api.tuck ? 0 : 0.05, {
+    s: api.tuck ? [boardW * 0.26, 0.008, boardH * 0.3] : [boardW * 0.26, boardH * 0.3, 0.008],
+  });
+  const rimScale = api.tuck ? 0.34 : 0.4;
+  mesh(group, G.thinTorus, kit.rimMat, 0, Y0 + 0.06, 0, {
     rot: [Math.PI / 2, 0, 0],
-    s: api.tuck ? 0.32 : 0.42,
+    s: rimScale,
     ink: 1.08,
   });
-  const net = grp(group, 0, Y0 + 0.02, rim.position.z);
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * Math.PI * 2;
-    mesh(net, G.cyl, kit.netMat, Math.cos(a) * 0.2, 0.08, Math.sin(a) * 0.2, { s: [0.012, 0.2, 0.012] });
+  const net = grp(group, 0, Y0 + 0.05, 0);
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const r = rimScale * 0.62;
+    mesh(net, G.box, kit.netMat, Math.cos(a) * r, 0.012, Math.sin(a) * r, {
+      rot: [0, -a, 0],
+      s: [rimScale * 0.5, 0.012, 0.016],
+    });
   }
   api.shadow(group, 0, z, boardW * 0.55, 0.18);
   api.act(net, (b, env, wob) => {
@@ -1001,7 +1013,7 @@ export function mountGoalV3(group, kind, kit, opts = {}) {
   root.name = "goal-props";
   const zoom = opts.zoom == null ? 1 : opts.zoom;
   root.scale.setScalar(zoom);
-  if (tuck) root.position.z = 0.16;
+  if (tuck) root.position.z = 0.06;
   if (edge === "left") root.position.x = 0.18;
   if (edge === "right") root.position.x = -0.18;
   group.add(root);

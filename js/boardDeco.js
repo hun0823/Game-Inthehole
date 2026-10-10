@@ -122,12 +122,15 @@ function eye(g, x, y, r) {
 }
 
 const READ = 1.65;
+const REF_SPAN = 6 * 1.16;
+let spriteUnit = 1;
 
 function stamp(parent, key, draw, x, y, z, w, h, anchorY = 0.08) {
   const { mat } = paint(key, draw);
   const sprite = new THREE.Sprite(mat);
   sprite.center.set(0.5, anchorY);
-  sprite.scale.set(w * READ, h * READ, 1);
+  const s = READ * spriteUnit;
+  sprite.scale.set(w * s, h * s, 1);
   sprite.position.set(x, y, z);
   sprite.renderOrder = 6;
   sprite.frustumCulled = false;
@@ -151,13 +154,15 @@ function ownMat(sprite) {
 function metrics(span, frameT) {
   const inner = span / 2 - 0.02;
   const outer = inner + frameT;
+  const unit = span / REF_SPAN;
   return {
     inner,
     outer,
+    unit,
     far: -(inner + frameT * 0.8),
-    sky: -(outer + 0.62),
-    near: outer + 0.08,
-    groundZ: outer + 0.95,
+    sky: -(outer + 0.62 * unit),
+    near: outer + 0.08 * unit,
+    groundZ: outer + 0.95 * unit,
     foot: 0.76,
     low: 0.06,
   };
@@ -234,7 +239,7 @@ function patrol(sprite, m, period, bob) {
   loop((time) => {
     const p = pingpong(time, period);
     const dir = time % period < period / 2 ? 1 : -1;
-    sprite.position.x = (p * 2 - 1) * (m.outer - 0.85);
+    sprite.position.x = (p * 2 - 1) * (m.outer - 0.85 * m.unit);
     sprite.position.z = m.far;
     sprite.scale.x = dir * width;
     sprite.position.y = baseY + (bob ? Math.abs(Math.sin(time * Math.PI * 2)) * 0.08 : 0);
@@ -581,7 +586,7 @@ function buildIce(group, m) {
   const babyW = Math.abs(baby.scale.x);
   loop((time) => {
     const p = pingpong(time + 1, 6);
-    baby.position.x = -m.outer * 0.7 + p * 0.7;
+    baby.position.x = -m.outer * 0.7 + p * 0.7 * m.unit;
     baby.scale.x = (time % 6 < 3 ? 1 : -1) * babyW;
   });
   for (let i = 0; i < 6; i++) {
@@ -700,7 +705,7 @@ function buildJungle(group, m) {
   const monk = stamp(group, "monkey", draw.monkey, m.outer * 0.78, m.foot - 0.15, m.far, 0.85, 1.15, 0.08);
   loop((time) => {
     const s = Math.sin(time * 2.1);
-    monk.position.x = m.outer * 0.78 + s * 0.18;
+    monk.position.x = m.outer * 0.78 + s * 0.18 * m.unit;
     tilt(monk, s * 0.35);
     tilt(vine, s * 0.08);
   });
@@ -768,7 +773,9 @@ const BUILDERS = {
 export function createBoardDeco(planet, span, frameT = 0.46) {
   const group = new THREE.Group();
   group.name = "board-deco";
+  const m = metrics(span, frameT);
+  spriteUnit = m.unit;
   const build = BUILDERS[planet] || BUILDERS.wood;
-  build(group, metrics(span, frameT));
+  build(group, m);
   return group;
 }
