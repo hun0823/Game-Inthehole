@@ -131,24 +131,18 @@ function makeOakBallMap() {
   const c = document.createElement("canvas");
   c.width = c.height = s;
   const g = c.getContext("2d");
-  g.fillStyle = "#d09248";
+  g.fillStyle = "#c4843c";
   g.fillRect(0, 0, s, s);
-  for (let i = 0; i < 52; i++) {
-    const y = i * 4.8 + Math.sin(i * 0.7) * 2;
-    const dark = i % 5 === 0;
-    g.strokeStyle = dark ? "rgba(74, 36, 14, 0.72)" : "rgba(120, 64, 26, 0.38)";
-    g.lineWidth = dark ? 3.2 : 1.5;
+  for (let i = 0; i < 46; i++) {
+    const x = i * 5.4 + Math.sin(i * 0.45) * 1.4;
+    const dark = i % 7 === 0;
+    g.strokeStyle = dark ? "rgba(90, 48, 22, 0.45)" : "rgba(210, 160, 96, 0.35)";
+    g.lineWidth = dark ? 1.6 : 1.1;
     g.beginPath();
-    g.moveTo(0, y);
-    g.bezierCurveTo(50, y + 9, 150, y - 11, 256, y + 3);
+    g.moveTo(x, 0);
+    g.bezierCurveTo(x + 6, 70, x - 5, 160, x + 2, 256);
     g.stroke();
   }
-  g.strokeStyle = "rgba(244, 206, 140, 0.55)";
-  g.lineWidth = 6;
-  g.beginPath();
-  g.moveTo(0, 78);
-  g.bezierCurveTo(80, 90, 170, 64, 256, 82);
-  g.stroke();
   g.fillStyle = "#8d4f22";
   g.beginPath();
   g.ellipse(170, 148, 18, 12, 0.5, 0, Math.PI * 2);
@@ -980,6 +974,8 @@ export function createView(canvas) {
   let stamp = 0;
   let holeCell = null;
   let pinT = 0;
+  let propT = 0;
+  let reactHold = null;
   const pins = [];
   const goalKit = createGoalKit(ballMaterials);
 
@@ -1440,16 +1436,21 @@ export function createView(canvas) {
   }
 
   function emptyGoal() {
+    if (typeof goalGroup.userData.play === "function") goalGroup.userData.play(0, 0, 0);
     const geos = new Set();
     goalGroup.traverse((node) => {
       if (node.userData.ownGeo && node.geometry) geos.add(node.geometry);
     });
     geos.forEach((geo) => geo.dispose());
     goalGroup.clear();
+    goalGroup.userData.play = null;
+    goalGroup.userData.idle = null;
     pins.length = 0;
     pinT = 0;
     pawMesh = null;
     pawT = 0;
+    propT = 0;
+    reactHold = null;
   }
 
   function dressGoal() {
@@ -1459,7 +1460,8 @@ export function createView(canvas) {
     if (!custom) return;
     const spot = cellXZ(holeCell[0], holeCell[1]);
     goalGroup.position.set(spot.x, 0, spot.z);
-    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme });
+    const tuck = holeCell[0] === 0;
+    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme, tuck });
     pins.push(...built.pins);
     pawMesh = built.paw;
   }
@@ -2336,6 +2338,7 @@ export function createView(canvas) {
   function sink(cell, my) {
     return new Promise((resolve) => {
       const p = cellXZ(cell[0], cell[1]);
+      propT = 0.001;
       if (equipped.goal === "pins") pinT = 0.001;
       if (equipped.goal === "paw") pawT = 0.001;
       sinkJob = { token: my, t: 0, x: p.x, z: p.z, resolve };
@@ -2501,8 +2504,26 @@ export function createView(canvas) {
       if (equipped.id === "globe" && !rollJob && !sinkJob) {
         ballSpin.rotateOnWorldAxis(upAxis, dt * 0.55);
       }
+      if (reactHold != null) {
+        propT = reactHold;
+        if (pins.length) pinT = Math.min(0.999, reactHold / 1.05);
+        if (pawMesh) pawT = Math.min(0.999, reactHold / 0.6);
+      }
+      if (goalGroup.userData.idle && propT <= 0) goalGroup.userData.idle(time);
+      if (propT > 0) {
+        propT += dt;
+        const u = propT;
+        const env = u >= 0.16 && u < 0.76 ? Math.sin(((u - 0.16) / 0.6) * Math.PI) : 0;
+        const wob = u > 0.16 && u < 0.95 ? Math.sin((u - 0.16) * 16) * Math.exp(-(u - 0.16) * 2.6) : 0;
+        const play = goalGroup.userData.play;
+        if (play) play(env, wob, Math.min(1, Math.max(0, (u - 0.12) / 0.78)));
+        if (u >= 1.15) {
+          if (play) play(0, 0, 0);
+          propT = 0;
+        }
+      }
       if (pawT > 0 && pawMesh) {
-        pawT += dt / 0.42;
+        pawT += dt / 0.6;
         const k = Math.min(1, pawT);
         pawMesh.rotation.x = -0.55 + Math.sin(k * Math.PI) * 0.85;
         if (pawT >= 1) {
@@ -2522,13 +2543,23 @@ export function createView(canvas) {
         }
       }
       if (pinT > 0) {
-        pinT = Math.min(1.2, pinT + dt / 0.38);
+        pinT += dt / 1.05;
         const k = Math.min(1, pinT);
-        const e = k * k;
+        let fall = 1;
+        if (k < 0.42) fall = k / 0.42;
+        else if (k > 0.68) fall = Math.max(0, 1 - (k - 0.68) / 0.32);
+        const e = fall * fall;
         pins.forEach((pin, i) => {
-          pin.rotation.x = e * (1.15 + (i % 2) * 0.25);
-          pin.rotation.z = (i % 2 ? -1 : 1) * e * 0.35;
+          pin.rotation.x = e * (1.05 + (i % 3) * 0.2);
+          pin.rotation.z = (i % 2 ? -1 : 1) * e * (0.28 + (i % 3) * 0.1);
         });
+        if (pinT >= 1) {
+          pins.forEach((pin) => {
+            pin.rotation.x = 0;
+            pin.rotation.z = 0;
+          });
+          pinT = 0;
+        }
       }
 
       if (sinkJob) {
@@ -2704,6 +2735,18 @@ export function createView(canvas) {
 
   return {
     resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint, armGateOpen, setBall, setTrail, setCelebration,
+    previewReact() {
+      reactHold = null;
+      propT = 0.001;
+      if (pins.length) pinT = 0.001;
+      if (pawMesh) pawT = 0.001;
+    },
+    holdReact(seconds) {
+      reactHold = seconds;
+      propT = Math.max(0.001, seconds);
+      if (pins.length) pinT = Math.min(0.999, seconds / 1.05);
+      if (pawMesh) pawT = Math.min(0.999, seconds / 0.6);
+    },
     setBloom,
     bloomSuppressed: () => bloomHeld,
     onBloomSuppressed(fn) { onBloomHeld = fn; },

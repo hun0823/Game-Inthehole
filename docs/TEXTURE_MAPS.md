@@ -34,7 +34,7 @@ with Three.js `PMREMGenerator` (Three.js itself is MIT).
 - **Baseball.** Clean white leather and a red figure-8 of two rails with V stitches. The normal map raises the thread a little.
 - **Tennis.** Optic yellow felt and one white curved band. The nap is lighter than the first trial.
 - **Watermelon.** Dark green stripes pole to pole, only slightly wavy. The light band is a saturated yellow-green.
-- **Oak.** Warm wood, soft grain lines, two knots. The normal bump is small and the studio reflection is off.
+- **Oak.** Warm wood (`#c4843c` to `#e8c48a`). Fibers run pole to pole, dense and low-contrast, with one or two knots. The normal bump is small and the studio reflection is off. Wide latitude bands were removed so it does not read as a striped ball.
 - **Wood planet.** Forest masses and lighter meadow, low hills in the normal.
 - **Desert.** Sand dunes. Crests are lighter; the normal map carries the ridges.
 - **Ocean.** Deep water, shallows, and islands with sandy coasts. Water roughness is low so the environment reflects.
@@ -70,7 +70,7 @@ cup, rind, knot) stay, and the hole cell does not move.
 
 ## Remaining balls and planets
 
-`python3 tools/bake_sphere_maps.py` now also bakes the other patterned balls and the other eight planets. It does **not** rewrite the eight maps above unless you pass `--rebuild`, so the oak ball files stay as they shipped.
+`python3 tools/bake_sphere_maps.py` now also bakes the other patterned balls and the other eight planets. It does **not** rewrite the eight maps above unless you pass `--rebuild`. The oak files are the softened grain bake (fine fibers, two knots, small bump); a plain run leaves them in place. `--rebuild` uses the same soft oak painter with normal strength 0.16.
 
 | Set | Size | Maps |
 |-----|------|------|
