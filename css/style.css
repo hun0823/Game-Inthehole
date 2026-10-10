@@ -33,14 +33,17 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --hud-bottom: 0px;
   --dpad-top: 0px;
-  --hud-sq: 58px;
-  --hud-depth: 7px;
-  --banner-depth: 8px;
-  --dpad-slot: 74px;
-  --dpad-gap: 10px;
-  --dpad-depth: 8px;
-  --retry-size: 68px;
-  --retry-caption: 26px;
+  --hud-gap: 4px;
+  --hud-sq: 54px;
+  --hud-depth: 6px;
+  --banner-depth: 6px;
+  --dpad-slot: 72px;
+  --dpad-gap: 4px;
+  --dpad-depth: 6px;
+  --retry-size: 66px;
+  --retry-caption: 20px;
+  /* Up button overlaps the board rectangle so the frame can sit under it. */
+  --dpad-overlap: 12px;
 }
 
 html[lang="ko"] {
@@ -97,9 +100,9 @@ body {
   display: flex;
   flex-direction: column;
   padding:
-    calc(var(--safe-top) + 8px)
+    calc(var(--safe-top) + 4px)
     calc(var(--safe-right) + 10px)
-    calc(var(--safe-bottom) + 8px)
+    calc(var(--safe-bottom) + 4px)
     calc(var(--safe-left) + 10px);
   background:
     repeating-linear-gradient(
@@ -3357,7 +3360,7 @@ html[lang="ko"] .map {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
+  gap: var(--hud-gap);
   min-height: 0;
   padding-top: 0;
 }
@@ -3375,7 +3378,7 @@ html[lang="ko"] .map {
   border: 4px solid #141414;
   border-radius: 999px;
   background: #141414;
-  box-shadow: 0 4px 0 #000;
+  box-shadow: 0 3px 0 #000;
 }
 
 .topbar .currency-chip:active {
@@ -3515,9 +3518,9 @@ html[lang="ko"] .map {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
-  min-height: calc(var(--hud-sq) + 8px);
-  padding: 7px 12px 8px;
+  gap: 0;
+  min-height: calc(var(--hud-sq) + 4px);
+  padding: 5px 12px 6px;
   border: 4px solid #141414;
   border-radius: 22px;
   background:
@@ -3532,9 +3535,9 @@ html[lang="ko"] .map {
   margin: 0;
   padding: 0 2px;
   font-family: var(--font);
-  font-size: clamp(1.85rem, 8.6vw, 2.65rem);
+  font-size: clamp(1.75rem, 8vw, 2.4rem);
   font-weight: 400;
-  line-height: 0.95;
+  line-height: 0.92;
   letter-spacing: 0.01em;
   text-align: center;
   white-space: nowrap;
@@ -3549,8 +3552,8 @@ html[lang="ko"] .map {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin: 2px 0 0;
+  gap: 6px;
+  margin: 0;
   font-size: 1rem;
   line-height: 1;
   -webkit-text-stroke: 0;
@@ -3567,8 +3570,8 @@ html[lang="ko"] .map {
 }
 
 .hud-star {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   display: block;
   flex: 0 0 auto;
 }
@@ -3602,19 +3605,25 @@ html[lang="ko"] .map {
 }
 
 .board-wrap {
+  position: relative;
+  z-index: 1;
   margin: 0;
 }
 
 .controls {
   --pad: var(--dpad-slot);
   position: relative;
+  z-index: 3;
   flex: 0 0 auto;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   padding-top: 0;
+  padding-bottom: var(--retry-caption);
   min-height: 0;
   height: calc(var(--dpad-slot) * 3 + var(--dpad-gap) * 2 + var(--retry-caption));
+  margin-top: calc(-1 * var(--dpad-overlap));
+  pointer-events: none;
 }
 
 .controls .dpad {
@@ -3628,6 +3637,11 @@ html[lang="ko"] .map {
   row-gap: var(--dpad-gap);
   width: calc(var(--dpad-slot) * 3 + var(--dpad-gap) * 2);
   height: calc(var(--dpad-slot) * 3 + var(--dpad-gap) * 2);
+}
+
+.controls .dpad .arcade-btn,
+.controls .retry-btn {
+  pointer-events: auto;
 }
 
 .controls .dpad .arcade-btn {
@@ -3682,9 +3696,10 @@ html[lang="ko"] .map {
 .controls .retry-btn {
   position: absolute;
   right: 0;
-  bottom: 0;
+  bottom: var(--retry-caption);
   width: calc(var(--dpad-slot) - var(--dpad-depth));
-  gap: 2px;
+  height: var(--dpad-slot);
+  gap: 0;
   align-items: center;
 }
 
@@ -3729,13 +3744,16 @@ html[lang="ko"] .map {
 }
 
 .controls .retry-btn .face-caption {
-  position: static;
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 50%;
   width: auto;
   height: auto;
   margin: 0;
   overflow: visible;
   clip: auto;
   white-space: nowrap;
+  transform: translateX(-50%);
   color: #fff;
   font-family: var(--font);
   font-size: 1rem;
@@ -3837,21 +3855,19 @@ html[lang="ko"] .map {
 
 @media (max-width: 399px), (max-height: 720px) {
   :root {
-    --hud-sq: 48px;
-    --hud-depth: 6px;
-    --banner-depth: 6px;
-    --dpad-slot: 60px;
-    --dpad-gap: 7px;
-    --dpad-depth: 7px;
-    --retry-caption: 22px;
-  }
-
-  .topbar {
-    gap: 6px;
+    --hud-gap: 3px;
+    --hud-sq: 46px;
+    --hud-depth: 5px;
+    --banner-depth: 5px;
+    --dpad-slot: 68px;
+    --dpad-gap: 3px;
+    --dpad-depth: 6px;
+    --retry-caption: 18px;
+    --dpad-overlap: 12px;
   }
 
   .topbar .currency-chip {
-    height: 44px;
+    height: 42px;
     gap: 6px;
     padding: 0 5px 0 8px;
     box-shadow: 0 3px 0 #000;
@@ -3877,7 +3893,7 @@ html[lang="ko"] .map {
   }
 
   .level-title {
-    font-size: clamp(1.45rem, 8vw, 2rem);
+    font-size: clamp(1.4rem, 7.4vw, 1.9rem);
     -webkit-text-stroke-width: 4px;
   }
 
@@ -3892,7 +3908,7 @@ html[lang="ko"] .map {
   }
 
   .stage-banner-face {
-    padding: 5px 8px 6px;
+    padding: 3px 8px 4px;
     border-radius: 18px;
   }
 
