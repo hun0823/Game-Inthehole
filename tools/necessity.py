@@ -850,6 +850,89 @@ def near_duplicate(level, other):
     return False
 
 
+def budget_dead_ends(level, moves=None):
+    """Wrong-turn traps inside the in-game fail budget.
+
+    The HUD ends the attempt at par + 3 tilts. A reachable state is a dead
+    end when every continuation still finishes after that budget, or the hole
+    is unreachable. Trap edges are tilts from a state that is still inside
+    the budget into one of those dead ends. The search stops at depth par + 3,
+    which is exactly the budget: any later win is already a failed attempt.
+    """
+    moves = moves or par_moves(level)
+    if not moves:
+        return {"deadEnds": 0, "traps": 0, "states": 0}
+    par = len(moves)
+    board = prepare(level)
+    n = board["n"]
+    br, bc = board["ball"]
+    start = (br * n + bc, 0, 0, 0, 0, 0)
+    limit = par + 3
+    dist = {start: 0}
+    succ = {}
+    wins = set()
+    q = deque([start])
+    while q:
+        state = q.popleft()
+        depth = dist[state]
+        if depth >= limit:
+            continue
+        pos, gstate, act, collapse, phase, tilts = state
+        r, c = divmod(pos, n)
+        outs = []
+        for dir_i, _dir in enumerate(DIRS):
+            nr, nc, ng, na, moved, won, ncoll, nphase, _path = tilt(
+                board, r, c, dir_i, gstate, act, ALLOW, collapse, phase, tilts
+            )
+            if not moved:
+                continue
+            if won:
+                wins.add(state)
+                outs.append(None)
+                continue
+            nxt = (nr * n + nc, ng, na, ncoll, nphase, _bump_tilts(board, tilts))
+            outs.append(nxt)
+            if nxt not in dist:
+                dist[nxt] = depth + 1
+                q.append(nxt)
+        succ[state] = outs
+    goal = {}
+    rq = deque()
+    for state in wins:
+        goal[state] = 1
+        rq.append(state)
+    rev = {}
+    for state, outs in succ.items():
+        for nxt in outs:
+            if nxt is not None:
+                rev.setdefault(nxt, []).append(state)
+    while rq:
+        state = rq.popleft()
+        for pred in rev.get(state, ()):
+            if pred not in goal:
+                goal[pred] = goal[state] + 1
+                rq.append(pred)
+    dead = 0
+    live = []
+    for state, depth in dist.items():
+        if depth > limit:
+            continue
+        remain = goal.get(state)
+        if remain is None or depth + remain > limit:
+            dead += 1
+        else:
+            live.append(state)
+    traps = 0
+    for state in live:
+        for nxt in succ.get(state, ()):
+            if nxt is None or nxt not in dist:
+                continue
+            remain = goal.get(nxt)
+            if remain is None or dist[nxt] + remain > limit:
+                traps += 1
+    return {"deadEnds": dead, "traps": traps, "states": len(dist)}
+
+
 class Gallery:
     def __init__(self):
         self.sigs = set()

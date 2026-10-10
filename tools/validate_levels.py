@@ -9,7 +9,7 @@ import json
 import sys
 from pathlib import Path
 
-from necessity import CHECKS, Gallery
+from necessity import CHECKS, Gallery, budget_dead_ends
 from tilt_solver import COLOR_IDS, DIRS, color_id, play, prepare, solve, tilt
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -247,12 +247,20 @@ def validate(data):
         "wood", "desert", "ice", "ocean", "crystal", "toy",
         "mushroom", "candy", "lava", "jungle", "alien", "machine",
     )
-    sizes = [3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7]
+    # Wood 3→7, desert 4→7, every later planet 5→7. Never above 7.
+    size_curve = {
+        "wood": [3, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7],
+        "desert": [4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 7],
+    }
+    late_sizes = [5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7]
+    planet_pars = {name: [] for name in planets}
+    planet_deads = {name: [] for name in planets}
     if len(levels) != 144:
         errors.append(f"expected 144 levels, got {len(levels)}")
     seen = set()
     gallery = Gallery()
-    prev_par = 0
+    prev_par = {}
+    prev_dead = {}
     for i, lv in enumerate(levels, start=1):
         if lv.get("id") != i:
             errors.append(f"id sequence broken at {lv.get('id')}")
@@ -326,31 +334,75 @@ def validate(data):
             names = set(mechanic_names(lv))
             planet_i = (i - 1) // 12
             stage_i = (i - 1) % 12
+            dead = budget_dead_ends(lv, moves)["deadEnds"]
             if planet_i < len(planets):
                 planet = planets[planet_i]
+                expect_n = size_curve.get(planet, late_sizes)[stage_i]
                 if lv.get("planet") != planet:
                     errors.append(f"id {i} planet {lv.get('planet')} expected {planet}")
-                if n != sizes[stage_i]:
-                    errors.append(f"id {i} size {n} expected {sizes[stage_i]}")
-                if planet == "alien" and len(names) < 2:
-                    errors.append(f"id {i} alien mix needs two mechanics")
-                if planet == "machine" and len(names) < 3:
-                    errors.append(f"id {i} machine mix needs three mechanics")
-                if planet == "lava" and "magma" not in names:
-                    errors.append(f"id {i} lava stage has no magma")
+                if n != expect_n:
+                    errors.append(f"id {i} size {n} expected {expect_n}")
+                if planet == "wood" and names:
+                    errors.append(f"id {i} wood stage should be walls only")
+                if planet == "desert" and names != {"sand"}:
+                    errors.append(f"id {i} desert stage should be sand only")
+                if planet == "ice" and names != {"ice"}:
+                    errors.append(f"id {i} ice stage should be ice only")
+                if planet == "ocean" and stage_i < 2 and names != {"teleport"}:
+                    errors.append(f"id {i} ocean opener should be a whirlpool only")
+                if planet == "ocean" and 2 <= stage_i < 8 and names != {"oneway"}:
+                    errors.append(f"id {i} ocean currents should be one-way only")
+                if planet == "ocean" and stage_i >= 8 and names != {"teleport", "oneway"}:
+                    errors.append(f"id {i} ocean finale should mix whirlpool and current")
+                if planet == "crystal" and "glass" not in names:
+                    errors.append(f"id {i} crystal stage has no glass")
+                if planet == "toy" and "gates" not in names:
+                    errors.append(f"id {i} toy stage has no gates")
+                if planet == "mushroom" and "smog" not in names:
+                    errors.append(f"id {i} mushroom stage has no smog")
                 if planet == "candy" and "jelly" not in names:
                     errors.append(f"id {i} candy stage has no jelly")
-                if planet == "jungle" and stage_i >= 2 and "movers" not in names:
+                if planet == "lava" and "magma" not in names:
+                    errors.append(f"id {i} lava stage has no magma")
+                if planet == "lava" and stage_i >= 8 and "collapse" not in names:
+                    errors.append(f"id {i} late lava stage has no collapsing floor")
+                if planet == "jungle" and "movers" not in names:
                     errors.append(f"id {i} jungle stage has no moving walls")
-                if planet not in ("alien", "machine", "wood", "jungle") and stage_i == 0 and not names and planet != "wood":
-                    pass
+                if planet == "alien" and len(names) != 2:
+                    errors.append(f"id {i} alien mix needs exactly two mechanics")
+                if planet == "machine" and len(names) < 3:
+                    errors.append(f"id {i} machine mix needs three mechanics")
+                if stage_i and par < prev_par.get(planet, 0):
+                    errors.append(f"id {i} par {par} drops from {prev_par.get(planet)}")
+                prev_par[planet] = par
+                prev_dead[planet] = dead
+                planet_pars[planet].append(par)
+                planet_deads[planet].append(dead)
             for name in names:
                 if not CHECKS[name](lv, moves):
                     errors.append(f"id {i} {name} is decorative")
-            if stage_i != 0 and prev_par and par + 5 < prev_par:
-                errors.append(f"id {i} par {par} drops more than 4 from {prev_par}")
-            prev_par = par
         rows.append((i, n, lv.get("par"), mechanics_label(lv)))
+    prev_open = 0
+    prev_avg = 0.0
+    for planet in planets:
+        pars = planet_pars[planet]
+        deads = planet_deads[planet]
+        if len(pars) != 12:
+            continue
+        if pars[-1] <= pars[0]:
+            errors.append(f"{planet} par does not rise ({pars[0]} → {pars[-1]})")
+        if deads[-1] <= deads[0] or sum(deads[6:]) <= sum(deads[:6]):
+            errors.append(
+                f"{planet} dead ends do not rise ({deads[0]} → {deads[-1]}, "
+                f"halves {sum(deads[:6])} / {sum(deads[6:])})"
+            )
+        avg = sum(pars) / len(pars)
+        if pars[0] <= prev_open:
+            errors.append(f"{planet} stage 1 par {pars[0]} is not above {prev_open}")
+        if avg <= prev_avg:
+            errors.append(f"{planet} average par {avg:.2f} is not above {prev_avg:.2f}")
+        prev_open = pars[0]
+        prev_avg = avg
     return errors, rows
 
 
