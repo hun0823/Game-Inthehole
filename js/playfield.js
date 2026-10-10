@@ -48,4 +48,49 @@ export function drawSky(canvas, theme) {
     ctx.arc(x, y, s, 0, Math.PI * 2);
     ctx.fill();
   }
+  paintMotif(ctx, w, h, theme?.motif, rng);
+}
+
+function paintMotif(ctx, w, h, motif, rng) {
+  if (motif === "sunset") {
+    const sun = ctx.createRadialGradient(w * 0.62, h * 0.62, 8, w * 0.62, h * 0.62, Math.min(w, h) * 0.28);
+    sun.addColorStop(0, "rgba(255, 236, 180, 0.95)");
+    sun.addColorStop(0.45, "rgba(255, 150, 70, 0.55)");
+    sun.addColorStop(1, "rgba(255, 120, 60, 0)");
+    ctx.fillStyle = sun;
+    ctx.beginPath();
+    ctx.arc(w * 0.62, h * 0.62, Math.min(w, h) * 0.28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(18, 28, 64, 0.55)";
+    ctx.fillRect(0, h * 0.72, w, h * 0.28);
+    return;
+  }
+  if (motif === "blossom") {
+    ctx.fillStyle = "rgba(255, 214, 228, 0.85)";
+    for (let i = 0; i < 28; i++) {
+      const x = rng() * w;
+      const y = rng() * h * 0.85;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 7, 4, rng() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return;
+  }
+  if (motif === "snow") {
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    for (let i = 0; i < 40; i++) {
+      ctx.beginPath();
+      ctx.arc(rng() * w, rng() * h, 1.6 + rng() * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return;
+  }
+  if (motif === "station") {
+    ctx.fillStyle = "rgba(180, 190, 205, 0.18)";
+    ctx.fillRect(w * 0.08, h * 0.18, w * 0.84, h * 0.22);
+    for (let i = 0; i < 7; i++) {
+      ctx.fillStyle = i % 2 ? "rgba(255, 214, 140, 0.8)" : "rgba(180, 220, 255, 0.75)";
+      ctx.fillRect(w * 0.14 + i * w * 0.1, h * 0.22, w * 0.05, h * 0.08);
+    }
+  }
 }

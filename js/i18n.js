@@ -10,7 +10,11 @@ const STR = {
     "language": "Language",
     "close": "Close",
     "shop": "Shop",
-    "shop-title": "Ball Shop",
+    "shop-title": "Shop",
+    "tab-balls": "Balls",
+    "tab-trails": "Trails",
+    "tab-bgs": "Backgrounds",
+    "tab-celes": "Celebrations",
     "stars": "stars",
     "free": "Free",
     "equipped": "Equipped",
@@ -52,7 +56,11 @@ const STR = {
     "language": "언어",
     "close": "닫기",
     "shop": "상점",
-    "shop-title": "공 상점",
+    "shop-title": "상점",
+    "tab-balls": "공",
+    "tab-trails": "자국",
+    "tab-bgs": "배경",
+    "tab-celes": "축하",
     "stars": "별",
     "free": "무료",
     "equipped": "장착됨",
@@ -137,6 +145,18 @@ const BALLS = {
     coco: ["Coconut", "A jungle ball. The goal is a vine nest."],
     alien: ["Alien", "Purple goo. The goal is a glowing ring."],
     gear: ["Gear", "A metal ball. The goal is a toothed ring."],
+    baseball: ["Baseball", "Red stitches. The goal is a home plate."],
+    tennis: ["Tennis", "Felt that bounces as it rolls. The goal is a cup."],
+    golf: ["Golf", "Dimples. The goal is a flag cup."],
+    yarn: ["Yarn", "Thread unravels behind it and the ball shrinks. Resets each stage. The goal is a spool."],
+    donut: ["Donut", "Sprinkles on the way. The goal is a coffee cup."],
+    melon: ["Watermelon", "Seeds drop. It splits with juice at the goal."],
+    disco: ["Disco", "Mirror tiles and light flecks. The goal is a tiny mirror ball."],
+    lucky: ["Lucky pouch", "Coin sparkles. The goal is a pile of coins."],
+    cat: ["Cat furball", "Fur puffs. A paw taps it into the goal."],
+    pixel: ["8-bit", "Pixel afterimages. The goal is a stack of blocks."],
+    globe: ["Globe", "Continents turn. A small rocket waits at the goal."],
+    skull: ["Skull", "Purple smoke. The goal is a cauldron."],
   },
   ko: {
     oak: ["참나무", "깎아 만든 참나무 공과 옹이 구멍 골."],
@@ -156,6 +176,67 @@ const BALLS = {
     coco: ["코코넛", "정글 공. 골은 덩굴 둥지."],
     alien: ["외계점액", "보라 점액. 골은 빛나는 고리."],
     gear: ["톱니", "금속 공. 골은 톱니 고리."],
+    baseball: ["야구공", "빨간 솔기. 골은 홈 플레이트."],
+    tennis: ["테니스공", "펠트 공이 튀며 굴러요. 골은 컵."],
+    golf: ["골프공", "딤플. 골은 깃발 컵."],
+    yarn: ["실타래", "실이 뒤에서 풀리고 공이 조금 작아져요. 스테이지마다 돌아와요. 골은 실실패."],
+    donut: ["도넛", "스프링클이 떨어져요. 골은 커피 컵."],
+    melon: ["수박", "씨가 떨어져요. 골에서 과즙과 함께 갈라져요."],
+    disco: ["디스코볼", "거울 타일과 빛 조각. 골은 작은 미러볼."],
+    lucky: ["복주머니", "동전 반짝임. 골은 동전 더미."],
+    cat: ["고양이 털뭉치", "털이 흩날려요. 발바닥이 골로 톡 쳐요."],
+    pixel: ["8비트", "픽셀 잔상. 골은 블록 탑."],
+    globe: ["지구본", "대륙이 돌아요. 골에 작은 로켓."],
+    skull: ["해골공", "보라 연기. 골은 가마솥."],
+  },
+};
+
+const COSMETICS = {
+  en: {
+    trails: {
+      none: ["None", "The ball keeps its own trail."],
+      rainbow: ["Rainbow", "A colored streak. Replaces the ball's trail."],
+      hearts: ["Hearts", "Pink hearts. Replaces the ball's trail."],
+      notes: ["Notes", "Little notes. Replaces the ball's trail."],
+      footprints: ["Footprints", "Soft steps. Replaces the ball's trail."],
+    },
+    bgs: {
+      planet: ["Planet", "The stage's own sky."],
+      sunset: ["Sunset sea", "Warm water under an orange sky."],
+      blossom: ["Cherry blossoms", "Pink petals over a dusk sky."],
+      snow: ["Snowy night", "Quiet flakes on a dark blue sky."],
+      station: ["Space station", "Windows along a gray hull."],
+    },
+    celes: {
+      burst: ["Spark", "The original clear burst."],
+      fireworks: ["Fireworks", "A few small bursts when you clear."],
+      confetti: ["Confetti", "Paper bits drift down."],
+      rainbow: ["Rainbow", "Colored bursts in an arc."],
+      dance: ["Dance", "A small character dances beside the board."],
+    },
+  },
+  ko: {
+    trails: {
+      none: ["없음", "공 자체의 자국이 나와요."],
+      rainbow: ["무지개", "색 줄기. 공의 자국을 대신해요."],
+      hearts: ["하트", "분홍 하트. 공의 자국을 대신해요."],
+      notes: ["음표", "작은 음표. 공의 자국을 대신해요."],
+      footprints: ["발자국", "가벼운 발자국. 공의 자국을 대신해요."],
+    },
+    bgs: {
+      planet: ["행성", "그 스테이지의 하늘."],
+      sunset: ["노을 바다", "주황 하늘 아래 따뜻한 바다."],
+      blossom: ["벚꽃", "저녁 하늘에 분홍 꽃잎."],
+      snow: ["눈 오는 밤", "어두운 푸른 하늘에 눈."],
+      station: ["우주 정거장", "회색 선체의 창문."],
+    },
+    celes: {
+      burst: ["반짝", "원래의 클리어 반짝임."],
+      fireworks: ["불꽃", "클리어하면 작은 불꽃 몇 발."],
+      confetti: ["색종이", "색종이가 내려와요."],
+      rainbow: ["무지개", "호를 따라 색 반짝임."],
+      dance: ["춤", "작은 캐릭터가 보드 옆에서 춤춰요."],
+    },
   },
 };
 
@@ -218,6 +299,13 @@ export function planetName(lang, id) {
 
 export function ballCopy(lang, id) {
   const row = (BALLS[lang] || BALLS.en)[id] || BALLS.en[id];
+  if (!row) return { name: id, blurb: "" };
+  return { name: row[0], blurb: row[1] };
+}
+
+export function cosmeticCopy(lang, tab, id) {
+  const table = (COSMETICS[lang] || COSMETICS.en)[tab] || COSMETICS.en[tab] || {};
+  const row = table[id] || (COSMETICS.en[tab] || {})[id];
   if (!row) return { name: id, blurb: "" };
   return { name: row[0], blurb: row[1] };
 }

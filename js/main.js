@@ -3,7 +3,8 @@ import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
 import { BALLS, ballById } from "./balls.js";
-import { detectLang, t, planetName, ballCopy, lessonCopy } from "./i18n.js";
+import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, trailById } from "./cosmetics.js";
+import { detectLang, t, planetName, ballCopy, cosmeticCopy, lessonCopy } from "./i18n.js";
 import { PLANET_ORDER, PLANET_BALL, themeById } from "./themes.js";
 
 const STORAGE_KEY = "inthehole_cleared";
@@ -12,6 +13,12 @@ const STORAGE_LESSONS = "inthehole_lessons";
 const STORAGE_SPENT = "inthehole_stars_spent";
 const STORAGE_OWNED = "inthehole_balls_owned";
 const STORAGE_EQUIPPED = "inthehole_ball_equipped";
+const STORAGE_TRAILS = "inthehole_trails_owned";
+const STORAGE_TRAIL = "inthehole_trail_equipped";
+const STORAGE_BGS = "inthehole_bgs_owned";
+const STORAGE_BG = "inthehole_bg_equipped";
+const STORAGE_CELES = "inthehole_celes_owned";
+const STORAGE_CELE = "inthehole_cele_equipped";
 
 const skyEl = document.getElementById("sky");
 const boardWrapEl = document.querySelector(".board-wrap");
@@ -53,6 +60,7 @@ let gameOver = false;
 let lessonOpen = false;
 let lessonQueue = [];
 let pendingBuy = null;
+let storeTab = "balls";
 let overlayMode = null;
 let overlayReward = null;
 let overlayCoin = false;
@@ -301,6 +309,59 @@ function writeOwned(owned) {
 function equippedId() {
   const id = localStorage.getItem(STORAGE_EQUIPPED) || "oak";
   return ownedIds().has(id) ? id : "oak";
+}
+
+const SHOP_TABS = {
+  balls: { items: BALLS, free: "oak", ownedKey: STORAGE_OWNED, equipKey: STORAGE_EQUIPPED },
+  trails: { items: TRAILS, free: "none", ownedKey: STORAGE_TRAILS, equipKey: STORAGE_TRAIL },
+  bgs: { items: BACKGROUNDS, free: "planet", ownedKey: STORAGE_BGS, equipKey: STORAGE_BG },
+  celes: { items: CELEBRATIONS, free: "burst", ownedKey: STORAGE_CELES, equipKey: STORAGE_CELE },
+};
+
+function catalogItem(tab, id) {
+  if (tab === "balls") return ballById(id);
+  if (tab === "trails") return trailById(id);
+  if (tab === "bgs") return backgroundById(id);
+  return celebrationById(id);
+}
+
+function ownedFor(tab) {
+  const spec = SHOP_TABS[tab];
+  const known = new Set(spec.items.map((item) => item.id));
+  const owned = new Set([spec.free]);
+  try {
+    const raw = JSON.parse(localStorage.getItem(spec.ownedKey) || "[]");
+    if (Array.isArray(raw)) {
+      for (const id of raw) if (known.has(id)) owned.add(id);
+    }
+  } catch {
+    /* keep the free item */
+  }
+  return owned;
+}
+
+function writeOwnedFor(tab, owned) {
+  const spec = SHOP_TABS[tab];
+  const ids = [...owned].filter((id) => id !== spec.free);
+  localStorage.setItem(spec.ownedKey, JSON.stringify(ids));
+}
+
+function equippedFor(tab) {
+  const spec = SHOP_TABS[tab];
+  const id = localStorage.getItem(spec.equipKey) || spec.free;
+  return ownedFor(tab).has(id) ? id : spec.free;
+}
+
+function itemCopy(tab, id) {
+  if (tab === "balls") return ballCopy(lang, id);
+  return cosmeticCopy(lang, tab, id);
+}
+
+function applyCosmetic(tab, id) {
+  if (tab === "balls") view.setBall(id);
+  else if (tab === "trails") view.setTrail(id);
+  else if (tab === "bgs") paintSky();
+  else view.setCelebration(id);
 }
 
 function storeOpen() {
@@ -815,60 +876,68 @@ window.addEventListener("hashchange", () => {
 });
 
 function paintSky() {
-  const theme = mapOpen() ? null : themeById(LEVELS[stageIndex].planet);
-  drawSky(skyEl, theme);
+  if (mapOpen()) {
+    drawSky(skyEl, null);
+    return;
+  }
+  const override = backgroundById(equippedFor("bgs"));
+  drawSky(skyEl, override.sky || themeById(LEVELS[stageIndex].planet));
 }
 
 function renderStore() {
-  const owned = ownedIds();
-  const equipped = equippedId();
+  const tab = SHOP_TABS[storeTab] ? storeTab : "balls";
+  const spec = SHOP_TABS[tab];
+  const owned = ownedFor(tab);
+  const equipped = equippedFor(tab);
   const stars = purse();
   storeStars.textContent = String(stars);
   storeList.replaceChildren();
-  for (const ball of BALLS) {
+  for (const item of spec.items) {
     const li = document.createElement("li");
-    li.className = "store-row" + (ball.id === equipped ? " is-equipped" : "");
+    li.className = "store-row" + (item.id === equipped ? " is-equipped" : "");
     const preview = document.createElement("span");
-    preview.className = `ball-preview ball-preview--${ball.id}`;
+    preview.className = tab === "balls"
+      ? `ball-preview ball-preview--${item.id}`
+      : `shop-swatch shop-swatch--${tab}-${item.id}`;
     preview.setAttribute("aria-hidden", "true");
     const copy = document.createElement("span");
     copy.className = "store-copy";
-    const copyText = ballCopy(lang, ball.id);
+    const copyText = itemCopy(tab, item.id);
     const name = document.createElement("strong");
     name.textContent = copyText.name;
     const price = document.createElement("em");
-    price.textContent = ball.price === 0 ? t(lang, "free") : `${ball.price} ${t(lang, "stars")}`;
+    price.textContent = item.price === 0 ? t(lang, "free") : `${item.price} ${t(lang, "stars")}`;
     const blurb = document.createElement("span");
     blurb.textContent = copyText.blurb;
     copy.append(name, price, blurb);
     li.append(preview, copy);
-    if (ball.id === equipped) {
+    if (item.id === equipped) {
       const state = document.createElement("span");
       state.className = "store-state";
       state.textContent = t(lang, "equipped");
       li.append(state);
-    } else if (owned.has(ball.id)) {
+    } else if (owned.has(item.id)) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "store-act";
       btn.dataset.act = "equip";
-      btn.dataset.id = ball.id;
+      btn.dataset.id = item.id;
       btn.textContent = t(lang, "equip");
       li.append(btn);
-    } else if (stars >= ball.price) {
+    } else if (stars >= item.price) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "store-act store-act--buy";
       btn.dataset.act = "buy";
-      btn.dataset.id = ball.id;
-      btn.textContent = `${t(lang, "buy")} ${ball.price}`;
+      btn.dataset.id = item.id;
+      btn.textContent = `${t(lang, "buy")} ${item.price}`;
       li.append(btn);
     } else {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "store-act";
       btn.disabled = true;
-      btn.textContent = `${t(lang, "need")} ${ball.price - stars}`;
+      btn.textContent = `${t(lang, "need")} ${item.price - stars}`;
       li.append(btn);
     }
     storeList.append(li);
@@ -890,12 +959,13 @@ function closeStore() {
 }
 
 function askBuy(id) {
-  const ball = ballById(id);
-  if (ownedIds().has(ball.id) || purse() < ball.price || ball.price <= 0) return;
-  pendingBuy = ball.id;
+  const tab = storeTab;
+  const item = catalogItem(tab, id);
+  if (!item || item.id !== id || ownedFor(tab).has(item.id) || purse() < item.price || item.price <= 0) return;
+  pendingBuy = { tab, id: item.id };
   storeConfirmText.textContent = t(lang, "spend-on", {
-    price: ball.price,
-    name: ballCopy(lang, ball.id).name,
+    price: item.price,
+    name: itemCopy(tab, item.id).name,
   });
   storeConfirm.hidden = false;
   storeSpend.focus();
@@ -907,29 +977,42 @@ function cancelBuy() {
 }
 
 function confirmBuy() {
-  const id = pendingBuy;
+  const pending = pendingBuy;
   cancelBuy();
-  if (!id) return;
-  const ball = ballById(id);
-  if (ownedIds().has(ball.id) || purse() < ball.price) {
+  if (!pending) return;
+  const item = catalogItem(pending.tab, pending.id);
+  if (!item || item.id !== pending.id || ownedFor(pending.tab).has(item.id) || purse() < item.price) {
     renderStore();
     return;
   }
-  localStorage.setItem(STORAGE_SPENT, String(spentTotal() + ball.price));
-  const owned = ownedIds();
-  owned.add(ball.id);
-  writeOwned(owned);
-  localStorage.setItem(STORAGE_EQUIPPED, ball.id);
-  view.setBall(ball.id);
+  localStorage.setItem(STORAGE_SPENT, String(spentTotal() + item.price));
+  const owned = ownedFor(pending.tab);
+  owned.add(item.id);
+  writeOwnedFor(pending.tab, owned);
+  localStorage.setItem(SHOP_TABS[pending.tab].equipKey, item.id);
+  applyCosmetic(pending.tab, item.id);
   updateHud();
   renderStore();
 }
 
 function equipOwned(id) {
-  if (!ownedIds().has(id)) return;
-  localStorage.setItem(STORAGE_EQUIPPED, id);
-  view.setBall(id);
+  const tab = storeTab;
+  if (!ownedFor(tab).has(id)) return;
+  localStorage.setItem(SHOP_TABS[tab].equipKey, id);
+  applyCosmetic(tab, id);
   updateHud();
+  renderStore();
+}
+
+function selectStoreTab(tab) {
+  if (!SHOP_TABS[tab]) return;
+  storeTab = tab;
+  document.querySelectorAll(".store-tabs button").forEach((btn) => {
+    const on = btn.dataset.tab === tab;
+    btn.classList.toggle("is-on", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+  });
+  cancelBuy();
   renderStore();
 }
 
@@ -945,6 +1028,11 @@ storeList.addEventListener("click", (e) => {
   if (!btn || !storeList.contains(btn)) return;
   if (btn.dataset.act === "buy") askBuy(btn.dataset.id);
   else if (btn.dataset.act === "equip") equipOwned(btn.dataset.id);
+});
+document.querySelector(".store-tabs").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-tab]");
+  if (!btn) return;
+  selectStoreTab(btn.dataset.tab);
 });
 
 function renderMap() {
@@ -1018,6 +1106,9 @@ function applyLang() {
   document.querySelector(".lesson-replay").textContent = t(lang, "replay");
   lessonBtn.textContent = t(lang, "got-it");
   document.getElementById("store-title").textContent = t(lang, "shop-title");
+  document.querySelectorAll(".store-tabs button").forEach((btn) => {
+    btn.textContent = t(lang, `tab-${btn.dataset.tab}`);
+  });
   document.querySelector(".store-balance").lastChild.textContent = ` ${t(lang, "stars")}`;
   storeClose.setAttribute("aria-label", t(lang, "close"));
   storeSpend.textContent = t(lang, "spend");
@@ -1073,6 +1164,8 @@ document.getElementById("dialog-map").addEventListener("click", () => {
 
 applyLang();
 view.setBall(equippedId());
+view.setTrail(equippedFor("trails"));
+view.setCelebration(equippedFor("celes"));
 if (hasDeepLink()) loadStage(indexFromLocation());
 else {
   stageIndex = 0;
