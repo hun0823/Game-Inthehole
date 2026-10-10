@@ -369,10 +369,10 @@ function assignPlanetMaps(entry) {
   mat.roughnessMap = tex.rough;
   mat.roughness = 1;
   mat.envMapIntensity = look.envMapIntensity;
-  if (entry.id === "lava" && tex.emissive) {
+  if (tex.emissive) {
     mat.emissive.setHex(0xffffff);
     mat.emissiveMap = tex.emissive;
-    const base = 1.2;
+    const base = look.emissiveIntensity ?? 0.6;
     mat.userData.baseEmissive = base;
     const locked = mat.userData.baseColor !== undefined && mat.color.getHex() === 0x6a6a72;
     mat.emissiveIntensity = locked ? base * 0.12 : base;
@@ -450,7 +450,7 @@ export function createPlanet(id, opts = {}) {
     isle.scale.y = 0.45;
     place(spin, isle, new THREE.Vector3(0.25, 0.1, 1));
   }
-  if (id === "mushroom") {
+  if (sculpt && id === "mushroom") {
     const capMat = new THREE.MeshStandardMaterial({ color: 0xe23b3b, roughness: 0.5 });
     const stemMat = new THREE.MeshStandardMaterial({ color: 0xf4efe6, roughness: 0.6 });
     const cap = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), capMat);
