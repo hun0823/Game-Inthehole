@@ -2,8 +2,8 @@
 """144 stages: 12 planets, 12 boards each, every featured mechanic required.
 
 Wood is walls only. Later planets introduce one mechanic, then mixes.
-Coins are not generated. Jelly replaces them. Magma is the lava trick;
-a collapsing floor is added on lava only when it stays necessary.
+Coins are not generated. Par and budget dead-ends both rise inside a planet,
+and each planet opens harder than the one before it.
 """
 
 import json
@@ -11,27 +11,10 @@ import random
 import sys
 from pathlib import Path
 
-from build_tricks import (
-    _add_glass,
-    _try_collapse,
-    _try_movers,
-    _try_smog,
-    build_cut,
-    build_jelly,
-    build_magma,
-    build_stop,
-    fresh_wall,
-    hunt_gates,
-    hunt_glass,
-    hunt_oneway,
-)
-from necessity import Gallery, all_necessary, mechanic_names, wall_edges
-from tilt_solver import solve
+from hard_boards import build_hard
+from necessity import Gallery, mechanic_names
 
 ROOT = Path(__file__).resolve().parents[1]
-SIZES = [3, 3, 4, 4, 5, 5, 5, 6, 6, 6, 7, 7]
-BASE = {3: 4, 4: 6, 5: 8, 6: 10, 7: 12}
-CAP = {3: 6, 4: 10, 5: 13, 6: 15, 7: 17}
 PLANETS = (
     "wood",
     "desert",
@@ -60,236 +43,167 @@ LABEL = {
     "alien": "Alien",
     "machine": "Machine",
 }
+# Wood starts at 3x3. Desert starts at 4x4. Every later planet starts at 5x5.
+# None of them go past 7x7: the board, camera, and HUD already fit that size.
+SIZES = {
+    "wood": [3, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7],
+    "desert": [4, 4, 5, 5, 5, 6, 6, 6, 7, 7, 7, 7],
+}
+LATE_SIZES = [5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7]
+# Stage-1 floors. Each is at least one tilt above the previous planet.
+# Offsets then climb inside the planet until the size cap.
+STAGE_ONE = {
+    "wood": 4,
+    "desert": 6,
+    "ice": 7,
+    "ocean": 8,
+    "crystal": 9,
+    "toy": 10,
+    "mushroom": 11,
+    "candy": 12,
+    "lava": 13,
+    "jungle": 14,
+    "alien": 15,
+    "machine": 16,
+}
+OFFSETS = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]
+# Budget dead ends saturate on a small board. Ask for one more than the
+# previous stage, but not more than that size has reliably produced.
+# One-way mazes do not grow trap counts as fast as a locked stair.
+DEAD_CAP = {
+    "ocean": {3: 2, 4: 4, 5: 4, 6: 6, 7: 8},
+}
+DEAD_CAP_DEFAULT = {3: 2, 4: 4, 5: 6, 6: 8, 7: 10}
 
 
-def target_for(planet_index, stage_index, size):
-    bonus = min(3, planet_index // 3)
-    wobble = stage_index // 4
-    return min(CAP[size], BASE[size] + bonus + wobble)
+def dead_cap(planet, n):
+    return DEAD_CAP.get(planet, DEAD_CAP_DEFAULT).get(n, DEAD_CAP_DEFAULT[n])
+# Late planets share 5x5 openers, so their caps step up with the floor.
+# A flat cap would pin every late planet on the same par.
+CAP = {
+    "wood": {3: 5, 4: 8, 5: 10, 6: 12, 7: 13},
+    "desert": {3: 5, 4: 9, 5: 12, 6: 13, 7: 15},
+    "ice": {5: 12, 6: 14, 7: 16},
+    "ocean": {5: 12, 6: 14, 7: 16},
+    "crystal": {5: 13, 6: 15, 7: 16},
+    "toy": {5: 14, 6: 15, 7: 17},
+    "mushroom": {5: 14, 6: 16, 7: 17},
+    "candy": {5: 15, 6: 16, 7: 17},
+    # 5x5 magma rarely has two different par-14 maps. Three par-13 openers
+    # still leave the later sizes to carry the average above candy.
+    "lava": {5: 13, 6: 16, 7: 16},
+    # 6x6 vines at par 17 repeat the same stair. Par 16 still has several maps.
+    "jungle": {5: 16, 6: 16, 7: 18},
+    "alien": {5: 16, 6: 17, 7: 18},
+    "machine": {5: 18, 6: 18, 7: 19},
+}
+# Alien and machine only remix tricks that already debuted on their own planet.
+ALIEN_PAIRS = (
+    ("ice", "smog"),
+    ("sand", "smog"),
+    ("glass", "smog"),
+    ("teleport", "smog"),
+    ("jelly", "smog"),
+    ("gates", "smog"),
+    ("movers", "smog"),
+    ("ice", "glass"),
+    ("sand", "glass"),
+    ("jelly", "glass"),
+    ("teleport", "glass"),
+    ("gates", "glass"),
+)
+# The first three are the 5x5 openers. Each one actually lands on its par
+# (16, then 17, then 18). The other mixes are for the larger boards.
+# Only these mixes reliably produce a necessary triple. The list repeats
+# them so a later stage can search that mix first instead of a dead end.
+MACHINE_TRIOS = (
+    ("movers", "sand", "smog"),
+    ("movers", "smog", "glass"),
+    ("gates", "glass", "smog"),
+    ("movers", "smog", "glass"),
+    ("gates", "glass", "smog"),
+    ("movers", "sand", "smog"),
+    ("sand", "glass", "smog"),
+    ("gates", "glass", "smog"),
+    ("movers", "smog", "glass"),
+    ("sand", "glass", "smog"),
+    ("gates", "glass", "smog"),
+    ("movers", "smog", "glass"),
+)
+FALLBACK = {
+    "alien": [("glass", "smog"), ("ice", "smog"), ("movers", "smog"), ("gates", "smog")],
+    "machine": [
+        ("movers", "ice", "smog"),
+        ("gates", "glass", "smog"),
+        ("sand", "glass", "smog"),
+        ("movers", "smog", "glass"),
+    ],
+}
 
 
-def walls_matter(level, moves):
-    bare = {
-        **level,
-        "hWalls": [],
-        "vWalls": [],
-    }
-    other = solve(bare, max_moves=len(moves))
-    return other is not None and len(other) <= len(moves) - 2
+def sizes_for(planet):
+    return SIZES.get(planet, LATE_SIZES)
 
 
-def accept(level, moves, gallery, required):
-    if not moves or len(moves) < 2:
-        return False
-    if level.get("coins"):
-        return False
-    names = set(mechanic_names(level))
-    if required is not None and not set(required) <= names:
-        return False
-    if required is not None and names - set(required) - {"collapse"}:
-        return False
-    if not names and not walls_matter(level, moves):
-        return False
-    if names and not all_necessary(level, moves):
-        return False
-    if gallery.reject_reason(level):
-        return False
-    return True
+# Dead-end ask by stage. Early boards stay low so a later mix, which cannot
+# grow traps as fast as a stair, can still finish the planet higher than it
+# started. Ocean's last four stages are whirlpool + current, so the ask
+# drops there on purpose.
+DEAD_RISE = [1, 1, 2, 2, 3, 3, 4, 5, 6, 7, 8, 9]
+OCEAN_RISE = [1, 1, 2, 2, 2, 3, 3, 4, 2, 3, 3, 4]
 
 
-def consume(pool, level):
-    sig = wall_edges(level)
-    pool[:] = [donor for donor in pool if wall_edges(donor) != sig]
+# Five identical par-18 7x7 vines are the same stair. Spread the par so each
+# board is a different maze, and keep the sequence non-decreasing.
+JUNGLE_7 = (16, 17, 17, 18, 18)
+# 5x5 machine mixes each have one par they can hit. Keep those pars in order.
+MACHINE_5 = (16, 17, 17)
 
 
-def mint(pool, n, target, rng, rounds=6):
-    used = set()
-    attempts = 160 if n <= 4 else 280 if n <= 6 else 420
-    for delta in (0, 1, -1, 2, 3, -2, 4):
-        aim = target + delta
-        if aim < 3 or aim > CAP[n] + 2:
-            continue
-        for _ in range(rounds):
-            level = fresh_wall(n, aim, rng, used, attempts=attempts)
-            if not level:
-                continue
-            moves = solve(level, max_moves=aim + 3)
-            if moves and len(moves) >= 3:
-                level["par"] = len(moves)
-                pool.append(level)
-                return level
-    return None
+def stage_targets(planet, s1):
+    cap = CAP[planet]
+    out = []
+    seen7 = 0
+    for si, n in enumerate(sizes_for(planet)):
+        goal = min(cap[n], s1 + OFFSETS[si])
+        if planet == "jungle" and n == 7:
+            goal = min(goal, JUNGLE_7[seen7])
+            seen7 += 1
+        if planet == "machine" and n == 5:
+            goal = MACHINE_5[si]
+        out.append(goal)
+    return out
 
 
-def ensure_donors(pool, n, target, rng, count):
-    have = [level for level in pool if level["size"] == n]
-    while len(have) < count:
-        made = mint(pool, n, target + 2, rng)
-        if not made:
-            break
-        have.append(made)
-    return [level for level in pool if level["size"] == n]
+def planned_avg(planet):
+    return sum(stage_targets(planet, STAGE_ONE[planet])) / 12
 
 
-def finish(level, moves, planet, stage_index, gallery):
-    level = dict(level)
-    level["planet"] = planet
-    level["name"] = f"{LABEL[planet]} {stage_index + 1}"
-    level["par"] = len(moves)
-    gallery.add(level)
-    return level
+def dead_goal(planet, si, n, deads):
+    rise = OCEAN_RISE if planet == "ocean" else DEAD_RISE
+    goal = min(dead_cap(planet, n), rise[si])
+    if si == 11 and deads:
+        need = max(deads[0] + 1, sum(deads[:6]) - sum(deads[6:]) + 1)
+        goal = max(goal, need)
+    elif si >= 9 and deads:
+        remaining = 12 - si
+        need = sum(deads[:6]) - sum(deads[6:]) + 1
+        if need > 0:
+            goal = max(goal, (need + remaining - 1) // remaining)
+    return max(1, min(dead_cap(planet, n), goal))
 
 
-def take_stop(kind, n, target, rng, gallery, required):
-    for delta in (0, 1, -1, 2, -2):
-        aim = max(3, min(CAP[n], target + delta))
-        made = build_stop(n, aim, rng, kind, gallery, attempts=18)
-        if made and accept(made[0], made[1], gallery, required):
-            return made
-    return None
+def projected_avg(pars, par, schedules):
+    """Average if every later stage is at least this par and its own target."""
+    carry = par
+    rest = []
+    for sch in schedules[len(pars) + 1:]:
+        carry = max(carry, sch)
+        rest.append(carry)
+    return (sum(pars) + par + sum(rest)) / 12
 
 
-def take_cut(kind, n, target, rng, gallery, required):
-    for delta in (0, 1, -1, 2, -2, 3):
-        aim = max(3, min(CAP[n], target + delta))
-        if kind == "glass":
-            made = hunt_glass(n, aim, rng, set(), gallery)
-        elif kind == "gates":
-            made = hunt_gates(n, aim, rng, set(), gallery)
-        else:
-            made = build_cut(n, aim, rng, kind, gallery, attempts=24)
-        if made and accept(made[0], made[1], gallery, required):
-            return made
-    return None
-
-
-def take_jelly(n, target, rng, gallery):
-    for delta in (0, -1, 1, -2, 2, -3, -4, 3):
-        aim = max(3, min(CAP[n], target + delta))
-        made = build_jelly(n, aim, rng, gallery, attempts=16)
-        if made and accept(made[0], made[1], gallery, ["jelly"]):
-            return made
-    return None
-
-
-def take_magma(n, target, rng, gallery, with_collapse=False):
-    from build_tricks import magma_from_maze
-    if n >= 5:
-        for _ in range(6):
-            made = magma_from_maze(n, target, rng, gallery, attempts=2)
-            if not made:
-                continue
-            level, moves = made
-            if with_collapse:
-                layered = _try_collapse(level, rng, max(3, len(moves) - 2), len(moves) + 3)
-                if layered and accept(layered[0], layered[1], gallery, ["magma", "collapse"]):
-                    return layered
-            if accept(level, moves, gallery, ["magma"]):
-                return level, moves
-    for delta in (0, 1, -1, 2, -2, 3, 4):
-        aim = max(2, min(CAP[n], target + delta))
-        made = build_magma(n, aim, rng, gallery, attempts=16)
-        if not made:
-            continue
-        level, moves = made
-        if with_collapse:
-            layered = _try_collapse(level, rng, max(3, len(moves) - 2), len(moves) + 3)
-            if layered and accept(layered[0], layered[1], gallery, ["magma", "collapse"]):
-                return layered
-        if accept(level, moves, gallery, ["magma"]):
-            return level, moves
-    return None
-
-
-def take_oneway(pool, n, target, rng, gallery):
-    donors = ensure_donors(pool, n, max(target, 8), rng, 8)
-    if not donors:
-        return None
-    lo = max(3, target - 4)
-    hi = min(CAP[n] + 2, target + 4)
-    made = hunt_oneway(donors, rng, lo, hi, gallery, attempts=16)
-    if made and accept(made[0], made[1], gallery, ["oneway"]):
-        consume(pool, made[0])
-        return made
-    return None
-
-
-def take_smog(pool, n, target, rng, gallery):
-    donors = ensure_donors(pool, n, target, rng, 6)
-    rng.shuffle(donors)
-    for base in donors[:8]:
-        moves = solve(base, max_moves=base["par"] + 2)
-        if not moves:
-            continue
-        made = _try_smog(base, len(moves))
-        if made and accept(made[0], made[1], gallery, ["smog"]):
-            consume(pool, made[0])
-            return made
-    return None
-
-
-def take_movers(pool, n, target, rng, gallery):
-    donors = ensure_donors(pool, n, max(4, min(target, CAP[n] - 1)), rng, 8)
-    rng.shuffle(donors)
-    lo = 3
-    hi = CAP[n] + 2
-    for base in donors[:10]:
-        made = _try_movers(base, rng, lo, hi)
-        if made and accept(made[0], made[1], gallery, ["movers"]):
-            consume(pool, made[0])
-            return made
-    return None
-
-
-def layer_extra(level, moves, kind, rng):
-    par = len(moves)
-    if kind == "smog":
-        return _try_smog(level, par)
-    if kind == "glass":
-        return _add_glass(level, rng, par)
-    if kind == "oneway":
-        return hunt_oneway([level], rng, max(3, par - 3), par + 4, None, attempts=1)
-    if kind == "movers":
-        return _try_movers(level, rng, max(3, par - 3), par + 3)
-    if kind == "collapse":
-        return _try_collapse(level, rng, max(3, par - 3), par + 3)
-    return None
-
-
-def take_mix(kinds, n, target, rng, gallery, pool):
-    primary = kinds[0]
-    builders = {
-        "sand": lambda aim: take_stop("sand", n, aim, rng, gallery, ["sand"]),
-        "ice": lambda aim: take_stop("ice", n, aim, rng, gallery, ["ice"]),
-        "teleport": lambda aim: take_cut("teleport", n, aim, rng, gallery, ["teleport"]),
-        "glass": lambda aim: take_cut("glass", n, aim, rng, gallery, ["glass"]),
-        "gates": lambda aim: take_cut("gates", n, aim, rng, gallery, ["gates"]),
-        "jelly": lambda aim: take_jelly(n, aim, rng, gallery),
-        "magma": lambda aim: take_magma(n, aim, rng, gallery),
-        "oneway": lambda aim: take_oneway(pool, n, aim, rng, gallery),
-        "movers": lambda aim: take_movers(pool, n, aim, rng, gallery),
-    }
-    build = builders.get(primary)
-    if not build:
-        return None
-    for _ in range(14):
-        made = build(max(3, target + rng.randint(-1, 2)))
-        if not made:
-            continue
-        level, moves = made
-        ok = True
-        for kind in kinds[1:]:
-            layered = layer_extra(level, moves, kind, rng)
-            if not layered:
-                ok = False
-                break
-            level, moves = layered
-        if ok and accept(level, moves, gallery, kinds):
-            return level, moves
-    return None
-
-
-def slot_kinds(planet, stage_index, size):
+def slot_kinds(planet, stage_index):
     if planet == "wood":
         return []
     if planet == "desert":
@@ -297,10 +211,9 @@ def slot_kinds(planet, stage_index, size):
     if planet == "ice":
         return ["ice"]
     if planet == "ocean":
-        # A 3x3 board cannot hold an arrow that is both a passage and a stop
-        # under the gap rule. Whirlpools introduce the planet; currents start
-        # at 4x4, and the last four stages use both.
-        if size <= 3:
+        # Whirlpools open the planet. Currents start on stage 3. The last four
+        # stages use both, which is where the mixed-trick lesson debuts.
+        if stage_index < 2:
             return ["teleport"]
         if stage_index < 8:
             return ["oneway"]
@@ -314,131 +227,336 @@ def slot_kinds(planet, stage_index, size):
     if planet == "candy":
         return ["jelly"]
     if planet == "lava":
-        return ["magma", "collapse"] if stage_index >= 8 else ["magma"]
+        # Magma on every stage. Crumbling floors join on stage 9.
+        if stage_index >= 8:
+            return ["collapse", "magma"]
+        return ["magma"]
     if planet == "jungle":
-        # Swinging vines need a 4x4 before the phase trick can change par by
-        # the gap. The 3x3 boards are jungle-themed wall puzzles; the tutorial
-        # opens on the first vine stage.
-        if size <= 3:
-            return []
         return ["movers"]
     if planet == "alien":
-        pairs = (
-            ("sand", "smog"),
-            ("ice", "smog"),
-            ("teleport", "smog"),
-            ("glass", "smog"),
-            ("gates", "smog"),
-            ("jelly", "smog"),
-            ("oneway", "smog"),
-            ("magma", "smog"),
-            ("movers", "smog"),
-            ("sand", "glass"),
-            ("ice", "oneway"),
-            ("teleport", "glass"),
-        )
-        return list(pairs[stage_index % len(pairs)])
-    triples = (
-        ("sand", "smog", "glass"),
-        ("teleport", "smog", "oneway"),
-        ("ice", "smog", "movers"),
-        ("gates", "smog", "glass"),
-        ("jelly", "smog", "oneway"),
-        ("magma", "smog", "glass"),
-        ("sand", "glass", "smog"),
-        ("teleport", "movers", "smog"),
-        ("jelly", "smog", "movers"),
-        ("gates", "oneway", "smog"),
-        ("ice", "glass", "smog"),
-        ("magma", "smog", "movers"),
+        return list(ALIEN_PAIRS[stage_index % len(ALIEN_PAIRS)])
+    return list(MACHINE_TRIOS[stage_index % len(MACHINE_TRIOS)])
+
+
+def _attempts(kinds):
+    names = set(kinds)
+    if names == {"oneway", "teleport"}:
+        # One donor pass hits about two times in three. Three passes make a
+        # par-15 finale reliable without walking the par up to an unfindable 16.
+        return 3
+    if "oneway" in names:
+        return 6
+    if "movers" in names:
+        # Moving walls repeat a few corridor shapes. Extra tries are what
+        # keep a 6x6 par-17 vine off the previous board's walls.
+        return 8
+    if "collapse" in names:
+        return 8
+    if not names:
+        # Wall puzzles need several stair lengths before the dead-end count
+        # lands in the narrow band the ramp asked for.
+        return 16
+    if "sand" in names or "ice" in names:
+        return 12
+    if names == {"magma"}:
+        return 14
+    return 12
+
+
+def _clean(level):
+    drop = {"moves", "_deadEnds", "_traps"}
+    cleaned = {}
+    for key, value in level.items():
+        if key in drop:
+            continue
+        if value in ([], {}, None) and key not in ("hWalls", "vWalls"):
+            continue
+        cleaned[key] = value
+    return cleaned
+
+
+def _obtain(n, target, kinds, rng, gallery, min_dead, trap_bias, attempts, prefer_high=False, max_par=None):
+    """Search until par is at least `target` and dead ends clear `min_dead`."""
+    best = None
+    schedules = (
+        (min_dead, attempts, trap_bias),
+        (min_dead, attempts + 2, trap_bias + 2),
+        (max(0, min_dead - 1), attempts, max(2, trap_bias - 1)),
     )
-    return list(triples[stage_index % len(triples)])
-
-
-def build_slot(planet, stage_index, size, target, rng, gallery, pool, prev):
-    kinds = slot_kinds(planet, stage_index, size)
-    lo = 2 if size == 3 else 3
-    if prev:
-        lo = max(lo, prev - 2)
-    for _try in range(10):
-        aim = target + (_try % 5) - 1
-        made = None
-        if planet == "wood" or (planet == "jungle" and not kinds):
-            donors = []
-            minted = mint(donors, size, aim, rng, rounds=3)
-            if minted:
-                moves = solve(minted, max_moves=aim + 3)
-                if moves and accept(minted, moves, gallery, []):
-                    made = minted, moves
-        elif planet == "desert":
-            made = take_stop("sand", size, aim, rng, gallery, ["sand"])
-        elif planet == "ice":
-            made = take_stop("ice", size, aim, rng, gallery, ["ice"])
-        elif planet == "ocean" and kinds == ["oneway"]:
-            made = take_oneway(pool, size, aim, rng, gallery)
-        elif planet == "ocean" and kinds == ["teleport"]:
-            made = take_cut("teleport", size, aim, rng, gallery, ["teleport"])
-        elif planet == "ocean":
-            made = take_mix(["teleport", "oneway"], size, aim, rng, gallery, pool)
-        elif planet == "crystal":
-            made = take_cut("glass", size, aim, rng, gallery, ["glass"])
-        elif planet == "toy":
-            made = take_cut("gates", size, aim, rng, gallery, ["gates"])
-        elif planet == "mushroom":
-            made = take_smog(pool, size, aim, rng, gallery)
-        elif planet == "candy":
-            made = take_jelly(size, aim, rng, gallery)
-        elif planet == "lava":
-            made = take_magma(size, aim, rng, gallery, with_collapse="collapse" in kinds)
-            if made and "collapse" in kinds and "collapse" not in mechanic_names(made[0]):
-                # Secondary crumble is optional. Magma alone still counts.
-                if not accept(made[0], made[1], gallery, ["magma"]):
-                    made = None
-        elif planet == "jungle":
-            made = take_movers(pool, size, aim, rng, gallery)
-        else:
-            made = take_mix(kinds, size, aim, rng, gallery, pool)
-            if not made and planet == "alien":
-                made = take_mix(["sand", "smog"], size, aim, rng, gallery, pool)
-            if not made and planet == "machine":
-                made = take_mix(["sand", "smog", "glass"], size, aim, rng, gallery, pool)
+    # One whirlpool-plus-current search already covers several donors.
+    if set(kinds) == {"oneway", "teleport"}:
+        schedules = ((min_dead, attempts, trap_bias),)
+    for dead_floor, tries, bias in schedules:
+        made = build_hard(
+            n, target, kinds, rng, gallery,
+            trap_bias=max(2, bias), attempts=tries, min_dead=dead_floor,
+            prefer_high=prefer_high, max_par=max_par,
+        )
         if not made:
             continue
         level, moves = made
-        if len(moves) < lo and _try < 8:
+        dead = level["_deadEnds"]
+        if dead < min_dead:
+            if best is None or dead > best[0]["_deadEnds"]:
+                best = made
             continue
-        return level, moves
-    return None
+        # Closest to the floor, then closest to the par target.
+        rank = (-(dead - min_dead), -abs(len(moves) - target), dead)
+        if best is None or best[0].get("_deadEnds", 0) < min_dead or rank > (
+            -(best[0]["_deadEnds"] - min_dead),
+            -abs(len(best[1]) - target),
+            best[0]["_deadEnds"],
+        ):
+            best = made
+        if dead <= min_dead + 1:
+            return made
+    return best
+
+
+def _machine_one(stage_index, n, target, rng, gallery, min_dead, max_par, prefer_high=False):
+    """Several independent seeds. One stream often misses a par the next hits."""
+    kinds = slot_kinds("machine", stage_index)
+    options = [kinds]
+    for extra in FALLBACK["machine"]:
+        alt = list(extra)
+        if alt not in options:
+            options.append(alt)
+    hi = max_par if max_par is not None else target
+    best = None
+    for choice in options:
+        # Gates and vines land one tilt above the corridor they are aimed at.
+        aim = target - 1 if target >= 17 and any(k in choice for k in ("gates", "movers")) else target
+        quiet = 0
+        for _ in range(8):
+            sub = random.Random(rng.randrange(1_000_000_000))
+            made = build_hard(
+                n, aim, choice, sub, gallery,
+                trap_bias=4, attempts=4, min_dead=min_dead,
+                prefer_high=False, max_par=hi,
+            )
+            if not made or not (target <= len(made[1]) <= hi) or made[0]["_deadEnds"] < 1:
+                continue
+            dead = made[0]["_deadEnds"]
+            if best is None:
+                best = made
+            elif prefer_high and dead > best[0]["_deadEnds"]:
+                best = made
+            elif not prefer_high and dead < best[0]["_deadEnds"]:
+                best = made
+            quiet += 1
+            # The first half of a planet must not open with a dead-end spike.
+            if not prefer_high and best[0]["_deadEnds"] <= 4:
+                return best
+            if prefer_high and quiet >= 2 and best[0]["_deadEnds"] >= 8:
+                return best
+        if best is not None:
+            return best
+    return best
+
+
+def build_one(planet, stage_index, n, target, rng, gallery, min_dead, prefer_high=False, max_par=None):
+    if planet == "machine":
+        return _machine_one(
+            stage_index, n, target, rng, gallery, min_dead, max_par, prefer_high
+        )
+    kinds = slot_kinds(planet, stage_index)
+    options = [kinds]
+    if planet in FALLBACK:
+        for extra in FALLBACK[planet]:
+            alt = list(extra)
+            if alt not in options:
+                options.append(alt)
+    # Shift the stair length by stage so consecutive maps are not the same trap.
+    bias = max(2, min_dead + (stage_index % 3) - 1)
+    attempts = _attempts(kinds)
+    best = None
+    for choice in options:
+        made = _obtain(
+            n, target, choice, rng, gallery, min_dead, bias, attempts, prefer_high, max_par
+        )
+        if not made:
+            continue
+        level, moves = made
+        rank = (
+            1 if level["_deadEnds"] >= min_dead else 0,
+            level["_deadEnds"],
+            -abs(len(moves) - target),
+        )
+        if best is None or rank > best[0]:
+            best = (rank, made, choice)
+        if level["_deadEnds"] >= min_dead and abs(len(moves) - target) <= 1:
+            break
+        # A failed exotic mix should not burn the same budget again.
+        if planet in ("alien", "machine") and level["_deadEnds"] >= min_dead:
+            break
+    if best is None:
+        return None
+    return best[1]
 
 
 def main():
-    rng = random.Random(14401)
+    rng = random.Random(20261010)
+    print("planned averages:", flush=True)
+    for name in PLANETS:
+        sched = stage_targets(name, STAGE_ONE[name])
+        print(f"  {name}: {sched} avg {sum(sched) / 12:.2f}", flush=True)
     gallery = Gallery()
-    pool = []
     levels = []
-    prev = {}
-    for pi, planet in enumerate(PLANETS):
-        prev[planet] = 0
-        for si, size in enumerate(SIZES):
-            target = target_for(pi, si, size)
-            print(f"building {planet} {si + 1} {size}x{size} target {target}", flush=True)
-            made = build_slot(planet, si, size, target, rng, gallery, pool, prev[planet])
-            if not made:
+    report = []
+    prev_s1 = 0
+    prev_avg = 0.0
+    for planet in PLANETS:
+        sizes = sizes_for(planet)
+        s1 = max(STAGE_ONE[planet], prev_s1 + 1)
+        cap = CAP[planet]
+        schedules = stage_targets(planet, s1)
+        nxt = PLANETS[PLANETS.index(planet) + 1] if planet != "machine" else None
+        avg_limit = planned_avg(nxt) if nxt else 99.0
+        prev_par = 0
+        planet_rows = []
+        deads_so_far = []
+        pars_so_far = []
+        for si, n in enumerate(sizes):
+            floor = prev_par if si else prev_s1 + 1
+            target = max(schedules[si], floor)
+            # One tilt of slack, and never a jump that the next planet's
+            # planned average cannot beat. Crumbling floors land a few tilts
+            # high; allow that slack while the projection stays under the limit.
+            if planet == "lava" and si >= 8:
+                # The first crumble may sit two tilts above the schedule.
+                # Later crumbles stay on that par instead of climbing again.
+                if floor > schedules[si]:
+                    ceiling = floor
+                else:
+                    ceiling = schedules[si] + 2
+                    while ceiling > floor and projected_avg(pars_so_far, ceiling, schedules) >= avg_limit:
+                        ceiling -= 1
+            elif planet == "machine" and n >= 6:
+                # Cap above is the planned par. Two extra tilts are allowed
+                # when that exact par has no unique map left.
+                ceiling = min(target + 2, 20 if n == 6 else 21)
+            elif planet == "jungle" or (planet == "machine" and n == 5 and si == 0):
+                # These maps only exist at the planned par. One extra tilt
+                # either repeats a wall set or skips a par nobody can build.
+                ceiling = target
+            elif planet == "machine" and n == 5:
+                # Later 5x5 mixes land at 17 or 18 from the same search.
+                ceiling = max(target, 18)
+            else:
+                ceiling = min(cap[n], target + 1)
+            cap_dead = dead_cap(planet, n)
+            # Magma's tilt clock makes almost every state a dead end. The
+            # first half takes the quietest boards and the second half the
+            # busiest, so the count still rises inside the planet.
+            prefer_high = (planet == "lava" and si >= 6) or (planet == "machine" and si >= 6)
+            min_dead = 1 if prefer_high else dead_goal(planet, si, n, deads_so_far)
+            print(
+                f"building {planet} {si + 1} {n}x{n} target {target} "
+                f"ceiling {ceiling} dead>={min_dead}",
+                flush=True,
+            )
+            made = None
+            fallback = None
+            ask = target
+            while ask <= ceiling and made is None:
+                if projected_avg(pars_so_far, ask, schedules) >= avg_limit:
+                    print(
+                        f"  skip par {ask}: projected avg would pass {avg_limit:.2f}",
+                        flush=True,
+                    )
+                    break
+                # Search this par exactly. A higher result would become the
+                # next stage's floor. The 5x5 button mix is the exception:
+                # aiming at 17 is what produces the par-18 board.
+                par_cap = max(ask, 18) if planet == "machine" and n == 5 and si >= 1 else ask
+                candidate = build_one(
+                    planet, si, n, ask, rng, gallery, min_dead, prefer_high, par_cap
+                )
+                if candidate is None:
+                    ask += 1
+                    continue
+                dead_now = candidate[0]["_deadEnds"]
+                par_now = len(candidate[1])
+                if par_now < floor or par_now > ceiling or dead_now < 1:
+                    ask += 1
+                    continue
+                if projected_avg(pars_so_far, par_now, schedules) >= avg_limit:
+                    ask += 1
+                    continue
+                if fallback is None:
+                    fallback = candidate
+                elif prefer_high and dead_now > fallback[0]["_deadEnds"]:
+                    fallback = candidate
+                elif not prefer_high and (
+                    fallback[0]["_deadEnds"] < min_dead
+                    and dead_now > fallback[0]["_deadEnds"]
+                    or min_dead <= dead_now < fallback[0]["_deadEnds"]
+                ):
+                    fallback = candidate
+                band_hi = max(cap_dead, min_dead)
+                if min_dead <= dead_now <= band_hi or prefer_high:
+                    made = candidate
+                    break
+                # A miss on the trap count must not walk the par up.
+                break
+            if made is None:
+                made = fallback
+            if made is None:
                 print(f"FAILED {planet} stage {si + 1}", flush=True)
                 return 1
             level, moves = made
-            level = finish(level, moves, planet, si, gallery)
-            prev[planet] = len(moves)
+            par = len(moves)
+            dead = level["_deadEnds"]
+            traps = level["_traps"]
+            if par < floor:
+                print(f"FAILED {planet} stage {si + 1} par {par} below floor {floor}", flush=True)
+                return 1
+            level = _clean(level)
+            level["planet"] = planet
+            level["name"] = f"{LABEL[planet]} {si + 1}"
+            level["par"] = par
+            gallery.add(level)
             levels.append(level)
-            names = ",".join(mechanic_names(level)) or "walls"
-            print(f"  ok id-will-be {len(levels)} par {len(moves)} [{names}]", flush=True)
+            planet_rows.append((n, par, dead, traps, ",".join(mechanic_names(level)) or "walls"))
+            prev_par = par
+            pars_so_far.append(par)
+            deads_so_far.append(dead)
+            print(
+                f"  ok par {par} dead {dead} traps {traps} [{planet_rows[-1][4]}]",
+                flush=True,
+            )
+        pars = [row[1] for row in planet_rows]
+        deads = [row[2] for row in planet_rows]
+        avg = sum(pars) / len(pars)
+        if deads[-1] <= deads[0] or sum(deads[6:]) <= sum(deads[:6]):
+            print(f"FAILED {planet} dead ends {deads[0]} → {deads[-1]} halves {sum(deads[:6])} / {sum(deads[6:])}", flush=True)
+            return 1
+        if pars[-1] <= pars[0]:
+            print(f"FAILED {planet} par {pars[0]} → {pars[-1]}", flush=True)
+            return 1
+        if pars[0] <= prev_s1 or avg <= prev_avg:
+            print(
+                f"FAILED ramp {planet} s1 {pars[0]} avg {avg:.2f} after {prev_s1} / {prev_avg:.2f}",
+                flush=True,
+            )
+            return 1
+        prev_s1 = pars[0]
+        prev_avg = avg
+        report.append((planet, planet_rows, avg))
     for i, level in enumerate(levels, start=1):
         level["id"] = i
-        level.pop("moves", None)
-    payload = {"version": 11, "levels": levels}
+    payload = {"version": 12, "levels": levels}
     path = ROOT / "shared" / "levels.json"
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(f"wrote {len(levels)} levels to {path}")
+    for planet, rows, avg in report:
+        pars = [row[1] for row in rows]
+        deads = [row[2] for row in rows]
+        sizes = [row[0] for row in rows]
+        print(
+            f"{planet}: sizes {sizes} par {pars} min {min(pars)} avg {avg:.2f} max {max(pars)} "
+            f"dead {deads} avgDead {sum(deads)/len(deads):.1f}"
+        )
     return 0
 
 
