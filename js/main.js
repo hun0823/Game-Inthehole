@@ -32,6 +32,8 @@ const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlay-title");
 const overlayMsg = document.getElementById("overlay-msg");
 const overlayBtn = document.getElementById("overlay-btn");
+const overlayRetry = document.getElementById("overlay-retry");
+const overlayKicker = document.getElementById("overlay-kicker");
 const stageDialog = document.getElementById("stage-dialog");
 const stageList = document.getElementById("stage-list");
 const hintNote = document.getElementById("hint-note");
@@ -461,7 +463,9 @@ function updateHud() {
   const starsLeft = purse();
   scoreLabel.textContent = String(starsLeft);
   if (mapStars) mapStars.textContent = String(starsLeft);
-  if (mapStarbox) mapStarbox.setAttribute("aria-label", `${starsLeft} ${t(lang, "stars")}`);
+  const starLabel = `${starsLeft} ${t(lang, "stars")}`;
+  document.getElementById("btn-store").setAttribute("aria-label", starLabel);
+  if (mapStarbox) mapStarbox.setAttribute("aria-label", starLabel);
   if (storeOpen()) storeStars.textContent = String(starsLeft);
   levelLabel.textContent = stageTitle(level, stageIndex);
   const tone = moveCountTone(par, game.moves);
@@ -471,7 +475,17 @@ function updateHud() {
   else if (tone === "danger") movesLabel.classList.add("move-danger");
   const stars = starsText(earnedStars().stars);
   const ratio = par > 0 ? `${game.moves}/${par}` : String(game.moves);
-  movesLabel.innerHTML = `<span class="move-num">${ratio}</span> · <span class="stars">${stars}</span>`;
+  movesLabel.replaceChildren();
+  const hudStars = document.createElement("span");
+  hudStars.className = "hud-stars";
+  hudStars.textContent = stars;
+  const pill = document.createElement("span");
+  pill.className = "move-pill";
+  const num = document.createElement("span");
+  num.className = "move-num";
+  num.textContent = ratio;
+  pill.append(num);
+  movesLabel.append(hudStars, pill);
 }
 
 function clearHintUi() {
@@ -534,23 +548,26 @@ function showFinaleReward(level) {
   });
 }
 
+function replayStage() {
+  hideOverlay();
+  game.reset();
+  gameOver = false;
+  renderBoard();
+}
+
 function showGameOver() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   overlayMode = "lose";
   hideClearStars();
   hideReward();
-  overlay.classList.remove("hidden");
+  overlay.classList.remove("hidden", "is-win");
+  overlay.classList.add("is-lose");
+  overlayKicker.textContent = stageTitle(level, stageIndex);
   overlayTitle.textContent = t(lang, "out");
-  const label = stageTitle(level, stageIndex);
-  overlayMsg.textContent = par > 0 ? `${label} · ${game.moves}/${par}` : label;
+  overlayMsg.textContent = par > 0 ? `${game.moves}/${par}` : String(game.moves);
   overlayBtn.textContent = t(lang, "retry");
-  overlayBtn.onclick = () => {
-    hideOverlay();
-    game.reset();
-    gameOver = false;
-    renderBoard();
-  };
+  overlayBtn.onclick = () => replayStage();
 }
 
 function spawnClearStars() {
@@ -577,17 +594,17 @@ function showWin(stars, coinBonus, rewardBall) {
   overlayCoin = !!coinBonus;
   overlayStarsN = stars;
   spawnClearStars();
-  overlay.classList.remove("hidden");
-  overlayTitle.textContent = t(lang, "cleared");
+  overlay.classList.remove("hidden", "is-lose");
+  overlay.classList.add("is-win");
   const label = stageTitle(level, stageIndex);
-  let msg = coinBonus
-    ? `${label} · ${game.moves}/${par} · ${t(lang, "coin-bonus")}`
-    : `${label} · ${game.moves}/${par}`;
-  if (rewardBall) {
-    const copy = ballCopy(lang, rewardBall);
-    msg += ` ${t(lang, "reward", { planet: planetName(lang, level.planet), ball: copy.name })}`;
-  }
-  overlayMsg.textContent = msg;
+  overlayKicker.textContent = label;
+  overlayTitle.textContent = t(lang, "cleared");
+  const perfect = par > 0 && game.moves <= par;
+  overlayMsg.textContent = perfect
+    ? `${t(lang, "optimal")} ${game.moves}/${par}`
+    : (par > 0 ? `${game.moves}/${par}` : String(game.moves));
+  overlayRetry.textContent = t(lang, "retry");
+  overlayRetry.onclick = () => replayStage();
   showFinaleReward(level);
   showClearStars(stars);
   const more = stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1);
@@ -603,6 +620,7 @@ function showWin(stars, coinBonus, rewardBall) {
 
 function hideOverlay() {
   overlay.classList.add("hidden");
+  overlay.classList.remove("is-win", "is-lose");
   overlayMode = null;
   overlay.querySelectorAll(".pop-star").forEach((el) => el.remove());
   hideClearStars();
@@ -1217,9 +1235,9 @@ function dotBlocked(x, y, layout) {
     const ny = (y - node.y) / (node.vReach + pad);
     if (nx * nx + ny * ny < 1) return true;
     const pin = {
-      l: node.x - 52,
-      r: node.x + 52,
-      t: node.y - node.vReach - 48,
+      l: node.x - 58,
+      r: node.x + 58,
+      t: node.y - node.vReach - 100,
       b: node.y - node.vReach + 4,
     };
     if (rectHits(x, y, pad, pin)) return true;
@@ -1242,13 +1260,13 @@ function drawPathDots(layout) {
   svg.setAttribute("width", String(layout.width));
   svg.setAttribute("height", String(layout.height));
   svg.replaceChildren();
-  const colors = { cleared: "#ffd24a", progress: "#ff8a1a", locked: "#b7c0d4" };
+  const colors = { cleared: "#ffc21a", progress: "#ff6a00", locked: "#8e93b8" };
   const glows = {
-    cleared: "rgba(255, 210, 74, 0.55)",
-    progress: "rgba(255, 138, 26, 0.5)",
-    locked: "rgba(190, 198, 214, 0.28)",
+    cleared: "rgba(255, 194, 26, 0.55)",
+    progress: "rgba(255, 106, 0, 0.5)",
+    locked: "rgba(142, 147, 184, 0.28)",
   };
-  const rims = { cleared: "#fff6d2", progress: "#ffe0bf", locked: "#6d768c" };
+  const rims = { cleared: "#fff6d2", progress: "#ffd0b0", locked: "#5c6278" };
   for (let i = 0; i < layout.nodes.length - 1; i++) {
     const a = layout.nodes[i];
     const b = layout.nodes[i + 1];
@@ -1341,6 +1359,13 @@ function buildPlanetNode(id, p, node, focus) {
     pin.className = "star-pin";
     pin.textContent = t(lang, "here");
     btn.append(pin);
+    const left = 12 - stages;
+    if (left > 0) {
+      const more = document.createElement("span");
+      more.className = "star-more";
+      more.textContent = t(lang, "more-left", { n: left });
+      btn.append(more);
+    }
   }
 
   const card = document.createElement("button");
@@ -1401,7 +1426,7 @@ function positionMap() {
     if (node) {
       const margin = 16;
       const prev = layout.nodes[focus - 1];
-      const pinTop = node.y - node.vReach - 58;
+      const pinTop = node.y - node.vReach - 102;
       const nodeBottom = node.y + node.vReach + 12;
       const botLimit = prev ? Math.max(nodeBottom, prev.y + prev.vReach + 14) : nodeBottom;
       const span = botLimit - pinTop;
@@ -1435,9 +1460,26 @@ async function openFromMap(p) {
   }
 }
 
+function playFocusPlanet() {
+  const p = focusPlanet();
+  const start = p * 12;
+  const cleared = getCleared();
+  let index = Math.min(start + 11, LEVELS.length - 1);
+  for (let i = 0; i < 12; i++) {
+    const level = LEVELS[start + i];
+    if (!level) break;
+    if (!cleared.includes(level.id)) {
+      index = start + i;
+      break;
+    }
+  }
+  loadStage(index);
+}
+
 function renderMap() {
   document.getElementById("map-title").textContent = t(lang, "map-title");
   document.getElementById("map-shop").textContent = t(lang, "shop");
+  document.getElementById("map-play").textContent = t(lang, "play");
   buildSpaceStars();
   mapTrack.querySelectorAll(".star-node").forEach((node) => node.remove());
   const w = mapScroll.clientWidth || 375;
@@ -1479,8 +1521,10 @@ function closeSettings() {
 
 function applyLang() {
   document.documentElement.lang = lang;
-  document.getElementById("btn-store").textContent = t(lang, "shop");
+  document.getElementById("btn-store").setAttribute("aria-label", t(lang, "shop"));
+  document.getElementById("map-starbox").setAttribute("aria-label", t(lang, "shop"));
   document.getElementById("map-shop").textContent = t(lang, "shop");
+  document.getElementById("map-play").textContent = t(lang, "play");
   document.getElementById("btn-gear").setAttribute("aria-label", t(lang, "settings"));
   document.getElementById("map-settings").setAttribute("aria-label", t(lang, "settings"));
   lessonButton.textContent = t(lang, "how");
@@ -1537,6 +1581,14 @@ document.getElementById("map-settings").addEventListener("click", () => openSett
 document.getElementById("map-shop").addEventListener("click", () => {
   if (storeOpen()) closeStore();
   else openStore();
+});
+document.getElementById("map-starbox").addEventListener("click", () => {
+  if (storeOpen()) closeStore();
+  else openStore();
+});
+document.getElementById("map-play").addEventListener("click", () => {
+  if (storeOpen() || settingsOpen() || zooming) return;
+  playFocusPlanet();
 });
 mapScroll.addEventListener("scroll", () => {
   if (mapEl.hidden) return;
