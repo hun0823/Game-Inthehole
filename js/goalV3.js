@@ -300,16 +300,18 @@ function crystalGoal(group, api) {
 }
 
 function netGoal(group, api, kit) {
-  const near = api.zb(-0.32);
-  const far = api.zb(-0.54);
+  const near = api.zb(-0.28);
+  const far = api.zb(-0.62);
   const mid = (near + far) * 0.5;
-  const h = api.hh(0.42);
+  const h = api.hh(0.56);
   const goal = grp(group, 0, Y0, 0);
+  goal.rotation.x = api.tuck ? 0.28 : 0.48;
   const white = kit.netMat;
   const depth = Math.abs(far - near);
-  mesh(goal, G.box, white, -0.38, h * 0.45, mid, { s: [0.07, h * 0.9, depth], ink: 1.08, shadow: true });
-  mesh(goal, G.box, white, 0.38, h * 0.45, mid, { s: [0.07, h * 0.9, depth], ink: 1.08, shadow: true });
-  mesh(goal, G.box, white, 0, h * 0.92, far, { s: [0.83, 0.08, 0.07], ink: 1.06 });
+  const postX = api.tuck ? 0.36 : 0.5;
+  mesh(goal, G.box, white, -postX, h * 0.45, mid, { s: [0.08, h * 0.95, depth], ink: 1.08, shadow: true });
+  mesh(goal, G.box, white, postX, h * 0.45, mid, { s: [0.08, h * 0.95, depth], ink: 1.08, shadow: true });
+  mesh(goal, G.box, white, 0, h * 0.95, far, { s: [postX * 2 + 0.1, 0.1, 0.08], ink: 1.06 });
   const net = grp(goal, 0, h * 0.5, mid);
   const cord = shade(0xdde6ee, 0.7);
   for (let i = 0; i < 5; i++) {
@@ -321,8 +323,9 @@ function netGoal(group, api, kit) {
   api.shadow(group, 0, mid, 0.7, depth * 0.7);
   mesh(group, G.box, white, 0, Y0 + 0.024, 0.26, { s: [0.7, 0.016, 0.03] });
   api.act(net, (b, env) => {
-    b.node.position.z = b.z - env * 0.08;
-    b.node.scale.z = 1 + env * 0.55;
+    b.node.position.z = b.z - env * 0.24;
+    b.node.scale.z = 1 + env * 1.45;
+    b.node.scale.x = 1 + env * 0.38;
   });
 }
 
@@ -393,22 +396,23 @@ function snowmanGoal(group, api) {
   mesh(man, G.cone, shade(0xff8a2a, 0.5), 0, scales[0] + scales[1] + 0.05, 0.09, { rot: [Math.PI / 2, 0, 0], s: [0.035, 0.09, 0.035] });
   api.shadow(group, 0, z, 0.38, 0.24);
   api.act(hat, (b, env) => {
-    b.node.position.y = b.y + env * 0.1;
+    b.node.position.y = b.y + env * 0.22;
+    b.node.scale.set(b.sx * (1 + env * 0.15), b.sy * (1 + env * 0.35), b.sz);
   });
   api.act(armL, (b, env) => {
-    b.node.rotation.z = b.rz + env * 0.7;
+    b.node.rotation.z = b.rz + env * 1.35;
   });
   api.act(armR, (b, env) => {
-    b.node.rotation.z = b.rz - env * 0.7;
+    b.node.rotation.z = b.rz - env * 1.35;
   });
 }
 
 function hoopGoal(group, api, kit) {
-  const z = api.zb(-0.44);
-  const boardW = api.tuck ? 0.62 : 0.86;
-  const boardH = api.tuck ? 0.28 : 0.4;
-  const board = grp(group, 0, Y0 + 0.16, z);
-  board.rotation.x = api.tuck ? -0.5 : -0.7;
+  const z = api.zb(-0.52);
+  const boardW = api.tuck ? 0.74 : 1.08;
+  const boardH = api.tuck ? 0.38 : 0.58;
+  const board = grp(group, 0, Y0 + 0.1, z);
+  board.rotation.x = api.tuck ? 0.72 : 1.08;
   mesh(board, G.box, shade(0xffffff, 0.5), 0, 0, 0, {
     s: [boardW, boardH, 0.04],
     ink: 1.06,
@@ -421,8 +425,8 @@ function hoopGoal(group, api, kit) {
   mesh(board, G.box, shade(0xffffff, 0.5), 0, -boardH * 0.02, 0.042, { s: [boardW * 0.26, boardH * 0.32, 0.01] });
   const rim = mesh(group, G.thinTorus, kit.rimMat, 0, Y0 + 0.055, -0.02, {
     rot: [Math.PI / 2, 0, 0],
-    s: 0.34,
-    ink: 1.05,
+    s: api.tuck ? 0.32 : 0.42,
+    ink: 1.08,
   });
   const net = grp(group, 0, Y0 + 0.02, rim.position.z);
   for (let i = 0; i < 10; i++) {
@@ -431,11 +435,14 @@ function hoopGoal(group, api, kit) {
   }
   api.shadow(group, 0, z, boardW * 0.55, 0.18);
   api.act(net, (b, env, wob) => {
-    b.node.rotation.x = wob * 0.35;
-    b.node.scale.y = 1 + env * 0.25;
+    b.node.rotation.x = b.rx + wob * 0.95;
+    b.node.scale.y = 1 + env * 1.05;
+    b.node.scale.x = 1 + env * 0.32;
+    b.node.scale.z = 1 + env * 0.32;
   });
   api.act(board, (b, env) => {
-    hoopFlash.emissiveIntensity = env * 0.7;
+    hoopFlash.emissiveIntensity = env * 1.6;
+    b.node.scale.y = b.sy * (1 + env * 0.12);
   });
 }
 
@@ -470,7 +477,7 @@ function pinsGoal(group, api, kit, pins) {
       [-0.22, -0.44], [0, -0.44], [0.22, -0.44],
       [-0.33, -0.56], [-0.11, -0.56], [0.11, -0.56], [0.33, -0.56],
     ];
-  const scale = api.tuck ? 0.62 : 0.84;
+  const scale = api.tuck ? 0.78 : 1.18;
   spots.forEach(([x, z]) => {
     const pin = grp(group, x, Y0, z);
     pin.scale.setScalar(scale);
@@ -661,8 +668,9 @@ function plateGoal(group, api) {
     mesh(finger, G.box, leather, 0, 0.03, -0.14, { s: [0.1, 0.07, 0.28], ink: 1.08, shadow: true });
     mesh(finger, G.sph, leather, 0, 0.035, -0.28, { s: [0.055, 0.04, 0.055], ink: 1.08 });
     api.act(finger, (b, env) => {
-      b.node.rotation.x = env * 1.2;
-      b.node.position.z = b.z + env * 0.08;
+      b.node.rotation.x = env * 1.85;
+      b.node.position.z = b.z + env * 0.2;
+      b.node.scale.z = b.sz * (1 + env * 0.25);
     });
   }
   const thumb = grp(group, 0.4, Y0 + 0.04, 0.06);
@@ -685,7 +693,7 @@ function cupGoal(group, api) {
   mesh(group, G.box, postMat, -0.38, Y0 + postH * 0.5, z, { s: [0.05, postH, 0.1], ink: 1.1, shadow: true });
   mesh(group, G.box, postMat, 0.38, Y0 + postH * 0.5, z, { s: [0.05, postH, 0.1], ink: 1.1, shadow: true });
   const net = grp(group, 0, Y0 + postH * 0.55, z);
-  net.rotation.x = -0.6;
+  net.rotation.x = 0.78;
   const cloth = shade(0x2a2a2e, 0.8);
   for (let i = 0; i < 7; i++) {
     mesh(net, G.box, cloth, -0.3 + i * 0.1, 0, 0, { s: [0.016, postH * 0.7, 0.02] });
@@ -693,8 +701,9 @@ function cupGoal(group, api) {
   mesh(net, G.box, cloth, 0, postH * 0.28, 0, { s: [0.7, 0.02, 0.02] });
   api.shadow(group, 0, z, 0.62, 0.16);
   api.act(net, (b, env, wob) => {
-    b.node.rotation.x = b.rx + env * 0.35 + wob * 0.2;
-    lineFlash.emissiveIntensity = env * 1.8;
+    b.node.rotation.x = b.rx + env * 0.85 + wob * 0.55;
+    b.node.scale.y = 1 + env * 0.35;
+    lineFlash.emissiveIntensity = env * 2.2;
   });
 }
 
@@ -728,7 +737,9 @@ function spoolGoal(group, api) {
   mesh(thread, G.sph, shade(0xff5a9a, 0.5), -0.5, 0.02, 0, { s: 0.065, ink: 1.1 });
   api.shadow(group, 0.15, 0, 0.7, 0.18);
   api.act(thread, (b, env, wob, k) => {
-    b.node.position.x = b.x + Math.sin(Math.min(1, k) * Math.PI) * 0.22;
+    const pull = Math.sin(Math.min(1, k) * Math.PI);
+    b.node.position.x = b.x + pull * 0.46;
+    b.node.scale.set(1 + pull * 0.45, 1 + pull * 0.2, 1);
   });
 }
 
@@ -984,9 +995,19 @@ const BUILD = {
 export function mountGoalV3(group, kind, kit, opts = {}) {
   const actors = [];
   const pins = [];
-  const api = makeApi(!!opts.tuck, actors);
+  const tuck = !!opts.tuck;
+  const edge = opts.edge || "";
+  const root = new THREE.Group();
+  root.name = "goal-props";
+  const zoom = opts.zoom == null ? 1 : opts.zoom;
+  root.scale.setScalar(zoom);
+  if (tuck) root.position.z = 0.16;
+  if (edge === "left") root.position.x = 0.18;
+  if (edge === "right") root.position.x = -0.18;
+  group.add(root);
+  const api = makeApi(tuck, actors);
   const build = BUILD[kind] || BUILD.knot;
-  const extra = build(group, api, kit, pins) || {};
+  const extra = build(root, api, kit, pins) || {};
   group.userData.play = (env, wob, k) => {
     for (const fn of actors) fn(env, wob, k);
   };
