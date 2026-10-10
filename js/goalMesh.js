@@ -4,6 +4,7 @@
  */
 import * as THREE from "./vendor/three.module.js";
 import { themeById } from "./themes.js";
+import { mountGoalV3, socketFor } from "./goalV3.js";
 
 const BOARD_TOP = 0.5;
 const CHARCOAL = 0x141414;
@@ -101,30 +102,46 @@ export function floorMaterial(theme) {
   return lipMaterial(theme);
 }
 
-export function addFloorSocket(group, theme) {
+export function addFloorSocket(group, theme, opts = {}) {
   const y = BOARD_TOP;
   const { mouthMat, charcoalMat } = darkMats();
+  const lift = opts.carpet ? 0.004 : 0;
   const ao = new THREE.Mesh(new THREE.CircleGeometry(0.72, 32), contactMat());
   ao.rotation.x = -Math.PI / 2;
   ao.position.y = y + 0.008;
   ao.renderOrder = 2;
   ao.userData.ownGeo = true;
-  const lipGeo = new THREE.RingGeometry(0.3, 0.5, 32);
+  if (opts.carpet) {
+    const r = opts.carpetR || 0.56;
+    const under = new THREE.Mesh(new THREE.CircleGeometry(r * 1.07, 28), charcoalMat);
+    under.rotation.x = -Math.PI / 2;
+    under.position.y = y + 0.009;
+    under.renderOrder = 2;
+    under.userData.ownGeo = true;
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(r, 28), opts.carpet);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = y + 0.011;
+    disc.renderOrder = 3;
+    disc.receiveShadow = true;
+    disc.userData.ownGeo = true;
+    group.add(under, disc);
+  }
+  const lipGeo = new THREE.RingGeometry(0.3, opts.lipOuter || 0.5, 32);
   lipGeo.rotateX(-Math.PI / 2);
   stampFloorUV(lipGeo);
-  const lip = new THREE.Mesh(lipGeo, lipMaterial(theme));
-  lip.position.y = y + 0.012;
-  lip.renderOrder = 3;
+  const lip = new THREE.Mesh(lipGeo, opts.lip || lipMaterial(theme));
+  lip.position.y = y + 0.012 + lift;
+  lip.renderOrder = 4;
   lip.userData.ownGeo = true;
-  const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.29, 28), mouthMat);
+  const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.29, 28), opts.mouth || mouthMat);
   mouth.rotation.x = -Math.PI / 2;
-  mouth.position.y = y + 0.016;
-  mouth.renderOrder = 4;
+  mouth.position.y = y + 0.016 + lift;
+  mouth.renderOrder = 5;
   mouth.userData.ownGeo = true;
   const edge = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 6, 32), charcoalMat);
   edge.rotation.x = Math.PI / 2;
-  edge.position.y = y + 0.02;
-  edge.renderOrder = 5;
+  edge.position.y = y + 0.02 + lift;
+  edge.renderOrder = 6;
   edge.userData.ownGeo = true;
   group.add(ao, lip, mouth, edge);
   return group;
@@ -145,7 +162,12 @@ export function mountGoal(goalGroup, kind, kit, opts = {}) {
   const pins = [];
   let paw = null;
   const legacy = !!opts.legacy;
-  const mat = kit.goalMaterial(kind, legacy);
+  if (!legacy) {
+    const theme = opts.theme || themeById("wood");
+    addFloorSocket(goalGroup, theme, socketFor(kind));
+    return mountGoalV3(goalGroup, kind, kit, opts);
+  }
+  const mat = kit.goalMaterial(kind, true);
 
   const addProp = (geo, material, x, y, z) => {
     const mesh = new THREE.Mesh(geo, material);
@@ -155,19 +177,10 @@ export function mountGoal(goalGroup, kind, kit, opts = {}) {
     return mesh;
   };
 
-  if (legacy) {
-    const sink = new THREE.Mesh(kit.goalDiscGeo, kit.sinkMat);
-    sink.rotation.x = -Math.PI / 2;
-    sink.position.y = BOARD_TOP + 0.02;
-    goalGroup.add(sink);
-  } else {
-    addFloorSocket(goalGroup, opts.theme || themeById("wood"));
-    const accent = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.012, 6, 32), mat);
-    accent.rotation.x = Math.PI / 2;
-    accent.position.y = BOARD_TOP + 0.02;
-    accent.userData.ownGeo = true;
-    goalGroup.add(accent);
-  }
+  const sink = new THREE.Mesh(kit.goalDiscGeo, kit.sinkMat);
+  sink.rotation.x = -Math.PI / 2;
+  sink.position.y = BOARD_TOP + 0.02;
+  goalGroup.add(sink);
 
   const ring = new THREE.Mesh(kit.goalTorusGeo, mat);
   ring.rotation.x = Math.PI / 2;
@@ -338,7 +351,7 @@ export function mountGoal(goalGroup, kind, kit, opts = {}) {
     return { pins, paw };
   }
   if (kind === "cog") {
-    if (legacy) goalGroup.add(ring);
+    goalGroup.add(ring);
     for (let i = 0; i < 8; i++) {
       const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.1), mat);
       const a = (i / 8) * Math.PI * 2;
@@ -348,7 +361,7 @@ export function mountGoal(goalGroup, kind, kit, opts = {}) {
     }
     return { pins, paw };
   }
-  if (legacy) goalGroup.add(ring);
+  goalGroup.add(ring);
   return { pins, paw };
 }
 

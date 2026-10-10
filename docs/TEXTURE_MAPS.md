@@ -34,7 +34,7 @@ with Three.js `PMREMGenerator` (Three.js itself is MIT).
 - **Baseball.** Clean white leather and a red figure-8 of two rails with V stitches. The normal map raises the thread a little.
 - **Tennis.** Optic yellow felt and one white curved band. The nap is lighter than the first trial.
 - **Watermelon.** Dark green stripes pole to pole, only slightly wavy. The light band is a saturated yellow-green.
-- **Oak.** Warm wood, soft grain lines, two knots. The normal bump is small and the studio reflection is off.
+- **Oak.** Warm wood (`#c4843c` to `#e8c48a`). Fibers run pole to pole, dense and low-contrast, with one or two knots. The normal bump is small and the studio reflection is off. Wide latitude bands were removed so it does not read as a striped ball.
 - **Wood planet.** Forest masses and lighter meadow, low hills in the normal.
 - **Desert.** Sand dunes. Crests are lighter; the normal map carries the ridges.
 - **Ocean.** Deep water, shallows, and islands with sandy coasts. Water roughness is low so the environment reflects.
