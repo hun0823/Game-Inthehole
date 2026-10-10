@@ -14,7 +14,7 @@ import {
   makeSand, makeIce, makeJelly, makeSmog, makeMagma, makeTeleport, makeCurrent, makeButton,
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
-import { beginDeco, tickDeco, decoWanted, createBoardDeco } from "./boardDeco.js";
+import { beginDeco, tickDeco, decoWanted, createBoardDeco, layoutDeco } from "./boardDeco.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -1356,16 +1356,20 @@ export function createView(canvas) {
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const half = viewHalf;
     // 82° from the floor: near top-down, still enough pitch that screen-up
-    // stays the board's -Z (the "up" tilt). Width fit leaves vertical bands
-    // for the trim; height fit keeps the frame off the canvas edges.
+    // stays the board's -Z (the "up" tilt). A tall free rectangle fits the
+    // width and leaves vertical bands for the trim. A short one (375×667,
+    // where the free height is under the width) fits the height instead,
+    // and the trim moves into the side gutters.
     const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const fillW = 0.98;
-    const fillH = 0.74;
+    const sideGutters = h + 1 < w;
+    const fillW = sideGutters ? 1 : 0.98;
+    const fillH = sideGutters ? 0.93 : 0.74;
     const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
     const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
-    const dist = Math.max(distW, distH);
+    const dist = sideGutters ? distH : Math.max(distW, distH);
+    layoutDeco(rig.getObjectByName("board-deco"), sideGutters ? "sides" : "frame", half);
     const lookY = 0.42;
     camera.position.set(0, lookY + dist * sinE, dist * cosE);
     camera.lookAt(0, lookY, 0);

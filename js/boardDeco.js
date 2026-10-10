@@ -671,3 +671,58 @@ export function createBoardDeco(planet, span, frameT = 0.46) {
   build(group, m);
   return group;
 }
+
+function remember(sprite) {
+  if (!sprite.userData.home) {
+    sprite.userData.home = {
+      x: sprite.position.x,
+      z: sprite.position.z,
+      cx: sprite.center.x,
+      cy: sprite.center.y,
+      sx: sprite.scale.x,
+      sy: sprite.scale.y,
+    };
+  }
+  return sprite.userData.home;
+}
+
+// "frame" keeps the mockup placement on the top and bottom rails.
+// "sides" parks that trim in the left and right gutters when the board
+// is fitted to a short, wide play rectangle.
+export function layoutDeco(group, mode, half) {
+  if (!group) return;
+  const sprites = [];
+  group.traverse((obj) => {
+    if (obj.isSprite) sprites.push(obj);
+  });
+  const left = [];
+  const right = [];
+  sprites.forEach((sprite, i) => {
+    const home = remember(sprite);
+    if (mode !== "sides") {
+      sprite.position.x = home.x;
+      sprite.position.z = home.z;
+      sprite.center.set(home.cx, home.cy);
+      sprite.scale.set(home.sx, home.sy, 1);
+      return;
+    }
+    const sign = home.x < -0.08 ? -1 : home.x > 0.08 ? 1 : (i % 2 ? 1 : -1);
+    (sign < 0 ? left : right).push(sprite);
+  });
+  if (mode !== "sides") return;
+  const place = (list, sign) => {
+    list.sort((a, b) => a.userData.home.z - b.userData.home.z || a.userData.home.x - b.userData.home.x);
+    list.forEach((sprite, i) => {
+      const home = sprite.userData.home;
+      const t = list.length === 1 ? 0.5 : i / (list.length - 1);
+      sprite.position.x = sign * (half - 0.22);
+      sprite.position.z = (t - 0.5) * half * 1.15;
+      sprite.center.set(sign < 0 ? 0.86 : 0.14, 0.5);
+      const flip = Math.sign(home.sx) || 1;
+      const fit = 0.62;
+      sprite.scale.set(Math.abs(home.sx) * fit * flip, home.sy * fit, 1);
+    });
+  };
+  place(left, -1);
+  place(right, 1);
+}
