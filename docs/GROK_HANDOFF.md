@@ -183,4 +183,12 @@ Console 정상: `[SpriteCatalog] Art ready — wood 1024px, ball 1024px`
 
 ---
 
+## 14. 텍스처 시험판 (2026-10-10)
+
+공 4종(야구·테니스·수박·오크)과 행성 4종(나무·사막·바다·용암)은
+`assets/textures/*.webp` 를 쓴다. 재생성은 `python3 tools/bake_sphere_maps.py`.
+출처·라이선스·골 색을 바꾼 이유는 `docs/TEXTURE_MAPS.md`.
+게임 규칙(`js/game.js`)과 레벨 데이터는 이 작업에서 바꾸지 않는다.
+페이지 배포 워크플로는 `assets/` 를 함께 복사한다.
+
 **Grok:** 이 파일을 읽은 뒤 `GROK_START_HERE.md`의 온보딩 규칙을 따르세요.

@@ -3,8 +3,11 @@
  */
 import * as THREE from "./vendor/three.module.js";
 import { PLANET_ORDER } from "./themes.js";
-import { createPlanet, setPlanetLocked } from "./planetFactory.js";
+import { bindPlanetMaps, createPlanet, setPlanetLocked } from "./planetFactory.js";
 import { bindHost } from "./showcase.js";
+import { loadSphereMaps } from "./sphereMaps.js";
+import { applyStudio } from "./studioLight.js";
+import { createBloom } from "./bloom.js";
 
 function smoother(t) {
   const x = Math.min(1, Math.max(0, t));
@@ -47,7 +50,11 @@ export function createConstellation(canvas) {
   });
   renderer.setClearColor(0x070b18, 1);
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
   const scene = new THREE.Scene();
+  applyStudio(renderer, scene, 0.85);
   const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 60);
   const homePos = new THREE.Vector3(0, 0.05, 17.8);
   const homeLook = new THREE.Vector3(0, -0.05, 0);
@@ -97,8 +104,16 @@ export function createConstellation(canvas) {
     scene.add(linkMesh(planets[i].position, planets[i + 1].position));
   }
 
+  loadSphereMaps().then((maps) => {
+    bindPlanetMaps(maps);
+  }).catch((err) => {
+    console.error(err);
+  });
+
   let raf = 0;
   let running = false;
+  let useBloom = false;
+  let bloomFx = null;
   let mode = "idle";
   let onProject = null;
   let chain = Promise.resolve();
@@ -121,7 +136,8 @@ export function createConstellation(canvas) {
   function render() {
     renderer.setClearColor(0x070b18, 1);
     camera.lookAt(look);
-    renderer.render(scene, camera);
+    if (useBloom && bloomFx) bloomFx.render(scene, camera);
+    else renderer.render(scene, camera);
   }
 
   bindHost(renderer, () => {
@@ -200,6 +216,10 @@ export function createConstellation(canvas) {
     },
     resetCamera(instant) {
       return enqueue(() => animate(homePos.clone(), homeLook.clone(), instant || reduce ? 0 : 700));
+    },
+    setBloom(on) {
+      useBloom = !!on;
+      if (useBloom && !bloomFx) bloomFx = createBloom(renderer);
     },
   };
 }

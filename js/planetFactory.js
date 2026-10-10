@@ -2,6 +2,7 @@
  * Procedural planet meshes for the constellation and the asset sheet.
  */
 import * as THREE from "./vendor/three.module.js";
+import { planetLook } from "./sphereMaps.js";
 
 const RADIUS = 0.5;
 
@@ -24,12 +25,17 @@ function place(parent, mesh, dir, lift = 0) {
   return mesh;
 }
 
-function atmosphere(color) {
+function atmosphere(color, subtle) {
   const mat = new THREE.ShaderMaterial({
     transparent: true,
     depthWrite: false,
     side: THREE.FrontSide,
-    uniforms: { uColor: { value: new THREE.Color(color) } },
+    uniforms: {
+      uColor: { value: new THREE.Color(color) },
+      uPower: { value: subtle ? 4.2 : 2.15 },
+      uGain: { value: subtle ? 0.2 : 0.9 },
+      uPremul: { value: subtle ? 1 : 0 },
+    },
     vertexShader: `
       varying vec3 vNormal;
       varying vec3 vView;
@@ -45,13 +51,18 @@ function atmosphere(color) {
       varying vec3 vNormal;
       varying vec3 vView;
       uniform vec3 uColor;
+      uniform float uPower;
+      uniform float uGain;
+      uniform float uPremul;
       void main() {
-        float rim = pow(1.0 - max(dot(normalize(-vView), normalize(vNormal)), 0.0), 2.15);
-        gl_FragColor = vec4(uColor, rim * 0.9);
+        float rim = pow(1.0 - max(dot(normalize(-vView), normalize(vNormal)), 0.0), uPower);
+        float a = rim * uGain;
+        vec3 rgb = uColor * mix(1.0, a, uPremul);
+        gl_FragColor = vec4(rgb, a);
       }
     `,
   });
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(RADIUS + 0.12, 32, 24), mat);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(RADIUS + (subtle ? 0.028 : 0.12), 40, 28), mat);
   mesh.renderOrder = 2;
   return mesh;
 }
@@ -332,6 +343,43 @@ function surfaceMaterial(id, map) {
   return new THREE.MeshStandardMaterial({ map, color: 0xffffff, roughness: 0.72 });
 }
 
+let sharedMaps = null;
+const livePlanets = [];
+
+function mappedPack(id, legacy) {
+  if (legacy || !sharedMaps) return null;
+  return sharedMaps.planets[id] || null;
+}
+
+function assignPlanetMaps(entry) {
+  const tex = mappedPack(entry.id, entry.legacy);
+  if (!tex) return;
+  const mat = entry.sphere.material;
+  const look = planetLook(entry.id) || { envMapIntensity: 0.3, normalScale: 0.8 };
+  const prev = mat.map;
+  mat.map = tex.albedo;
+  mat.normalMap = tex.normal;
+  mat.normalScale.set(look.normalScale, look.normalScale);
+  mat.roughnessMap = tex.rough;
+  mat.roughness = 1;
+  mat.envMapIntensity = look.envMapIntensity;
+  if (entry.id === "lava" && tex.emissive) {
+    mat.emissive.setHex(0xffffff);
+    mat.emissiveMap = tex.emissive;
+    const base = 1.2;
+    mat.userData.baseEmissive = base;
+    const locked = mat.userData.baseColor !== undefined && mat.color.getHex() === 0x6a6a72;
+    mat.emissiveIntensity = locked ? base * 0.12 : base;
+  }
+  mat.needsUpdate = true;
+  if (prev && prev.isCanvasTexture) prev.dispose();
+}
+
+export function bindPlanetMaps(maps) {
+  sharedMaps = maps;
+  livePlanets.forEach(assignPlanetMaps);
+}
+
 const ATMOS = {
   wood: "#8dffb0",
   desert: "#ffd27a",
@@ -347,7 +395,7 @@ const ATMOS = {
   machine: "#d5e2f2",
 };
 
-export function createPlanet(id) {
+export function createPlanet(id, opts = {}) {
   const root = new THREE.Group();
   const spin = new THREE.Group();
   const moons = new THREE.Group();
@@ -355,23 +403,29 @@ export function createPlanet(id) {
   root.userData.spin = spin;
   root.userData.moons = moons;
 
+  const legacy = !!opts.legacy;
   const map = paintPlanet(id);
-  const sphere = new THREE.Mesh(new THREE.SphereGeometry(RADIUS, 32, 24), surfaceMaterial(id, map));
+  const sphere = new THREE.Mesh(new THREE.SphereGeometry(RADIUS, 48, 32), surfaceMaterial(id, map));
   sphere.renderOrder = 1;
   spin.add(sphere);
-  spin.add(atmosphere(ATMOS[id] || "#ffffff"));
+  const entry = { id, sphere, legacy };
+  if (!legacy && !opts.ephemeral) livePlanets.push(entry);
+  assignPlanetMaps(entry);
+  const subtle = !legacy && !!planetLook(id);
+  spin.add(atmosphere(ATMOS[id] || "#ffffff", subtle));
 
   const leaf = new THREE.MeshStandardMaterial({ color: 0x1f7a34, roughness: 0.7 });
   const trunk = new THREE.MeshStandardMaterial({ color: 0x6a4424, roughness: 0.8 });
   const sand = new THREE.MeshStandardMaterial({ color: 0xc9843a, roughness: 0.86 });
   const snow = new THREE.MeshStandardMaterial({ color: 0xf7fbff, roughness: 0.4 });
 
-  if (id === "wood" || id === "jungle") {
+  const sculpt = legacy || !planetLook(id);
+  if (sculpt && (id === "wood" || id === "jungle")) {
     place(spin, tree(leaf, trunk), new THREE.Vector3(0.15, 0.25, 1));
     place(spin, tree(leaf, trunk), new THREE.Vector3(-0.45, 0.05, 0.85));
     place(spin, tree(leaf, trunk), new THREE.Vector3(0.5, -0.2, 0.8));
   }
-  if (id === "desert") {
+  if (sculpt && id === "desert") {
     const pyramid = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.14, 4), sand);
     pyramid.rotation.y = Math.PI / 4;
     place(spin, pyramid, new THREE.Vector3(0.1, 0.05, 1), 0.02);
@@ -379,7 +433,7 @@ export function createPlanet(id) {
     dune.scale.set(1.4, 0.45, 0.9);
     place(spin, dune, new THREE.Vector3(-0.4, -0.15, 0.85));
   }
-  if (id === "ocean") {
+  if (sculpt && id === "ocean") {
     const isle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), leaf);
     isle.scale.y = 0.45;
     place(spin, isle, new THREE.Vector3(0.25, 0.1, 1));
@@ -396,7 +450,7 @@ export function createPlanet(id) {
     group.add(stem, cap);
     place(spin, group, new THREE.Vector3(0.05, 0.2, 1));
   }
-  if (id === "lava") {
+  if (sculpt && id === "lava") {
     const glow = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff6a10, emissiveIntensity: 0.8, roughness: 0.4 });
     const crack = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.02, 0.03), glow);
     place(spin, crack, new THREE.Vector3(0.1, 0.05, 1), 0.01);
@@ -446,8 +500,10 @@ export function disposeObject(root) {
   });
   geos.forEach((geo) => geo.dispose());
   mats.forEach((mat) => {
-    if (mat.map && mat.map !== mat.emissiveMap) mat.map.dispose();
-    if (mat.emissiveMap) mat.emissiveMap.dispose();
+    if (mat.map && !mat.map.userData.shared && mat.map !== mat.emissiveMap) mat.map.dispose();
+    if (mat.emissiveMap && !mat.emissiveMap.userData.shared) mat.emissiveMap.dispose();
+    if (mat.normalMap && !mat.normalMap.userData.shared) mat.normalMap.dispose();
+    if (mat.roughnessMap && !mat.roughnessMap.userData.shared) mat.roughnessMap.dispose();
     mat.dispose();
   });
 }

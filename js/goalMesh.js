@@ -97,11 +97,14 @@ export function mountGoal(goalGroup, kind, kit) {
   if (kind === "plate") {
     const plate = addProp(homePlateGeo(), kit.pinWhite, 0, BOARD_TOP + 0.06, -0.42);
     plate.rotation.x = -Math.PI / 2;
+    addProp(new THREE.BoxGeometry(0.32, 0.012, 0.018), kit.pinRed, 0, BOARD_TOP + 0.07, -0.2);
     return { pins, paw };
   }
   if (kind === "cup") {
     addProp(new THREE.CylinderGeometry(0.18, 0.14, 0.26, 14, 1, true), mat, 0, BOARD_TOP + 0.22, -0.46);
     addProp(new THREE.CylinderGeometry(0.14, 0.14, 0.035, 14), mat, 0, BOARD_TOP + 0.1, -0.46);
+    const band = addProp(new THREE.TorusGeometry(0.175, 0.016, 6, 18), kit.pinWhite, 0, BOARD_TOP + 0.3, -0.46);
+    band.rotation.x = Math.PI / 2;
     return { pins, paw };
   }
   if (kind === "flag") {
@@ -123,8 +126,7 @@ export function mountGoal(goalGroup, kind, kit) {
     return { pins, paw };
   }
   if (kind === "rind") {
-    const red = kit.goalMaterial("dish");
-    const flesh = addProp(new THREE.SphereGeometry(0.16, 12, 10), red, 0, BOARD_TOP + 0.16, -0.5);
+    const flesh = addProp(new THREE.SphereGeometry(0.16, 12, 10), kit.melonFlesh, 0, BOARD_TOP + 0.16, -0.5);
     flesh.scale.set(1.15, 0.7, 0.42);
     const left = addProp(new THREE.BoxGeometry(0.07, 0.24, 0.18), mat, -0.16, BOARD_TOP + 0.18, -0.5);
     left.rotation.z = 0.4;
@@ -217,7 +219,7 @@ export function mountGoal(goalGroup, kind, kit) {
 }
 
 const GOAL_LOOKS = {
-  knot: { color: 0xc4843a, emissive: 0x6a3810, roughness: 0.62 },
+  knot: { color: 0xa86a32, emissive: 0x5a3010, roughness: 0.58 },
   oasis: { color: 0xd08a3a, emissive: 0x8a4a18, roughness: 0.78 },
   crystal: { color: 0xd8e6ff, emissive: 0x88a0e0, roughness: 0.16, metalness: 0.08, clearcoat: 0.55 },
   rim: { color: 0x1a1a1a, emissive: 0x000000, roughness: 0.9 },
@@ -232,11 +234,11 @@ const GOAL_LOOKS = {
   pedestal: { color: 0xff5b9a, emissive: 0xc43d6c, roughness: 0.4 },
   snowman: { color: 0xf4fbff, emissive: 0x9ec8e8, roughness: 0.42 },
   plate: { color: 0xf4f1ea, emissive: 0x000000, roughness: 0.46 },
-  cup: { color: 0xf2f6ea, emissive: 0x000000, roughness: 0.4 },
+  cup: { color: 0xd4ee14, emissive: 0x000000, roughness: 0.55 },
   flag: { color: 0xd42828, emissive: 0x6a1010, roughness: 0.42 },
   spool: { color: 0xe7c4a8, emissive: 0x8a5a40, roughness: 0.55 },
   mug: { color: 0xf4f7fb, emissive: 0x000000, roughness: 0.32 },
-  rind: { color: 0x1f7a3a, emissive: 0x0c3a18, roughness: 0.62 },
+  rind: { color: 0x127338, emissive: 0x0c3a18, roughness: 0.58 },
   lamp: { color: 0xd8dee8, emissive: 0x8aa0c0, roughness: 0.22, metalness: 0.7 },
   hoard: { color: 0xf2c14a, emissive: 0xc47a20, roughness: 0.32, metalness: 0.45 },
   paw: { color: 0xf2c9a0, emissive: 0xc48a62, roughness: 0.62 },
@@ -270,6 +272,7 @@ export function createGoalKit(ballMaterials) {
     backMat: new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.5 }),
     pinWhite: new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.42 }),
     pinRed: new THREE.MeshStandardMaterial({ color: 0xd42828, roughness: 0.4 }),
+    melonFlesh: new THREE.MeshStandardMaterial({ color: 0xe23b4a, roughness: 0.42, emissive: 0x8a2030, emissiveIntensity: 0.18 }),
     pinBodyGeo: new THREE.CylinderGeometry(0.055, 0.085, 0.3, 8),
     pinNeckGeo: new THREE.CylinderGeometry(0.032, 0.046, 0.08, 8),
     pinHeadGeo: new THREE.SphereGeometry(0.055, 8, 6),
