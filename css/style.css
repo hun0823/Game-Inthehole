@@ -2200,6 +2200,17 @@ html[lang="ko"] .map {
   margin-bottom: 0.75rem;
 }
 
+.glow-row {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.settings-note {
+  margin: -0.2rem 0 0.45rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #5a3010;
+}
+
 .lang-row button,
 #settings-close {
   border: 3px solid var(--ink);

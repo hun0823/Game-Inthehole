@@ -1,12 +1,15 @@
 /**
  * Scrolling constellation. Planets sit on a zig-zag in world space; the camera
  * y tracks the HTML scroller so each mesh stays under its own label.
- * Planet meshes come from planetFactory unchanged.
+ * Planet meshes come from planetFactory. Arcade albedo maps are bound when they load.
  */
 import * as THREE from "./vendor/three.module.js";
 import { PLANET_ORDER } from "./themes.js";
-import { createPlanet, setPlanetLocked } from "./planetFactory.js";
+import { bindPlanetMaps, createPlanet, setPlanetLocked } from "./planetFactory.js";
 import { bindHost } from "./showcase.js";
+import { loadSphereMaps } from "./sphereMaps.js";
+import { applyStudio } from "./studioLight.js";
+import { createBloom } from "./bloom.js";
 
 /** Pixels per world unit. Sphere diameter on screen is MAP_PPU * scale. */
 export const MAP_PPU = 70;
@@ -50,7 +53,7 @@ export function mapLayout(width) {
   const dotBand = 44;
   const corridor = pinGap + pinH + 12 + dotBand + 12;
   const pitch = vMax * 2 + corridor;
-  const topPad = pinGap + pinH + 16;
+  const topPad = pinGap + pinH + 64;
   const bottomPad = 28;
   const height = topPad + vMax + Math.max(0, count - 1) * pitch + vMax + bottomPad;
   const nodes = [];
@@ -92,7 +95,11 @@ export function createConstellation(canvas) {
   });
   renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.08;
   const scene = new THREE.Scene();
+  applyStudio(renderer, scene, 0.42);
   const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 80);
   const look = new THREE.Vector3(0, 0, 0);
   camera.position.set(0, 0, 14);
@@ -139,12 +146,20 @@ export function createConstellation(canvas) {
     return planet;
   });
 
+  loadSphereMaps().then((maps) => {
+    bindPlanetMaps(maps);
+  }).catch((err) => {
+    console.error(err);
+  });
+
   let raf = 0;
   let running = false;
   let suspendSync = false;
   let viewW = 0;
   let viewH = 0;
   let viewScroll = 0;
+  let useBloom = false;
+  let bloomFx = null;
   let chain = Promise.resolve();
 
   function enqueue(work) {
@@ -196,7 +211,8 @@ export function createConstellation(canvas) {
   function render() {
     renderer.setClearColor(0x000000, 0);
     camera.lookAt(look);
-    renderer.render(scene, camera);
+    if (useBloom && bloomFx) bloomFx.render(scene, camera);
+    else renderer.render(scene, camera);
   }
 
   bindHost(renderer, () => {
@@ -284,6 +300,10 @@ export function createConstellation(canvas) {
           placeCamera();
         });
       });
+    },
+    setBloom(on) {
+      useBloom = !!on;
+      if (useBloom && !bloomFx) bloomFx = createBloom(renderer);
     },
   };
 }

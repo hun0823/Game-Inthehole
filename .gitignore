@@ -39,3 +39,6 @@ unity/**/Library/Bee/
 # Python
 __pycache__/
 *.pyc
+
+# Previous-trial maps used only while capturing the three-way sheet
+/assets/textures_v1/

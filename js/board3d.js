@@ -1,10 +1,14 @@
 import * as THREE from "./vendor/three.module.js";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
 import { ballById } from "./balls.js";
-import { createGoalKit, mountGoal } from "./goalMesh.js";
+import { addFloorSocket, createGoalKit, mountGoal } from "./goalMesh.js";
+import { inkOutlineMaterial } from "./sphereMaps.js";
 import { addSportMarks } from "./ballDress.js";
 import { celebrationById, trailById } from "./cosmetics.js";
 import { themeById } from "./themes.js";
+import { applyStudio } from "./studioLight.js";
+import { applyBallMaps, loadSphereMaps } from "./sphereMaps.js";
+import { createBloom } from "./bloom.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -716,8 +720,8 @@ export function createView(canvas) {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.toneMappingExposure = 1.12;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 80);
@@ -740,19 +744,7 @@ export function createView(canvas) {
   fill.position.set(-5, 4, 3);
   scene.add(fill);
 
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const env = new THREE.Scene();
-  env.background = new THREE.Color(0x8ec8ff);
-  const glowMat = (color) => new THREE.MeshBasicMaterial({ color });
-  const p1 = new THREE.Mesh(new THREE.PlaneGeometry(10, 6), glowMat(0xffffff));
-  p1.position.set(2, 6, 4);
-  p1.lookAt(0, 0, 0);
-  const p2 = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), glowMat(0xffe2a8));
-  p2.position.set(-5, 3, 3);
-  p2.lookAt(0, 0, 0);
-  env.add(p1, p2);
-  scene.environment = pmrem.fromScene(env, 0.04).texture;
-  pmrem.dispose();
+  applyStudio(renderer, scene, 0.4);
 
   const frameMap = woodCanvas("#a56b38", "#4e2c12", "#e0b072", 22);
   frameMap.repeat.set(2, 1);
@@ -870,38 +862,6 @@ export function createView(canvas) {
     return wallMaterial(name);
   }
 
-  const holeMat = new THREE.ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    uniforms: { uTime: { value: 0 } },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      precision mediump float;
-      varying vec2 vUv;
-      uniform float uTime;
-      void main() {
-        vec2 p = vUv * 2.0 - 1.0;
-        float r = length(p);
-        float a = atan(p.y, p.x);
-        float arm = 0.5 + 0.5 * sin(a * 6.0 - r * 22.0 + uTime * 5.5);
-        float arm2 = 0.5 + 0.5 * sin(-a * 3.0 - r * 12.0 + uTime * 3.2);
-        vec3 deep = vec3(0.0, 0.22, 0.28);
-        vec3 glow = vec3(0.05, 1.0, 0.82);
-        vec3 col = mix(deep, glow, arm * smoothstep(1.05, 0.12, r));
-        col += vec3(0.45, 1.0, 0.95) * arm2 * smoothstep(0.9, 0.05, r) * 0.7;
-        col += vec3(0.75, 1.0, 0.98) * smoothstep(0.28, 0.0, r);
-        float alpha = smoothstep(1.05, 0.55, r);
-        gl_FragColor = vec4(col, alpha);
-      }
-    `,
-  });
-
   const blob = new THREE.Mesh(
     new THREE.CircleGeometry(1, 40),
     new THREE.MeshBasicMaterial({ map: makeBlobMap(), transparent: true, depthWrite: false })
@@ -912,7 +872,11 @@ export function createView(canvas) {
 
   const ballRoot = new THREE.Group();
   const ballSpin = new THREE.Group();
-  const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 32, 24), ballMaterials.oak);
+  const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 48, 32), ballMaterials.oak);
+  const ballInk = new THREE.Mesh(ballMesh.geometry, inkOutlineMaterial());
+  ballInk.scale.setScalar(1.045);
+  ballInk.raycast = () => {};
+  ballMesh.add(ballInk);
   ballMesh.castShadow = true;
   ballSpin.add(ballMesh);
   const sportMarks = addSportMarks(ballSpin);
@@ -1116,6 +1080,13 @@ export function createView(canvas) {
   let sinkJob = null;
   let n = 3;
   let time = 0;
+  let useBloom = false;
+  let bloomFx = null;
+  let bloomHeld = false;
+  let bloomWarm = 0;
+  let bloomSamples = [];
+  let bloomLast = 0;
+  let onBloomHeld = null;
   let viewHalf = 3;
   const upAxis = new THREE.Vector3(0, 1, 0);
   const cellXZ = (r, c) => ({
@@ -1488,18 +1459,32 @@ export function createView(canvas) {
     if (!custom) return;
     const spot = cellXZ(holeCell[0], holeCell[1]);
     goalGroup.position.set(spot.x, 0, spot.z);
-    const built = mountGoal(goalGroup, equipped.goal, goalKit);
+    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme });
     pins.push(...built.pins);
     pawMesh = built.paw;
   }
 
+  let mapsReady = false;
+  function dressBallSkin() {
+    ballMesh.material = ballMaterials[equipped.id] || ballMaterials.oak;
+    const textured = mapsReady && (equipped.id === "baseball" || equipped.id === "tennis");
+    sportMarks.show(textured ? "" : equipped.id);
+  }
+
   function setBall(id) {
     equipped = ballById(id);
-    ballMesh.material = ballMaterials[equipped.id] || ballMaterials.oak;
-    sportMarks.show(equipped.id);
+    dressBallSkin();
     clearFx();
     dressGoal();
   }
+
+  loadSphereMaps().then((maps) => {
+    applyBallMaps(ballMaterials, maps);
+    mapsReady = true;
+    dressBallSkin();
+  }).catch((err) => {
+    console.error(err);
+  });
 
   function addInlay(group, color, w, d, y) {
     const alongX = w >= d;
@@ -1726,33 +1711,23 @@ export function createView(canvas) {
     paintGlass(game.vGlass, "v");
 
     const { x: hx, z: hz } = cellXZ(level.hole[0], level.hole[1]);
-    const well = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.34, 0.22, 0.22, 28),
-      new THREE.MeshStandardMaterial({ color: 0x04302c, roughness: 0.85, emissive: 0x063e38, emissiveIntensity: 0.4 })
-    );
-    well.position.set(hx, BOARD_TOP - 0.08, hz);
-    well.receiveShadow = true;
-    const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.4, 48), holeMat);
-    swirl.rotation.x = -Math.PI / 2;
-    swirl.position.set(hx, BOARD_TOP + 0.012, hz);
-    const ringMat = new THREE.MeshPhysicalMaterial({
-      color: 0x7dfff0,
-      emissive: 0x14f0c8,
-      emissiveIntensity: 1.6,
-      roughness: 0.18,
-      clearcoat: 0.8,
-      envMapIntensity: 0.6,
-    });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.055, 12, 36), ringMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.set(hx, BOARD_TOP + 0.03, hz);
-    ring.name = "hole-ring";
-    const innerRing = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 28), ringMat);
-    innerRing.rotation.x = Math.PI / 2;
-    innerRing.position.set(hx, BOARD_TOP + 0.04, hz);
-    innerRing.name = "hole-ring";
     stockHole = new THREE.Group();
-    stockHole.add(well, swirl, ring, innerRing);
+    stockHole.position.set(hx, 0, hz);
+    addFloorSocket(stockHole, activeTheme);
+    const accentMat = new THREE.MeshStandardMaterial({
+      color: activeTheme.edge,
+      roughness: 0.55,
+      emissive: activeTheme.edge,
+      emissiveIntensity: 0.06,
+      envMapIntensity: 0.05,
+    });
+    const accent = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.012, 6, 32), accentMat);
+    accent.rotation.x = Math.PI / 2;
+    accent.position.y = BOARD_TOP + 0.02;
+    accent.name = "hole-ring";
+    accent.userData.ownMat = true;
+    accent.userData.ownGeo = true;
+    stockHole.add(accent);
     rig.add(stockHole);
 
     for (const btn of level.buttons || []) {
@@ -2483,8 +2458,6 @@ export function createView(canvas) {
       const dt = Math.min(0.033, (now - last) / 1000);
       last = now;
       time += dt;
-      holeMat.uniforms.uTime.value = time;
-
       const omega = 12;
       spring.vx += (omega * omega * (spring.tx - spring.x) - 2 * omega * spring.vx) * dt;
       spring.vz += (omega * omega * (spring.tz - spring.z) - 2 * omega * spring.vz) * dt;
@@ -2515,9 +2488,7 @@ export function createView(canvas) {
 
       const ring = rig.getObjectByName("hole-ring");
       if (ring) {
-        ring.material.emissiveIntensity = equipped.goal === "hoop"
-          ? 0.2
-          : 0.55 + Math.sin(time * 3.2) * 0.35;
+        ring.material.emissiveIntensity = 0.05 + Math.sin(time * 2.2) * 0.03;
       }
 
       if (rollJob) stepRoll(rollJob, dt);
@@ -2696,7 +2667,25 @@ export function createView(canvas) {
         else mesh.material.emissiveIntensity = 0;
       }
 
-      renderer.render(scene, camera);
+      if (useBloom && bloomFx) bloomFx.render(scene, camera);
+      else renderer.render(scene, camera);
+      if (useBloom && document.visibilityState === "visible") {
+        const frameDt = now - bloomLast;
+        if (bloomLast && frameDt > 0 && frameDt < 400) {
+          bloomWarm += 1;
+          if (bloomWarm > 24) bloomSamples.push(frameDt);
+          if (bloomSamples.length >= 40) {
+            const avg = bloomSamples.reduce((sum, ms) => sum + ms, 0) / bloomSamples.length;
+            bloomSamples = [];
+            if (avg > 18.5) {
+              useBloom = false;
+              bloomHeld = true;
+              if (onBloomHeld) onBloomHeld();
+            }
+          }
+        }
+      }
+      bloomLast = now;
     } catch (err) {
       console.error(err);
     }
@@ -2704,7 +2693,19 @@ export function createView(canvas) {
   }
   requestAnimationFrame(frame);
 
+  function setBloom(on) {
+    useBloom = !!on;
+    bloomHeld = false;
+    bloomWarm = 0;
+    bloomSamples = [];
+    bloomLast = 0;
+    if (useBloom && !bloomFx) bloomFx = createBloom(renderer);
+  }
+
   return {
     resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint, armGateOpen, setBall, setTrail, setCelebration,
+    setBloom,
+    bloomSuppressed: () => bloomHeld,
+    onBloomSuppressed(fn) { onBloomHeld = fn; },
   };
 }

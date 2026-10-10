@@ -7,6 +7,7 @@ import { shotBall, shotGoal } from "./showcase.js";
 import { BALLS, ballById } from "./balls.js";
 import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, trailById } from "./cosmetics.js";
 import { detectLang, t, planetName, ballCopy, cosmeticCopy, lessonCopy } from "./i18n.js";
+import { bloomPreference, bloomWanted, setBloomPreference } from "./quality.js";
 import { PLANET_ORDER, PLANET_BALL, themeById } from "./themes.js";
 
 const STORAGE_KEY = "inthehole_cleared";
@@ -1508,11 +1509,24 @@ function showMap() {
   paintSky();
 }
 
+function applyBloom() {
+  const on = bloomWanted() && !view.bloomSuppressed();
+  view.setBloom(on);
+  mapView.setBloom(on);
+}
+
 function openSettings() {
   settingsEl.hidden = false;
-  document.querySelectorAll(".lang-row button").forEach((btn) => {
+  document.querySelectorAll(".lang-row button[data-lang]").forEach((btn) => {
     btn.classList.toggle("is-on", btn.dataset.lang === lang);
   });
+  const pref = bloomPreference();
+  document.querySelectorAll("[data-glow]").forEach((btn) => {
+    btn.classList.toggle("is-on", btn.dataset.glow === pref);
+    btn.textContent = t(lang, `glow-${btn.dataset.glow}`);
+  });
+  const held = view.bloomSuppressed();
+  document.getElementById("glow-note").textContent = held ? t(lang, "glow-held") : t(lang, "glow-note");
 }
 
 function closeSettings() {
@@ -1542,6 +1556,7 @@ function applyLang() {
   document.getElementById("dialog-map").textContent = t(lang, "map-back");
   document.getElementById("settings-title").textContent = t(lang, "settings");
   document.getElementById("lang-label").textContent = t(lang, "language");
+  document.getElementById("glow-label").textContent = t(lang, "glow");
   document.getElementById("settings-close").textContent = t(lang, "close");
   document.querySelector(".dpad-up .face-caption").textContent = t(lang, "up");
   document.querySelector(".dpad-down .face-caption").textContent = t(lang, "down");
@@ -1595,8 +1610,19 @@ mapScroll.addEventListener("scroll", () => {
   mapView.sync(mapScroll.scrollTop, mapScroll.clientWidth, mapScroll.clientHeight);
 }, { passive: true });
 document.getElementById("settings-close").addEventListener("click", () => closeSettings());
-document.querySelectorAll(".lang-row button").forEach((btn) => {
+document.querySelectorAll(".lang-row button[data-lang]").forEach((btn) => {
   btn.addEventListener("click", () => setLang(btn.dataset.lang));
+});
+document.querySelectorAll("[data-glow]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    setBloomPreference(btn.dataset.glow);
+    applyBloom();
+    openSettings();
+  });
+});
+view.onBloomSuppressed(() => {
+  mapView.setBloom(false);
+  if (settingsOpen()) openSettings();
 });
 document.getElementById("dialog-map").addEventListener("click", () => {
   stageDialog.close();
@@ -1610,6 +1636,7 @@ stageDialog.addEventListener("close", () => {
 });
 
 applyLang();
+applyBloom();
 view.setBall(equippedId());
 view.setTrail(equippedFor("trails"));
 view.setCelebration(equippedFor("celes"));

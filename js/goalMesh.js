@@ -3,8 +3,132 @@
  * Positions stay in board space so the in-game hole does not move.
  */
 import * as THREE from "./vendor/three.module.js";
+import { themeById } from "./themes.js";
 
 const BOARD_TOP = 0.5;
+const CHARCOAL = 0x141414;
+
+function canvasTex(draw, size = 128) {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const g = c.getContext("2d");
+  draw(g, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+const lipCache = new Map();
+function lipMaterial(theme) {
+  const id = theme?.id || "wood";
+  if (lipCache.has(id)) return lipCache.get(id);
+  const floor = theme?.floor || "#e4a45e";
+  const groove = theme?.groove || "90, 50, 20";
+  const icy = id === "ice" || id === "crystal";
+  const woody = id === "wood" || id === "jungle";
+  const map = canvasTex((g, s) => {
+    g.fillStyle = floor;
+    g.fillRect(0, 0, s, s);
+    const rows = icy ? 8 : 14;
+    for (let i = 0; i < rows; i++) {
+      const y = ((i + 0.4) / rows) * s;
+      g.strokeStyle = `rgba(${groove}, ${woody ? 0.34 : 0.2})`;
+      g.lineWidth = woody ? 2.4 : 1.5;
+      g.beginPath();
+      g.moveTo(0, y);
+      g.bezierCurveTo(s * 0.28, y + 5, s * 0.68, y - 4, s, y + 1);
+      g.stroke();
+    }
+    if (icy) {
+      g.strokeStyle = "rgba(255,255,255,0.7)";
+      g.lineWidth = 3;
+      g.beginPath();
+      g.moveTo(0, s * 0.42);
+      g.bezierCurveTo(s * 0.35, s * 0.36, s * 0.62, s * 0.48, s, s * 0.4);
+      g.stroke();
+    }
+  });
+  const mat = new THREE.MeshStandardMaterial({
+    map,
+    color: 0xffffff,
+    roughness: icy ? 0.36 : 0.86,
+    metalness: 0,
+    envMapIntensity: 0,
+  });
+  mat.userData.shared = true;
+  lipCache.set(id, mat);
+  return mat;
+}
+
+let aoMat = null;
+function contactMat() {
+  if (aoMat) return aoMat;
+  const map = canvasTex((g, s) => {
+    const grd = g.createRadialGradient(s / 2, s / 2, s * 0.16, s / 2, s / 2, s * 0.5);
+    grd.addColorStop(0, "rgba(20,20,20,0.5)");
+    grd.addColorStop(0.5, "rgba(20,20,20,0.22)");
+    grd.addColorStop(1, "rgba(20,20,20,0)");
+    g.fillStyle = grd;
+    g.fillRect(0, 0, s, s);
+  });
+  aoMat = new THREE.MeshBasicMaterial({ map, transparent: true, depthWrite: false });
+  return aoMat;
+}
+
+let wellMat = null;
+let mouthMat = null;
+let charcoalMat = null;
+function darkMats() {
+  if (!wellMat) {
+    wellMat = new THREE.MeshStandardMaterial({ color: 0x16110e, roughness: 0.94, metalness: 0, envMapIntensity: 0 });
+    mouthMat = new THREE.MeshBasicMaterial({ color: CHARCOAL });
+    charcoalMat = new THREE.MeshStandardMaterial({ color: CHARCOAL, roughness: 0.72, metalness: 0, envMapIntensity: 0 });
+  }
+  return { wellMat, mouthMat, charcoalMat };
+}
+
+function stampFloorUV(geo) {
+  const pos = geo.attributes.position;
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    uv.setXY(i, pos.getX(i) * 0.42 + 0.5, pos.getZ(i) * 0.42 + 0.5);
+  }
+  uv.needsUpdate = true;
+}
+
+export function floorMaterial(theme) {
+  return lipMaterial(theme);
+}
+
+export function addFloorSocket(group, theme) {
+  const y = BOARD_TOP;
+  const { mouthMat, charcoalMat } = darkMats();
+  const ao = new THREE.Mesh(new THREE.CircleGeometry(0.72, 32), contactMat());
+  ao.rotation.x = -Math.PI / 2;
+  ao.position.y = y + 0.008;
+  ao.renderOrder = 2;
+  ao.userData.ownGeo = true;
+  const lipGeo = new THREE.RingGeometry(0.3, 0.5, 32);
+  lipGeo.rotateX(-Math.PI / 2);
+  stampFloorUV(lipGeo);
+  const lip = new THREE.Mesh(lipGeo, lipMaterial(theme));
+  lip.position.y = y + 0.012;
+  lip.renderOrder = 3;
+  lip.userData.ownGeo = true;
+  const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.29, 28), mouthMat);
+  mouth.rotation.x = -Math.PI / 2;
+  mouth.position.y = y + 0.016;
+  mouth.renderOrder = 4;
+  mouth.userData.ownGeo = true;
+  const edge = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 6, 32), charcoalMat);
+  edge.rotation.x = Math.PI / 2;
+  edge.position.y = y + 0.02;
+  edge.renderOrder = 5;
+  edge.userData.ownGeo = true;
+  group.add(ao, lip, mouth, edge);
+  return group;
+}
 
 function homePlateGeo() {
   const shape = new THREE.Shape();
@@ -17,10 +141,11 @@ function homePlateGeo() {
   return new THREE.ExtrudeGeometry(shape, { depth: 0.04, bevelEnabled: false });
 }
 
-export function mountGoal(goalGroup, kind, kit) {
+export function mountGoal(goalGroup, kind, kit, opts = {}) {
   const pins = [];
   let paw = null;
-  const mat = kit.goalMaterial(kind);
+  const legacy = !!opts.legacy;
+  const mat = kit.goalMaterial(kind, legacy);
 
   const addProp = (geo, material, x, y, z) => {
     const mesh = new THREE.Mesh(geo, material);
@@ -30,10 +155,19 @@ export function mountGoal(goalGroup, kind, kit) {
     return mesh;
   };
 
-  const sink = new THREE.Mesh(kit.goalDiscGeo, kit.sinkMat);
-  sink.rotation.x = -Math.PI / 2;
-  sink.position.y = BOARD_TOP + 0.02;
-  goalGroup.add(sink);
+  if (legacy) {
+    const sink = new THREE.Mesh(kit.goalDiscGeo, kit.sinkMat);
+    sink.rotation.x = -Math.PI / 2;
+    sink.position.y = BOARD_TOP + 0.02;
+    goalGroup.add(sink);
+  } else {
+    addFloorSocket(goalGroup, opts.theme || themeById("wood"));
+    const accent = new THREE.Mesh(new THREE.TorusGeometry(0.4, 0.012, 6, 32), mat);
+    accent.rotation.x = Math.PI / 2;
+    accent.position.y = BOARD_TOP + 0.02;
+    accent.userData.ownGeo = true;
+    goalGroup.add(accent);
+  }
 
   const ring = new THREE.Mesh(kit.goalTorusGeo, mat);
   ring.rotation.x = Math.PI / 2;
@@ -95,13 +229,16 @@ export function mountGoal(goalGroup, kind, kit) {
     return { pins, paw };
   }
   if (kind === "plate") {
-    const plate = addProp(homePlateGeo(), kit.pinWhite, 0, BOARD_TOP + 0.06, -0.42);
+    const plate = addProp(homePlateGeo(), kit.pinWhite, 0, BOARD_TOP + 0.016, -0.42);
     plate.rotation.x = -Math.PI / 2;
+    addProp(new THREE.BoxGeometry(0.32, 0.012, 0.018), kit.pinRed, 0, BOARD_TOP + 0.03, -0.2);
     return { pins, paw };
   }
   if (kind === "cup") {
-    addProp(new THREE.CylinderGeometry(0.18, 0.14, 0.26, 14, 1, true), mat, 0, BOARD_TOP + 0.22, -0.46);
-    addProp(new THREE.CylinderGeometry(0.14, 0.14, 0.035, 14), mat, 0, BOARD_TOP + 0.1, -0.46);
+    addProp(new THREE.CylinderGeometry(0.18, 0.14, 0.26, 14, 1, true), mat, 0, BOARD_TOP + 0.15, -0.46);
+    addProp(new THREE.CylinderGeometry(0.14, 0.14, 0.035, 14), mat, 0, BOARD_TOP + 0.03, -0.46);
+    const band = addProp(new THREE.TorusGeometry(0.175, 0.016, 6, 18), kit.pinWhite, 0, BOARD_TOP + 0.23, -0.46);
+    band.rotation.x = Math.PI / 2;
     return { pins, paw };
   }
   if (kind === "flag") {
@@ -123,12 +260,11 @@ export function mountGoal(goalGroup, kind, kit) {
     return { pins, paw };
   }
   if (kind === "rind") {
-    const red = kit.goalMaterial("dish");
-    const flesh = addProp(new THREE.SphereGeometry(0.16, 12, 10), red, 0, BOARD_TOP + 0.16, -0.5);
+    const flesh = addProp(new THREE.SphereGeometry(0.16, 12, 10), kit.melonFlesh, 0, BOARD_TOP + 0.1, -0.5);
     flesh.scale.set(1.15, 0.7, 0.42);
-    const left = addProp(new THREE.BoxGeometry(0.07, 0.24, 0.18), mat, -0.16, BOARD_TOP + 0.18, -0.5);
+    const left = addProp(new THREE.BoxGeometry(0.07, 0.24, 0.18), mat, -0.16, BOARD_TOP + 0.12, -0.5);
     left.rotation.z = 0.4;
-    const right = addProp(new THREE.BoxGeometry(0.07, 0.24, 0.18), mat, 0.16, BOARD_TOP + 0.18, -0.5);
+    const right = addProp(new THREE.BoxGeometry(0.07, 0.24, 0.18), mat, 0.16, BOARD_TOP + 0.12, -0.5);
     right.rotation.z = -0.4;
     return { pins, paw };
   }
@@ -202,7 +338,7 @@ export function mountGoal(goalGroup, kind, kit) {
     return { pins, paw };
   }
   if (kind === "cog") {
-    goalGroup.add(ring);
+    if (legacy) goalGroup.add(ring);
     for (let i = 0; i < 8; i++) {
       const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.1), mat);
       const a = (i / 8) * Math.PI * 2;
@@ -212,12 +348,12 @@ export function mountGoal(goalGroup, kind, kit) {
     }
     return { pins, paw };
   }
-  goalGroup.add(ring);
+  if (legacy) goalGroup.add(ring);
   return { pins, paw };
 }
 
 const GOAL_LOOKS = {
-  knot: { color: 0xc4843a, emissive: 0x6a3810, roughness: 0.62 },
+  knot: { color: 0xa86a32, emissive: 0x5a3010, roughness: 0.58 },
   oasis: { color: 0xd08a3a, emissive: 0x8a4a18, roughness: 0.78 },
   crystal: { color: 0xd8e6ff, emissive: 0x88a0e0, roughness: 0.16, metalness: 0.08, clearcoat: 0.55 },
   rim: { color: 0x1a1a1a, emissive: 0x000000, roughness: 0.9 },
@@ -232,11 +368,11 @@ const GOAL_LOOKS = {
   pedestal: { color: 0xff5b9a, emissive: 0xc43d6c, roughness: 0.4 },
   snowman: { color: 0xf4fbff, emissive: 0x9ec8e8, roughness: 0.42 },
   plate: { color: 0xf4f1ea, emissive: 0x000000, roughness: 0.46 },
-  cup: { color: 0xf2f6ea, emissive: 0x000000, roughness: 0.4 },
+  cup: { color: 0xd4ee14, emissive: 0x000000, roughness: 0.55 },
   flag: { color: 0xd42828, emissive: 0x6a1010, roughness: 0.42 },
   spool: { color: 0xe7c4a8, emissive: 0x8a5a40, roughness: 0.55 },
   mug: { color: 0xf4f7fb, emissive: 0x000000, roughness: 0.32 },
-  rind: { color: 0x1f7a3a, emissive: 0x0c3a18, roughness: 0.62 },
+  rind: { color: 0x127338, emissive: 0x0c3a18, roughness: 0.58 },
   lamp: { color: 0xd8dee8, emissive: 0x8aa0c0, roughness: 0.22, metalness: 0.7 },
   hoard: { color: 0xf2c14a, emissive: 0xc47a20, roughness: 0.32, metalness: 0.45 },
   paw: { color: 0xf2c9a0, emissive: 0xc48a62, roughness: 0.62 },
@@ -247,17 +383,19 @@ const GOAL_LOOKS = {
 
 export function createGoalKit(ballMaterials) {
   const goalMats = new Map();
-  function goalMaterial(kind) {
-    if (goalMats.has(kind)) return goalMats.get(kind);
+  function goalMaterial(kind, legacy = false) {
+    const key = legacy ? `old:${kind}` : kind;
+    if (goalMats.has(key)) return goalMats.get(key);
     const look = GOAL_LOOKS[kind] || GOAL_LOOKS.knot;
     const mat = new THREE.MeshStandardMaterial({
       color: look.color,
       emissive: look.emissive,
-      emissiveIntensity: look.emissive ? 0.35 : 0,
+      emissiveIntensity: look.emissive ? (legacy ? 0.35 : 0.06) : 0,
       roughness: look.roughness,
       metalness: look.metalness || 0,
+      envMapIntensity: legacy ? 0.45 : 0.08,
     });
-    goalMats.set(kind, mat);
+    goalMats.set(key, mat);
     return mat;
   }
   return {
@@ -270,6 +408,7 @@ export function createGoalKit(ballMaterials) {
     backMat: new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.5 }),
     pinWhite: new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.42 }),
     pinRed: new THREE.MeshStandardMaterial({ color: 0xd42828, roughness: 0.4 }),
+    melonFlesh: new THREE.MeshStandardMaterial({ color: 0xe23b4a, roughness: 0.48, emissive: 0x8a2030, emissiveIntensity: 0.06 }),
     pinBodyGeo: new THREE.CylinderGeometry(0.055, 0.085, 0.3, 8),
     pinNeckGeo: new THREE.CylinderGeometry(0.032, 0.046, 0.08, 8),
     pinHeadGeo: new THREE.SphereGeometry(0.055, 8, 6),
@@ -284,9 +423,12 @@ export function createGoalKit(ballMaterials) {
 
 export function clearGoal(goalGroup) {
   const geos = new Set();
+  const mats = new Set();
   goalGroup.traverse((node) => {
     if (node.userData.ownGeo && node.geometry) geos.add(node.geometry);
+    if (node.userData.ownMat && node.material) mats.add(node.material);
   });
   geos.forEach((geo) => geo.dispose());
+  mats.forEach((mat) => mat.dispose());
   goalGroup.clear();
 }
