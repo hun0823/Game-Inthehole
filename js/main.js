@@ -3,6 +3,8 @@ import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
 import { BALLS, ballById } from "./balls.js";
+import { detectLang, t, planetName, ballCopy, lessonCopy } from "./i18n.js";
+import { PLANET_ORDER, PLANET_BALL, themeById } from "./themes.js";
 
 const STORAGE_KEY = "inthehole_cleared";
 const STORAGE_STARS_PREFIX = "inthehole_stars_";
@@ -37,9 +39,13 @@ const storeConfirm = document.getElementById("store-confirm");
 const storeConfirmText = document.getElementById("store-confirm-text");
 const storeClose = document.getElementById("store-close");
 const storeSpend = document.getElementById("store-spend");
+const mapEl = document.getElementById("map");
+const mapList = document.getElementById("map-list");
+const settingsEl = document.getElementById("settings");
 
 const view = createView(playfieldEl);
 
+let lang = detectLang();
 let stageIndex = 0;
 let game = new Game(LEVELS[0]);
 let animating = false;
@@ -47,55 +53,12 @@ let gameOver = false;
 let lessonOpen = false;
 let lessonQueue = [];
 let pendingBuy = null;
+let overlayMode = null;
+let overlayReward = null;
+let overlayCoin = false;
+let overlayStarsN = 0;
 
-const LESSON_COPY = {
-  sand: {
-    title: "Sand",
-    body: "Sand stops the ball the moment it rolls in. That tilt ends on the sand square.",
-  },
-  ice: {
-    title: "Ice",
-    body: "On ice the ball keeps sliding. It stops on the first normal square after the ice, unless a wall, sand, or the hole stops it sooner. A first glass hit still cracks, but on ice it does not stop the ball.",
-  },
-  oneway: {
-    title: "One-way door",
-    body: "The arrow is a door in the floor edge. The ball can cross it only in the arrow's direction.",
-  },
-  teleport: {
-    title: "Teleport holes",
-    body: "The two purple holes are a pair. Roll into one and you come out of the other, still moving the same way.",
-  },
-  glass: {
-    title: "Glass",
-    body: "The first hit cracks the pane and stops the ball. Hit it again and it shatters, and the ball rolls through.",
-  },
-  gates: {
-    title: "Switches",
-    body: "Roll onto the button. The wall with the same pattern sinks open. Until you do, that wall blocks the ball.",
-  },
-  mixed: {
-    title: "Glass and switches",
-    body: "This board has both. Crack the glass on the second hit, and press the matching button, or the way stays shut.",
-  },
-  smog: {
-    title: "Smog",
-    body: "Fog hides the walls on that square. It clears on every square the ball rolls through. The path itself does not change.",
-  },
-  coins: {
-    title: "Coins",
-    body: "Roll over every coin for one extra star. The hole still clears the stage. Three stars stay three, and the clear screen says coin bonus.",
-  },
-  collapse: {
-    title: "Collapsing floor",
-    body: "A thin square crumbles after the ball leaves it, and also when a tilt ends there. You cannot roll onto it again.",
-  },
-  movers: {
-    title: "Moving walls",
-    body: "The purple bar switches to its other edge after every tilt that moves the ball. A bump that goes nowhere leaves it where it is.",
-  },
-};
-
-const LESSON_ORDER = ["sand", "ice", "oneway", "teleport", "glass", "gates", "mixed", "smog", "coins", "collapse", "movers"];
+const LESSON_ORDER = ["sand", "ice", "oneway", "teleport", "glass", "gates", "mixed", "smog", "jelly", "magma", "collapse", "movers"];
 
 function rowHas(grid) {
   return grid.some((row) => row.some(Boolean));
@@ -124,14 +87,17 @@ function hasTeleport(level) {
 function hasSmog(level) {
   return (level.smog || []).length > 0;
 }
-function hasCoins(level) {
-  return (level.coins || []).length > 0;
-}
 function hasCollapse(level) {
   return (level.collapse || []).length > 0;
 }
 function hasMovers(level) {
   return (level.shifters || []).length > 0;
+}
+function hasJelly(level) {
+  return (level.jelly || []).length > 0;
+}
+function hasMagma(level) {
+  return (level.magma || []).length > 0;
 }
 
 function lessonsOn(level) {
@@ -142,12 +108,14 @@ function lessonsOn(level) {
     teleport: hasTeleport(level),
     glass: hasGlass(level),
     gates: hasGates(level),
-    mixed: hasGlass(level) && hasGates(level),
     smog: hasSmog(level),
-    coins: hasCoins(level),
+    jelly: hasJelly(level),
+    magma: hasMagma(level),
     collapse: hasCollapse(level),
     movers: hasMovers(level),
   };
+  const count = Object.values(present).filter(Boolean).length;
+  present.mixed = count >= 2;
   return LESSON_ORDER.filter((id) => present[id]);
 }
 
@@ -189,7 +157,8 @@ function artHtml(id) {
     gates: `<div class="toy toy-gate"><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`,
     mixed: `<div class="toy toy-mix"><span class="toy-pane"><span class="toy-crack"></span></span><span class="toy-wall"></span><span class="toy-switch"></span><span class="toy-ball"></span></div>`,
     smog: `<div class="toy toy-smog"><span class="toy-fog"></span><span class="toy-ball"></span></div>`,
-    coins: `<div class="toy toy-coins"><span class="toy-coin"></span><span class="toy-coin toy-coin-b"></span><span class="toy-ball"></span></div>`,
+    jelly: `<div class="toy toy-jelly"><span class="toy-ball"></span></div>`,
+    magma: `<div class="toy toy-magma"><span class="toy-ball"></span></div>`,
     collapse: `<div class="toy toy-collapse"><span class="toy-pit"></span><span class="toy-ball"></span></div>`,
     movers: `<div class="toy toy-movers"><span class="toy-mover"></span><span class="toy-ball"></span></div>`,
   };
@@ -197,9 +166,12 @@ function artHtml(id) {
 }
 
 function showLessonCard(id) {
-  const copy = LESSON_COPY[id];
+  const copy = lessonCopy(lang, id);
+  if (!copy) return;
   lessonTitle.textContent = copy.title;
   lessonBody.textContent = copy.body;
+  document.querySelector(".lesson-replay").textContent = t(lang, "replay");
+  lessonBtn.textContent = t(lang, "got-it");
   lessonArt.innerHTML = artHtml(id);
   lessonEl.hidden = false;
   lessonOpen = true;
@@ -213,7 +185,7 @@ function hideLesson() {
 }
 
 function playLessonQueue(ids) {
-  lessonQueue = ids.filter((id) => LESSON_COPY[id]);
+  lessonQueue = ids.filter((id) => lessonCopy(lang, id));
   if (!lessonQueue.length) {
     hideLesson();
     return;
@@ -355,13 +327,66 @@ function markCleared(id) {
   }
 }
 
+function planetOf(index) {
+  return Math.floor(index / 12);
+}
+
+function planetCleared(p) {
+  const cleared = getCleared();
+  for (let i = 0; i < 12; i++) {
+    const level = LEVELS[p * 12 + i];
+    if (!level || !cleared.includes(level.id)) return false;
+  }
+  return true;
+}
+
+function planetUnlocked(p) {
+  return p <= 0 || planetCleared(p - 1);
+}
+
+function canStepTo(index) {
+  if (index < 0 || index >= LEVELS.length) return false;
+  const dest = planetOf(index);
+  if (dest === planetOf(stageIndex)) return true;
+  return planetUnlocked(dest);
+}
+
+function maybeGrantPlanet(level) {
+  const p = PLANET_ORDER.indexOf(level.planet);
+  if (p < 0 || !planetCleared(p)) return null;
+  const ballId = PLANET_BALL[level.planet];
+  if (!ballId || ballId === "oak") return null;
+  const owned = ownedIds();
+  if (owned.has(ballId)) return null;
+  owned.add(ballId);
+  writeOwned(owned);
+  return ballId;
+}
+
+function mapOpen() {
+  return !mapEl.hidden;
+}
+
+function settingsOpen() {
+  return !settingsEl.hidden;
+}
+
+function uiBlocked() {
+  return storeOpen() || mapOpen() || settingsOpen() || lessonOpen;
+}
+
+function stageTitle(level, index) {
+  const name = planetName(lang, level.planet || PLANET_ORDER[planetOf(index)]);
+  return t(lang, "stage-label", { planet: name, n: (index % 12) + 1 });
+}
+
 function updateHud() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   const starsLeft = purse();
   scoreLabel.textContent = String(starsLeft);
   if (storeOpen()) storeStars.textContent = String(starsLeft);
-  levelLabel.textContent = `Lvl. ${level.id}`;
+  levelLabel.textContent = stageTitle(level, stageIndex);
   const tone = moveCountTone(par, game.moves);
   movesLabel.className = "moves";
   if (gameOver) movesLabel.classList.add("move-over");
@@ -411,11 +436,13 @@ function hideClearStars() {
 function showGameOver() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
+  overlayMode = "lose";
   hideClearStars();
   overlay.classList.remove("hidden");
-  overlayTitle.textContent = "Out of moves";
-  overlayMsg.textContent = par > 0 ? `Lvl. ${level.id} · ${game.moves}/${par}` : `Lvl. ${level.id}`;
-  overlayBtn.textContent = "Retry";
+  overlayTitle.textContent = t(lang, "out");
+  const label = stageTitle(level, stageIndex);
+  overlayMsg.textContent = par > 0 ? `${label} · ${game.moves}/${par}` : label;
+  overlayBtn.textContent = t(lang, "retry");
   overlayBtn.onclick = () => {
     hideOverlay();
     game.reset();
@@ -440,22 +467,40 @@ function spawnClearStars() {
   }
 }
 
-function showWin(stars, coinBonus) {
+function showWin(stars, coinBonus, rewardBall) {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
+  overlayMode = "win";
+  overlayReward = rewardBall || null;
+  overlayCoin = !!coinBonus;
+  overlayStarsN = stars;
   spawnClearStars();
   overlay.classList.remove("hidden");
-  overlayTitle.textContent = "Cleared!";
-  overlayMsg.textContent = coinBonus
-    ? `Lvl. ${level.id} · ${game.moves}/${par} · coin bonus`
-    : `Lvl. ${level.id} · ${game.moves}/${par}`;
+  overlayTitle.textContent = t(lang, "cleared");
+  const label = stageTitle(level, stageIndex);
+  let msg = coinBonus
+    ? `${label} · ${game.moves}/${par} · ${t(lang, "coin-bonus")}`
+    : `${label} · ${game.moves}/${par}`;
+  if (rewardBall) {
+    const copy = ballCopy(lang, rewardBall);
+    msg += ` ${t(lang, "reward", { planet: planetName(lang, level.planet), ball: copy.name })}`;
+  }
+  overlayMsg.textContent = msg;
   showClearStars(stars);
-  overlayBtn.textContent = stageIndex < LEVELS.length - 1 ? "Next stage" : "From the start";
-  overlayBtn.onclick = () => nextStage();
+  const more = stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1);
+  overlayBtn.textContent = more ? t(lang, "next") : t(lang, "map-back");
+  overlayBtn.onclick = () => {
+    if (more) nextStage();
+    else {
+      hideOverlay();
+      showMap();
+    }
+  };
 }
 
 function hideOverlay() {
   overlay.classList.add("hidden");
+  overlayMode = null;
   overlay.querySelectorAll(".pop-star").forEach((el) => el.remove());
   hideClearStars();
 }
@@ -482,25 +527,26 @@ function handleAfterMove(won) {
   }
   markCleared(level.id);
   saveStars(level.id, award.stars);
+  const reward = maybeGrantPlanet(level);
   updateHud();
-  showWin(award.stars, award.coinBonus);
+  showWin(award.stars, award.coinBonus, reward);
 }
 
 function showHint() {
-  if (storeOpen() || lessonOpen || animating || game.won || gameOver) return;
+  if (uiBlocked() || animating || game.won || gameOver) return;
   clearHintUi();
   const route = game.hintRoute();
   if (!route) {
     document.getElementById("btn-reset").classList.add("is-hint");
     hintNote.hidden = false;
-    hintNote.textContent = "No path — Retry";
+    hintNote.textContent = t(lang, "no-path");
     return;
   }
   const move = route.action;
   if (move === "press") {
     view.showHint("press", game.ball[0], game.ball[1], route);
     hintNote.hidden = false;
-    hintNote.textContent = "Press the switch";
+    hintNote.textContent = t(lang, "press");
     return;
   }
   view.showHint(move, game.ball[0], game.ball[1], route);
@@ -530,7 +576,7 @@ function cracksSince(before, state) {
 }
 
 async function handleButtonPress(row, col) {
-  if (storeOpen() || lessonOpen || animating || game.won || gameOver) return;
+  if (uiBlocked() || animating || game.won || gameOver) return;
   if (game.ball[0] !== row || game.ball[1] !== col) return;
   clearHintUi();
   if (!game.pressButton()) return;
@@ -544,7 +590,7 @@ async function handleButtonPress(row, col) {
 }
 
 async function handleTilt(dir) {
-  if (storeOpen() || lessonOpen || animating || game.won || gameOver) return;
+  if (uiBlocked() || animating || game.won || gameOver) return;
   clearHintUi();
   const glassBefore = snapshotGlass(game);
   const { path, moved, won, glassBroken } = game.simulateTilt(dir);
@@ -582,24 +628,33 @@ function indexFromLocation() {
   return idx >= 0 ? idx : 0;
 }
 
+function hasDeepLink() {
+  if (/^#(\d+)$/.test(location.hash || "")) return true;
+  return new URLSearchParams(location.search).has("stage");
+}
+
 function loadStage(index) {
   stageIndex = Math.max(0, Math.min(index, LEVELS.length - 1));
   game = new Game(LEVELS[stageIndex]);
   gameOver = false;
   hideOverlay();
+  document.querySelector(".app").classList.remove("is-map");
+  mapEl.hidden = true;
   const hash = `#${LEVELS[stageIndex].id}`;
   if (location.hash !== hash || location.search) history.replaceState(null, "", hash);
   renderBoard();
+  paintSky();
   maybeAutoLesson();
 }
 
 function nextStage() {
   hideOverlay();
-  loadStage(stageIndex < LEVELS.length - 1 ? stageIndex + 1 : 0);
+  if (stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1)) loadStage(stageIndex + 1);
+  else showMap();
 }
 
 function resetStage() {
-  if (storeOpen() || lessonOpen || animating) return;
+  if (uiBlocked() || animating) return;
   game.reset();
   gameOver = false;
   hideOverlay();
@@ -608,14 +663,18 @@ function resetStage() {
 
 function buildStageList() {
   const cleared = getCleared();
+  const planet = planetOf(stageIndex);
+  const start = planet * 12;
+  document.querySelector("#stage-dialog h2").textContent = planetName(lang, LEVELS[start].planet);
   stageList.innerHTML = "";
-  LEVELS.forEach((lv, i) => {
+  for (let i = start; i < start + 12 && i < LEVELS.length; i++) {
+    const lv = LEVELS[i];
     const li = document.createElement("li");
     const btn = document.createElement("button");
     btn.type = "button";
     const stars = getStars(lv.id);
     const meta = `${lv.size}×${lv.size}${stars ? " · " + starsText(stars) : ""}`;
-    btn.innerHTML = `<span>Lvl. ${lv.id} · ${lv.name}</span><span class="stage-meta">${meta}</span>`;
+    btn.innerHTML = `<span>${stageTitle(lv, i)}</span><span class="stage-meta">${meta}</span>`;
     if (cleared.includes(lv.id)) btn.classList.add("cleared");
     if (i === stageIndex) btn.classList.add("current");
     btn.addEventListener("click", () => {
@@ -624,7 +683,7 @@ function buildStageList() {
     });
     li.appendChild(btn);
     stageList.appendChild(li);
-  });
+  }
 }
 
 document.querySelectorAll(".arcade-btn[data-dir]").forEach((btn) => {
@@ -634,18 +693,18 @@ document.querySelectorAll(".arcade-btn[data-dir]").forEach((btn) => {
 document.getElementById("btn-reset").addEventListener("click", () => resetStage());
 document.getElementById("btn-hint").addEventListener("click", () => showHint());
 lessonButton.addEventListener("click", () => {
-  if (storeOpen() || lessonOpen || animating) return;
+  if (uiBlocked() || animating) return;
   playLessonQueue(lessonsOn(LEVELS[stageIndex]));
 });
 lessonBtn.addEventListener("click", () => ackLesson());
 document.getElementById("btn-prev").addEventListener("click", () => {
-  if (!storeOpen() && !lessonOpen && !animating) loadStage(stageIndex - 1);
+  if (!uiBlocked() && !animating && canStepTo(stageIndex - 1)) loadStage(stageIndex - 1);
 });
 document.getElementById("btn-next").addEventListener("click", () => {
-  if (!storeOpen() && !lessonOpen && !animating) loadStage(stageIndex + 1);
+  if (!uiBlocked() && !animating && canStepTo(stageIndex + 1)) loadStage(stageIndex + 1);
 });
 document.getElementById("btn-select").addEventListener("click", () => {
-  if (storeOpen() || lessonOpen) return;
+  if (uiBlocked()) return;
   buildStageList();
   stageDialog.showModal();
 });
@@ -663,14 +722,21 @@ const KEY_MAP = {
 };
 
 document.addEventListener("keydown", (e) => {
-  if (storeOpen()) {
-    if (e.key === "Escape") {
+  if (e.key === "Escape") {
+    if (settingsOpen()) {
+      e.preventDefault();
+      closeSettings();
+      return;
+    }
+    if (storeOpen()) {
       e.preventDefault();
       if (!storeConfirm.hidden) cancelBuy();
       else closeStore();
+      return;
     }
-    return;
+    if (mapOpen()) return;
   }
+  if (storeOpen() || mapOpen() || settingsOpen()) return;
   if (stageDialog.open) return;
   const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
   if (key === "r") {
@@ -702,7 +768,7 @@ document.addEventListener("keydown", (e) => {
 
 let pointer = null;
 playfieldEl.addEventListener("pointerdown", (e) => {
-  if (storeOpen() || lessonOpen || stageDialog.open || !overlay.classList.contains("hidden")) return;
+  if (uiBlocked() || stageDialog.open || !overlay.classList.contains("hidden")) return;
   pointer = { x: e.clientX, y: e.clientY, id: e.pointerId };
   playfieldEl.setPointerCapture?.(e.pointerId);
 });
@@ -729,6 +795,8 @@ document.addEventListener(
   (e) => {
     if (stageDialog.open && stageDialog.contains(e.target)) return;
     if (storeOpen() && storeEl.contains(e.target)) return;
+    if (mapOpen() && mapEl.contains(e.target)) return;
+    if (settingsOpen() && settingsEl.contains(e.target)) return;
     e.preventDefault();
   },
   { passive: false }
@@ -737,13 +805,18 @@ document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("gesturechange", (e) => e.preventDefault());
 
 window.addEventListener("hashchange", () => {
-  if (storeOpen() || lessonOpen || animating) return;
+  if (storeOpen() || settingsOpen() || lessonOpen || animating) return;
+  if (!hasDeepLink()) {
+    showMap();
+    return;
+  }
   const idx = indexFromLocation();
-  if (idx !== stageIndex) loadStage(idx);
+  if (idx !== stageIndex || mapOpen()) loadStage(idx);
 });
 
 function paintSky() {
-  drawSky(skyEl);
+  const theme = mapOpen() ? null : themeById(LEVELS[stageIndex].planet);
+  drawSky(skyEl, theme);
 }
 
 function renderStore() {
@@ -760,18 +833,19 @@ function renderStore() {
     preview.setAttribute("aria-hidden", "true");
     const copy = document.createElement("span");
     copy.className = "store-copy";
+    const copyText = ballCopy(lang, ball.id);
     const name = document.createElement("strong");
-    name.textContent = ball.name;
+    name.textContent = copyText.name;
     const price = document.createElement("em");
-    price.textContent = ball.price === 0 ? "Free" : `${ball.price} stars`;
+    price.textContent = ball.price === 0 ? t(lang, "free") : `${ball.price} ${t(lang, "stars")}`;
     const blurb = document.createElement("span");
-    blurb.textContent = ball.blurb;
+    blurb.textContent = copyText.blurb;
     copy.append(name, price, blurb);
     li.append(preview, copy);
     if (ball.id === equipped) {
       const state = document.createElement("span");
       state.className = "store-state";
-      state.textContent = "Equipped";
+      state.textContent = t(lang, "equipped");
       li.append(state);
     } else if (owned.has(ball.id)) {
       const btn = document.createElement("button");
@@ -779,7 +853,7 @@ function renderStore() {
       btn.className = "store-act";
       btn.dataset.act = "equip";
       btn.dataset.id = ball.id;
-      btn.textContent = "Equip";
+      btn.textContent = t(lang, "equip");
       li.append(btn);
     } else if (stars >= ball.price) {
       const btn = document.createElement("button");
@@ -787,14 +861,14 @@ function renderStore() {
       btn.className = "store-act store-act--buy";
       btn.dataset.act = "buy";
       btn.dataset.id = ball.id;
-      btn.textContent = `Buy ${ball.price}`;
+      btn.textContent = `${t(lang, "buy")} ${ball.price}`;
       li.append(btn);
     } else {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "store-act";
       btn.disabled = true;
-      btn.textContent = `Need ${ball.price - stars}`;
+      btn.textContent = `${t(lang, "need")} ${ball.price - stars}`;
       li.append(btn);
     }
     storeList.append(li);
@@ -819,7 +893,10 @@ function askBuy(id) {
   const ball = ballById(id);
   if (ownedIds().has(ball.id) || purse() < ball.price || ball.price <= 0) return;
   pendingBuy = ball.id;
-  storeConfirmText.textContent = `Spend ${ball.price} stars on ${ball.name}?`;
+  storeConfirmText.textContent = t(lang, "spend-on", {
+    price: ball.price,
+    name: ballCopy(lang, ball.id).name,
+  });
   storeConfirm.hidden = false;
   storeSpend.focus();
 }
@@ -870,9 +947,139 @@ storeList.addEventListener("click", (e) => {
   else if (btn.dataset.act === "equip") equipOwned(btn.dataset.id);
 });
 
-paintSky();
+function renderMap() {
+  document.getElementById("map-title").textContent = t(lang, "map-title");
+  const cleared = new Set(getCleared());
+  mapList.replaceChildren();
+  PLANET_ORDER.forEach((id, p) => {
+    const li = document.createElement("li");
+    const open = planetUnlocked(p);
+    const done = planetCleared(p);
+    let stars = 0;
+    for (let i = 0; i < 12; i++) stars += getStars(LEVELS[p * 12 + i].id);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "map-planet" + (open ? "" : " is-locked") + (done ? " is-done" : "");
+    btn.disabled = !open;
+    const theme = themeById(id);
+    btn.style.setProperty("--planet", theme.floor);
+    btn.style.setProperty("--planet-edge", theme.sky0);
+    const status = !open ? t(lang, "map-locked") : done ? t(lang, "map-done") : `${stars}/36`;
+    btn.innerHTML = `<span class="map-orb"></span><span class="map-copy"><strong></strong><em></em></span>`;
+    btn.querySelector("strong").textContent = planetName(lang, id);
+    btn.querySelector("em").textContent = `${p + 1} · ${status}`;
+    btn.addEventListener("click", () => {
+      if (!planetUnlocked(p)) return;
+      let idx = p * 12;
+      let found = false;
+      for (let i = 0; i < 12; i++) {
+        if (!cleared.has(LEVELS[p * 12 + i].id)) {
+          idx = p * 12 + i;
+          found = true;
+          break;
+        }
+      }
+      if (!found) idx = p * 12 + 11;
+      loadStage(idx);
+    });
+    li.append(btn);
+    mapList.append(li);
+  });
+}
+
+function showMap() {
+  hideLesson();
+  hideOverlay();
+  if (stageDialog.open) stageDialog.close();
+  document.querySelector(".app").classList.add("is-map");
+  mapEl.hidden = false;
+  if (location.hash || location.search) history.replaceState(null, "", location.pathname);
+  renderMap();
+  paintSky();
+}
+
+function openSettings() {
+  settingsEl.hidden = false;
+  document.querySelectorAll(".lang-row button").forEach((btn) => {
+    btn.classList.toggle("is-on", btn.dataset.lang === lang);
+  });
+}
+
+function closeSettings() {
+  settingsEl.hidden = true;
+}
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.getElementById("btn-store").textContent = t(lang, "shop");
+  document.getElementById("btn-gear").setAttribute("aria-label", t(lang, "settings"));
+  document.getElementById("map-settings").setAttribute("aria-label", t(lang, "settings"));
+  lessonButton.textContent = t(lang, "how");
+  document.querySelector(".lesson-replay").textContent = t(lang, "replay");
+  lessonBtn.textContent = t(lang, "got-it");
+  document.getElementById("store-title").textContent = t(lang, "shop-title");
+  document.querySelector(".store-balance").lastChild.textContent = ` ${t(lang, "stars")}`;
+  storeClose.setAttribute("aria-label", t(lang, "close"));
+  storeSpend.textContent = t(lang, "spend");
+  document.getElementById("store-cancel").textContent = t(lang, "not-now");
+  document.getElementById("dialog-close").textContent = t(lang, "close");
+  document.getElementById("dialog-map").textContent = t(lang, "map-back");
+  document.getElementById("settings-title").textContent = t(lang, "settings");
+  document.getElementById("lang-label").textContent = t(lang, "language");
+  document.getElementById("settings-close").textContent = t(lang, "close");
+  document.querySelector(".dpad-up .face-caption").textContent = t(lang, "up");
+  document.querySelector(".dpad-down .face-caption").textContent = t(lang, "down");
+  document.querySelector(".dpad-left .face-caption").textContent = t(lang, "left");
+  document.querySelector(".dpad-right .face-caption").textContent = t(lang, "right");
+  document.querySelector(".retry-btn .face-caption").textContent = t(lang, "retry");
+  document.getElementById("btn-reset").setAttribute("aria-label", t(lang, "retry"));
+  document.getElementById("btn-prev").setAttribute("aria-label", t(lang, "prev"));
+  document.getElementById("btn-next").setAttribute("aria-label", t(lang, "next"));
+  document.getElementById("btn-hint").setAttribute("aria-label", t(lang, "hint"));
+  if (lessonOpen && lessonQueue[0]) showLessonCard(lessonQueue[0]);
+  if (!storeEl.hidden) renderStore();
+  if (!mapEl.hidden) renderMap();
+  if (stageDialog.open) buildStageList();
+  updateHud();
+  paintSky();
+  if (overlayMode === "win") showWin(overlayStarsN, overlayCoin, overlayReward);
+  else if (overlayMode === "lose") showGameOver();
+}
+
+function setLang(next) {
+  lang = next === "ko" ? "ko" : "en";
+  try {
+    localStorage.setItem("inthehole_lang", lang);
+  } catch {
+    /* keep the session language */
+  }
+  applyLang();
+  if (settingsOpen()) openSettings();
+}
+
+document.getElementById("btn-gear").addEventListener("click", () => {
+  if (storeOpen() || lessonOpen || animating) return;
+  openSettings();
+});
+document.getElementById("map-settings").addEventListener("click", () => openSettings());
+document.getElementById("settings-close").addEventListener("click", () => closeSettings());
+document.querySelectorAll(".lang-row button").forEach((btn) => {
+  btn.addEventListener("click", () => setLang(btn.dataset.lang));
+});
+document.getElementById("dialog-map").addEventListener("click", () => {
+  stageDialog.close();
+  showMap();
+});
+
+applyLang();
 view.setBall(equippedId());
-loadStage(indexFromLocation());
+if (hasDeepLink()) loadStage(indexFromLocation());
+else {
+  stageIndex = 0;
+  game = new Game(LEVELS[0]);
+  renderBoard();
+  showMap();
+}
 requestAnimationFrame(() => view.resize());
 
 window.addEventListener("resize", () => {

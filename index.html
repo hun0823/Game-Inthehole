@@ -62,6 +62,7 @@
         </svg>
         <div id="score-label" class="score">0</div>
         <button type="button" id="btn-store" class="shop-chip">Shop</button>
+        <button type="button" id="btn-gear" class="gear-chip" aria-label="Settings">⚙</button>
       </div>
     </header>
 
@@ -155,11 +156,30 @@
         </div>
       </div>
     </div>
+    <div id="map" class="map" hidden>
+      <div class="map-head">
+        <h1 id="map-title">Planets</h1>
+        <button type="button" id="map-settings" class="gear-chip" aria-label="Settings">⚙</button>
+      </div>
+      <ol id="map-list" class="map-list"></ol>
+    </div>
+    <div id="settings" class="settings" hidden>
+      <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <h2 id="settings-title">Settings</h2>
+        <p id="lang-label">Language</p>
+        <div class="lang-row">
+          <button type="button" data-lang="ko">한국어</button>
+          <button type="button" data-lang="en">English</button>
+        </div>
+        <button type="button" id="settings-close">Close</button>
+      </div>
+    </div>
   </div>
 
   <dialog id="stage-dialog">
     <h2>Stages</h2>
     <ul id="stage-list" class="stage-list"></ul>
+    <button type="button" id="dialog-map">Star map</button>
     <button type="button" id="dialog-close">Close</button>
   </dialog>
 

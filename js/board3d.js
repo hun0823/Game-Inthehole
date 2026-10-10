@@ -1,6 +1,7 @@
 import * as THREE from "./vendor/three.module.js";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
 import { ballById } from "./balls.js";
+import { themeById } from "./themes.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -60,25 +61,28 @@ function woodCanvas(base, grain, light, rows) {
   return tex;
 }
 
-function makeBoardTexture(n) {
+function makeBoardTexture(n, palette) {
   const cell = 128;
   const size = n * cell;
+  const floor = palette?.floor || "#e4a45e";
+  const groove = palette?.groove || "112, 62, 24";
+  const light = palette?.light || "255, 220, 168";
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const g = c.getContext("2d");
-  g.fillStyle = "#e4a45e";
+  g.fillStyle = floor;
   g.fillRect(0, 0, size, size);
   const bands = n * 14;
   for (let i = 0; i < bands; i++) {
     const y = ((i + 0.5) / bands) * size;
-    g.strokeStyle = `rgba(112, 62, 24, ${0.05 + (i % 4) * 0.035})`;
+    g.strokeStyle = `rgba(${groove}, ${0.06 + (i % 4) * 0.04})`;
     g.lineWidth = 2 + (i % 3);
     g.beginPath();
     g.moveTo(0, y);
     g.bezierCurveTo(size * 0.28, y + 5, size * 0.66, y - 6, size, y + 2);
     g.stroke();
   }
-  g.strokeStyle = "rgba(255, 220, 168, 0.2)";
+  g.strokeStyle = `rgba(${light}, 0.22)`;
   g.lineWidth = 7;
   for (let i = 0; i < n * 3; i++) {
     const y = ((i * 53) % size);
@@ -89,7 +93,7 @@ function makeBoardTexture(n) {
   }
   for (let i = 1; i < n; i++) {
     const p = i * cell;
-    g.strokeStyle = "rgba(86, 44, 16, 0.5)";
+    g.strokeStyle = `rgba(${groove}, 0.5)`;
     g.lineWidth = 5;
     g.beginPath();
     g.moveTo(p, 10);
@@ -97,7 +101,7 @@ function makeBoardTexture(n) {
     g.moveTo(10, p);
     g.lineTo(size - 10, p);
     g.stroke();
-    g.strokeStyle = "rgba(255, 228, 186, 0.4)";
+    g.strokeStyle = `rgba(${light}, 0.4)`;
     g.lineWidth = 1.6;
     g.beginPath();
     g.moveTo(p + 2.2, 10);
@@ -106,7 +110,7 @@ function makeBoardTexture(n) {
     g.lineTo(size - 10, p + 2.2);
     g.stroke();
   }
-  g.strokeStyle = "rgba(92, 48, 18, 0.28)";
+  g.strokeStyle = `rgba(${groove}, 0.32)`;
   g.lineWidth = 10;
   g.strokeRect(7, 7, size - 14, size - 14);
   const tex = new THREE.CanvasTexture(c);
@@ -276,6 +280,37 @@ function makeBallMaterials() {
     g.fill();
     g.globalAlpha = 1;
   });
+  const beachMap = paintTex(128, (g, s) => {
+    const bands = ["#f7f7f7", "#3ec4ff", "#ffe14a", "#ff5b9a", "#f7f7f7", "#3ec4ff"];
+    bands.forEach((color, i) => {
+      g.fillStyle = color;
+      g.fillRect(0, (i * s) / bands.length, s, s / bands.length + 1);
+    });
+  });
+  const toyMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#ff4d88";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "#ffe14a";
+    g.beginPath();
+    g.arc(s * 0.5, s * 0.5, s * 0.28, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#fff";
+    g.fillRect(0, s * 0.42, s, s * 0.16);
+  });
+  const mushMap = paintTex(128, (g, s) => {
+    g.fillStyle = "#f4f0ea";
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = "#e23b3b";
+    g.beginPath();
+    g.arc(s * 0.5, s * 0.62, s * 0.48, Math.PI, 0);
+    g.fill();
+    g.fillStyle = "#fff8ea";
+    for (const [x, y, r] of [[40, 36, 10], [78, 30, 8], [64, 52, 7], [96, 48, 6]]) {
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    }
+  });
   return {
     oak: std({ map: makeOakBallMap(), color: 0xffffff, roughness: 0.52, metalness: 0.04 }),
     marble: new THREE.MeshPhysicalMaterial({
@@ -307,6 +342,31 @@ function makeBallMaterials() {
       emissive: 0xff6a18,
       emissiveIntensity: 0.45,
     }),
+    dune: std({ color: 0xe6c27a, roughness: 0.88, metalness: 0.02 }),
+    snow: std({ color: 0xf7fbff, roughness: 0.55, emissive: 0xd0e8ff, emissiveIntensity: 0.22 }),
+    beach: std({ map: beachMap, color: 0xffffff, roughness: 0.48, metalness: 0.02 }),
+    toy: std({ map: toyMap, color: 0xffffff, roughness: 0.42, metalness: 0.02 }),
+    mushroom: std({ map: mushMap, color: 0xffffff, roughness: 0.52, metalness: 0.02 }),
+    gummy: std({
+      color: 0xff5a9a,
+      roughness: 0.22,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.86,
+      emissive: 0xff4d88,
+      emissiveIntensity: 0.22,
+    }),
+    coco: std({ color: 0x6a3a18, roughness: 0.74, metalness: 0.04 }),
+    alien: std({
+      color: 0x9a6cff,
+      roughness: 0.28,
+      metalness: 0.0,
+      transparent: true,
+      opacity: 0.9,
+      emissive: 0x6a3ad0,
+      emissiveIntensity: 0.45,
+    }),
+    gear: std({ color: 0xc5ced8, roughness: 0.32, metalness: 0.72 }),
   };
 }
 
@@ -441,14 +501,73 @@ export function createView(canvas) {
   const frameCapMat = new THREE.MeshStandardMaterial({ map: capMap, roughness: 0.58, metalness: 0.03 });
   const edgeMap = woodCanvas("#c88840", "#6a3a16", "#f2c48a", 18);
   const floorEdgeMat = new THREE.MeshStandardMaterial({ map: edgeMap, roughness: 0.78, metalness: 0.02 });
+  let activeTheme = themeById("wood");
   const boardMats = new Map();
   function floorTopMaterial(n) {
-    let mat = boardMats.get(n);
+    const key = `${activeTheme.id}:${n}`;
+    let mat = boardMats.get(key);
     if (!mat) {
-      mat = new THREE.MeshStandardMaterial({ map: makeBoardTexture(n), roughness: 0.74, metalness: 0.02 });
-      boardMats.set(n, mat);
+      mat = new THREE.MeshStandardMaterial({
+        map: makeBoardTexture(n, activeTheme),
+        roughness: 0.74,
+        metalness: 0.02,
+      });
+      boardMats.set(key, mat);
     }
     return mat;
+  }
+
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const MOTE_N = 14;
+  const motePos = new Float32Array(MOTE_N * 3);
+  const moteSeed = [];
+  for (let i = 0; i < MOTE_N; i++) {
+    moteSeed.push({
+      a: (i / MOTE_N) * Math.PI * 2,
+      r: 2.2 + (i % 5) * 0.55,
+      y: 1.1 + (i % 4) * 0.45,
+      s: 0.35 + (i % 3) * 0.2,
+    });
+  }
+  const moteGeo = new THREE.BufferGeometry();
+  moteGeo.setAttribute("position", new THREE.BufferAttribute(motePos, 3));
+  const moteMat = new THREE.PointsMaterial({
+    color: 0xe7c48a,
+    size: 0.09,
+    transparent: true,
+    opacity: 0.55,
+    depthWrite: false,
+  });
+  const motes = new THREE.Points(moteGeo, moteMat);
+  motes.frustumCulled = false;
+  scene.add(motes);
+  let storm = false;
+  function layoutMotes(t) {
+    for (let i = 0; i < MOTE_N; i++) {
+      const s = moteSeed[i];
+      const spin = t * (storm ? 0.15 : 0.12) * s.s;
+      if (storm) {
+        const x = ((s.a * 1.4 + t * 0.55 * s.s) % 8) - 4;
+        motePos[i * 3] = x;
+        motePos[i * 3 + 1] = s.y + Math.sin(s.a) * 0.2;
+        motePos[i * 3 + 2] = Math.sin(s.a * 2) * 2.4;
+      } else {
+        motePos[i * 3] = Math.cos(s.a + spin) * s.r;
+        motePos[i * 3 + 1] = s.y + Math.sin(spin * 2 + i) * 0.12;
+        motePos[i * 3 + 2] = Math.sin(s.a + spin) * s.r;
+      }
+    }
+    moteGeo.attributes.position.needsUpdate = true;
+  }
+  layoutMotes(0);
+  function applyTheme(id) {
+    activeTheme = themeById(id);
+    frameMat.color.setHex(activeTheme.frame);
+    frameCapMat.color.setHex(activeTheme.cap);
+    floorEdgeMat.color.setHex(activeTheme.edge);
+    moteMat.color.set(activeTheme.mote);
+    storm = !!activeTheme.storm;
+    if (reduceMotion) layoutMotes(0);
   }
 
   const ballMaterials = makeBallMaterials();
@@ -651,6 +770,67 @@ export function createView(canvas) {
   const coins = [];
   const pits = [];
   const shifters = [];
+  const magmas = [];
+  let stockHole = null;
+  let snowGrow = 1;
+  const goalDiscGeo = new THREE.CircleGeometry(0.3, 28);
+  const goalTorusGeo = new THREE.TorusGeometry(0.4, 0.07, 8, 28);
+  const sinkMat = new THREE.MeshBasicMaterial({ color: 0x14080c });
+  const goalLooks = {
+    knot: { color: 0xc4843a, emissive: 0x6a3810, roughness: 0.62 },
+    oasis: { color: 0xd08a3a, emissive: 0x8a4a18, roughness: 0.78 },
+    crystal: { color: 0xd8e6ff, emissive: 0x88a0e0, roughness: 0.16, metalness: 0.08, clearcoat: 0.55 },
+    rim: { color: 0x1a1a1a, emissive: 0x000000, roughness: 0.9 },
+    puddle: { color: 0x2fbf3e, emissive: 0x145c22, roughness: 0.32 },
+    dish: { color: 0xff8ab0, emissive: 0xe05080, roughness: 0.32 },
+    crater: { color: 0x4a2018, emissive: 0xff6a18, roughness: 0.62 },
+    nest: { color: 0x3d7a3a, emissive: 0x1a4018, roughness: 0.74 },
+    glow: { color: 0xc8b0ff, emissive: 0x7a4ad0, roughness: 0.28 },
+    cog: { color: 0xb0b8c4, emissive: 0x5a6470, roughness: 0.34, metalness: 0.65 },
+    stump: { color: 0x8a5a32, emissive: 0x3a2010, roughness: 0.84 },
+    bucket: { color: 0xf2c15a, emissive: 0xc47a20, roughness: 0.42 },
+    pedestal: { color: 0xff5b9a, emissive: 0xc43d6c, roughness: 0.4 },
+    snowman: { color: 0xf4fbff, emissive: 0x9ec8e8, roughness: 0.42 },
+  };
+  const goalMats = new Map();
+  function goalMaterial(kind) {
+    if (goalMats.has(kind)) return goalMats.get(kind);
+    const look = goalLooks[kind] || goalLooks.knot;
+    const mat = new THREE.MeshStandardMaterial({
+      color: look.color,
+      emissive: look.emissive,
+      emissiveIntensity: look.emissive ? 0.35 : 0,
+      roughness: look.roughness,
+      metalness: look.metalness || 0,
+      clearcoat: look.clearcoat || 0,
+    });
+    goalMats.set(kind, mat);
+    return mat;
+  }
+  const magmaCalmMat = new THREE.MeshStandardMaterial({
+    color: 0x5a2818,
+    roughness: 0.86,
+    emissive: 0x3a1208,
+    emissiveIntensity: 0.2,
+  });
+  const magmaWarnMat = new THREE.MeshStandardMaterial({
+    color: 0xffb020,
+    emissive: 0xff6a10,
+    emissiveIntensity: 0.7,
+    roughness: 0.4,
+  });
+  const magmaHotMat = new THREE.MeshStandardMaterial({
+    color: 0xff4a18,
+    emissive: 0xff1a08,
+    emissiveIntensity: 1.15,
+    roughness: 0.45,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+  const magmaDiscGeo = new THREE.CircleGeometry(0.46, 22);
+  const magmaRingGeo = new THREE.TorusGeometry(0.36, 0.07, 8, 24);
+  const magmaCrustGeo = new THREE.CylinderGeometry(0.48, 0.42, 0.16, 18);
   let smogKeys = new Set();
   let visualReveal = new Set();
   const shiftCanvas = document.createElement("canvas");
@@ -829,6 +1009,8 @@ export function createView(canvas) {
     coins.length = 0;
     pits.length = 0;
     shifters.length = 0;
+    magmas.length = 0;
+    stockHole = null;
     smogKeys = new Set();
     visualReveal = new Set();
   }
@@ -841,6 +1023,7 @@ export function createView(canvas) {
 
   function clearFx() {
     stamp = 0;
+    snowGrow = 1;
     for (const d of decals) {
       d.life = 0;
       d.group.visible = false;
@@ -1004,14 +1187,71 @@ export function createView(canvas) {
     }
   }
 
+  function addSink() {
+    const disc = new THREE.Mesh(goalDiscGeo, sinkMat);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = BOARD_TOP + 0.02;
+    goalGroup.add(disc);
+  }
+
+  function addThemedGoal(kind) {
+    const mat = goalMaterial(kind);
+    const ring = new THREE.Mesh(goalTorusGeo, mat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = BOARD_TOP + 0.045;
+    if (kind === "snowman") {
+      const scales = [0.22, 0.16, 0.11];
+      let y = BOARD_TOP + 0.16;
+      scales.forEach((s, i) => {
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(s, 12, 10), mat);
+        ball.position.set(0, y, -0.55);
+        ball.userData.ownGeo = true;
+        goalGroup.add(ball);
+        y += s + scales[Math.min(i + 1, 2)] * 0.85;
+      });
+      return;
+    }
+    if (kind === "bucket") {
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.28, 12, 1, true), mat);
+      cup.position.set(0, BOARD_TOP + 0.24, -0.5);
+      cup.userData.ownGeo = true;
+      goalGroup.add(cup);
+    } else if (kind === "stump") {
+      const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.32, 0.22, 10), mat);
+      stump.position.set(0, BOARD_TOP + 0.16, -0.48);
+      stump.userData.ownGeo = true;
+      goalGroup.add(stump);
+    } else if (kind === "pedestal") {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 0.28, 10), mat);
+      post.position.set(0, BOARD_TOP + 0.2, -0.46);
+      post.userData.ownGeo = true;
+      goalGroup.add(post);
+    } else if (kind === "cog") {
+      goalGroup.add(ring);
+      for (let i = 0; i < 8; i++) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.1), mat);
+        const a = (i / 8) * Math.PI * 2;
+        tooth.position.set(Math.cos(a) * 0.48, BOARD_TOP + 0.05, Math.sin(a) * 0.48);
+        tooth.userData.ownGeo = true;
+        goalGroup.add(tooth);
+      }
+      return;
+    }
+    goalGroup.add(ring);
+  }
+
   function dressGoal() {
     emptyGoal();
-    if (!holeCell || !equipped.goal) return;
+    const custom = !!(holeCell && equipped.goal);
+    if (stockHole) stockHole.visible = !custom;
+    if (!custom) return;
     const p = cellXZ(holeCell[0], holeCell[1]);
     goalGroup.position.set(p.x, 0, p.z);
+    addSink();
     if (equipped.goal === "net") addNet();
     else if (equipped.goal === "hoop") addHoop();
     else if (equipped.goal === "pins") addPins();
+    else addThemedGoal(equipped.goal);
   }
 
   function setBall(id) {
@@ -1109,6 +1349,7 @@ export function createView(canvas) {
   }
 
   function setStage(level, game) {
+    applyTheme(level.planet);
     token++;
     if (rollJob) {
       rollJob.resolve();
@@ -1251,11 +1492,9 @@ export function createView(canvas) {
     );
     well.position.set(hx, BOARD_TOP - 0.08, hz);
     well.receiveShadow = true;
-    rig.add(well);
     const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.4, 48), holeMat);
     swirl.rotation.x = -Math.PI / 2;
     swirl.position.set(hx, BOARD_TOP + 0.012, hz);
-    rig.add(swirl);
     const ringMat = new THREE.MeshPhysicalMaterial({
       color: 0x7dfff0,
       emissive: 0x14f0c8,
@@ -1268,12 +1507,13 @@ export function createView(canvas) {
     ring.rotation.x = Math.PI / 2;
     ring.position.set(hx, BOARD_TOP + 0.03, hz);
     ring.name = "hole-ring";
-    rig.add(ring);
     const innerRing = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.03, 8, 28), ringMat);
     innerRing.rotation.x = Math.PI / 2;
     innerRing.position.set(hx, BOARD_TOP + 0.04, hz);
     innerRing.name = "hole-ring";
-    rig.add(innerRing);
+    stockHole = new THREE.Group();
+    stockHole.add(well, swirl, ring, innerRing);
+    rig.add(stockHole);
 
     for (const btn of level.buttons || []) {
       const { x, z } = cellXZ(btn.row, btn.col);
@@ -1332,6 +1572,27 @@ export function createView(canvas) {
       rim.userData.ownMat = true;
       rig.add(rim);
       dune.material.roughness = 0.95;
+    }
+    for (const [r, c] of level.jelly || []) {
+      const blob = paintDisc(r, c, 0xff5a9a, 0.48, BOARD_TOP + 0.07, 0.94);
+      blob.material.emissive = new THREE.Color(0xff4d88);
+      blob.material.emissiveIntensity = 0.45;
+      blob.material.roughness = 0.22;
+      blob.scale.y = 2.6;
+      const { x, z } = cellXZ(r, c);
+      const lip = new THREE.Mesh(
+        new THREE.TorusGeometry(0.4, 0.06, 8, 20),
+        new THREE.MeshStandardMaterial({
+          color: 0xffd0e4,
+          emissive: 0xff7aaa,
+          emissiveIntensity: 0.35,
+          roughness: 0.3,
+        })
+      );
+      lip.rotation.x = Math.PI / 2;
+      lip.position.set(x, BOARD_TOP + 0.08, z);
+      lip.userData.ownMat = true;
+      rig.add(lip);
     }
     for (const [r, c] of level.ice || []) {
       const sheet = paintDisc(r, c, 0x3ec4ff, 0.5, BOARD_TOP + 0.025, 0.88);
@@ -1399,6 +1660,28 @@ export function createView(canvas) {
       pits.push(mesh);
       pits.push(crack);
     });
+    for (const vent of level.magma || []) {
+      const r = vent[0];
+      const c = vent[1];
+      const at = vent[2];
+      const { x, z } = cellXZ(r, c);
+      const group = new THREE.Group();
+      group.position.set(x, 0, z);
+      const calm = new THREE.Mesh(magmaDiscGeo, magmaCalmMat);
+      calm.rotation.x = -Math.PI / 2;
+      calm.position.y = BOARD_TOP + 0.03;
+      const warn = new THREE.Mesh(magmaRingGeo, magmaWarnMat);
+      warn.rotation.x = Math.PI / 2;
+      warn.position.y = BOARD_TOP + 0.055;
+      const hot = new THREE.Mesh(magmaDiscGeo, magmaHotMat);
+      hot.rotation.x = -Math.PI / 2;
+      hot.position.y = BOARD_TOP + 0.08;
+      hot.renderOrder = 2;
+      group.add(calm, warn, hot);
+      group.userData = { at, calm, warn, hot };
+      rig.add(group);
+      magmas.push(group);
+    }
     const pairMat = new THREE.MeshStandardMaterial({
       color: 0xd946ef,
       emissive: 0xa21caf,
@@ -1686,6 +1969,14 @@ export function createView(canvas) {
         const gone = (game.collapse & pit.userData.bit) !== 0;
         pit.visible = pit.userData.crack ? true : gone;
       }
+      const spent = game.tilts || 0;
+      for (const group of magmas) {
+        const hot = spent >= group.userData.at;
+        const warn = !hot && spent === group.userData.at - 1;
+        group.userData.calm.visible = !hot && !warn;
+        group.userData.warn.visible = warn;
+        group.userData.hot.visible = hot;
+      }
     }
     for (const mesh of fogWalls) {
       if (mesh.userData.kind === "wall") applyEdgeVisibility(mesh, true);
@@ -1899,6 +2190,7 @@ export function createView(canvas) {
     if (traveled > 0 && !snap) {
       ballSpin.rotateOnWorldAxis(moveAxis[job.dir] || moveAxis.right, traveled / BALL_R);
       dropTrail(x, z, job.dir, traveled);
+      if (equipped.motion === "grow") snowGrow = Math.min(1.18, snowGrow + traveled * 0.04);
     }
     if (t >= 1) {
       playCracks(job.fx.cracked || []);
@@ -1932,7 +2224,15 @@ export function createView(canvas) {
       squash += squashV * dt;
       const sy = THREE.MathUtils.clamp(squash, 0.72, 1.12);
       const sx = 1 / Math.sqrt(sy);
-      if (!sinkJob) ballRoot.scale.set(sx, sy, sx);
+      const extra = equipped.motion === "grow" ? snowGrow : 1;
+      if (!sinkJob) {
+        if (rollJob && equipped.motion === "wobble") {
+          const w = Math.sin(time * 22);
+          ballRoot.scale.set((1.12 + w * 0.08) * extra, (0.82 - w * 0.06) * extra, (1.12 - w * 0.08) * extra);
+        } else {
+          ballRoot.scale.set(sx * extra, sy * extra, sx * extra);
+        }
+      }
 
       shake *= Math.exp(-7 * dt);
       const mag = shake * 0.04;
@@ -1951,10 +2251,8 @@ export function createView(canvas) {
         const hop = Math.abs(Math.sin(rollJob.t * Math.PI * 6));
         ballRoot.position.y = BALL_Y + hop * 0.32;
       }
-      if (rollJob && !sinkJob && equipped.motion === "wobble") {
-        const w = Math.sin(time * 22);
-        ballRoot.scale.set(1.12 + w * 0.08, 0.82 - w * 0.06, 1.12 - w * 0.08);
-      }
+      if (!reduceMotion) layoutMotes(time);
+      magmaWarnMat.emissiveIntensity = 0.85 + Math.sin(time * 8) * 0.25;
       if (pinT > 0) {
         pinT = Math.min(1.2, pinT + dt / 0.38);
         const k = Math.min(1, pinT);

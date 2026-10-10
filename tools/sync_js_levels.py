@@ -42,9 +42,12 @@ function levelFromEdges(
     smog: extra.smog || [],
     coins: extra.coins || [],
     collapse: extra.collapse || [],
+    jelly: extra.jelly || [],
+    magma: extra.magma || [],
     oneWay: extra.oneWay || [],
     teleports: extra.teleports || [],
     shifters: extra.shifters || [],
+    planet: extra.planet || "wood",
   };
 }
 
@@ -80,6 +83,9 @@ for lv in data["levels"]:
             ]
             for s in lv.get("shifters") or []
         ],
+        "jelly": [[e["row"], e["col"]] for e in lv.get("jelly") or []],
+        "magma": [[e["row"], e["col"], int(e["at"])] for e in lv.get("magma") or []],
+        "planet": lv.get("planet") or "wood",
     }
     lines.append(
         f'  levelFromEdges({lv["id"]}, "{lv["name"]}", {lv["size"]}, '
