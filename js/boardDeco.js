@@ -84,8 +84,8 @@ function paint(key, draw, size = 160) {
 }
 
 function blob(g, x, y, rx, ry, fill) {
-  const ox = Math.min(8, rx * 0.28);
-  const oy = Math.min(8, ry * 0.28);
+  const ox = Math.min(14, Math.max(6, rx * 0.34));
+  const oy = Math.min(14, Math.max(6, ry * 0.34));
   g.fillStyle = INK;
   g.beginPath();
   g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
@@ -100,7 +100,7 @@ function poly(g, pts, fill) {
   g.beginPath();
   pts.forEach((p, i) => (i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])));
   g.closePath();
-  g.lineWidth = 8;
+  g.lineWidth = 12;
   g.strokeStyle = INK;
   g.fillStyle = fill;
   g.stroke();
@@ -121,7 +121,7 @@ function eye(g, x, y, r) {
   g.fill();
 }
 
-const READ = 1.65;
+const READ = 1.9;
 const REF_SPAN = 6 * 1.16;
 let spriteUnit = 1;
 
@@ -168,25 +168,8 @@ function metrics(span, frameT) {
   };
 }
 
-function ground(parent, m, color, z, ry) {
-  const disc = new THREE.Mesh(
-    new THREE.CircleGeometry(1, 22),
-    new THREE.MeshBasicMaterial({ color, depthWrite: false, transparent: true, opacity: 0.95 })
-  );
-  disc.rotation.x = -Math.PI / 2;
-  disc.position.set(0, 0.01, z);
-  disc.scale.set(m.outer * 0.98, ry, 1);
-  disc.renderOrder = 1;
-  parent.add(disc);
-  const rim = new THREE.Mesh(
-    new THREE.RingGeometry(0.96, 1.04, 28),
-    new THREE.MeshBasicMaterial({ color: 0x141414, side: THREE.DoubleSide, depthWrite: false })
-  );
-  rim.rotation.x = -Math.PI / 2;
-  rim.position.set(0, 0.012, z);
-  rim.scale.set(m.outer * 0.98, ry, 1);
-  rim.renderOrder = 1;
-  parent.add(rim);
+function ground() {
+  /* Terrain sits on the full-window sky, behind the D-pad. */
 }
 
 function flakes(parent, count, color, m, rise) {
@@ -230,6 +213,13 @@ function flakes(parent, count, color, m, rise) {
       pos[i * 3 + 2] = z;
     }
     geo.attributes.position.needsUpdate = true;
+  });
+}
+
+function idle(sprite, bob = 0.04, speed = 2.2) {
+  const baseY = sprite.position.y;
+  loop((time) => {
+    sprite.position.y = baseY + Math.sin(time * speed) * bob;
   });
 }
 
@@ -349,7 +339,8 @@ const draw = {
     poly(g, [[S * 0.2, S * 0.82], [S * 0.5, S * 0.82], [S * 0.36, S * 0.62]], "#b7d4ea");
   },
   icicle(g, S) {
-    poly(g, [[S * 0.5, S * 0.08], [S * 0.22, S * 0.92], [S * 0.78, S * 0.92]], "#eaf8ff");
+    poly(g, [[S * 0.18, S * 0.1], [S * 0.82, S * 0.1], [S * 0.5, S * 0.94]], "#e7f7ff");
+    poly(g, [[S * 0.36, S * 0.14], [S * 0.58, S * 0.16], [S * 0.5, S * 0.7]], "#ffffff");
   },
   crab(g, S) {
     blob(g, S * 0.5, S * 0.58, S * 0.22, S * 0.16, "#e23b3b");
@@ -539,220 +530,121 @@ const draw = {
 };
 
 function buildWood(group, m) {
-  ground(group, m, 0x3d9a4a, m.groundZ, m.outer * 0.38);
-  const sq = stamp(group, "squirrel", draw.squirrel, 0, m.foot, m.far, 1.15, 1.05, 0.06);
-  patrol(sq, m, 6, true);
-  const blue = stamp(group, "bluebird", draw.bluebird, 0, m.foot + 0.35, m.sky, 1.15, 0.8, 0.45);
-  loop((time) => {
-    const p = (time % 6) / 6;
-    blue.position.x = (p * 2 - 1) * (m.outer + 0.2);
-    blue.position.y = m.foot + 0.55 + Math.sin(time * 8) * 0.06;
-  });
-  const red = stamp(group, "redbird", draw.redbird, m.outer * 0.55, m.low, m.near, 0.85, 0.7, 0.9);
-  loop((time) => { red.position.y = m.low + Math.sin(time * 2) * 0.04; });
-  stamp(group, "mush-red", (g, s) => draw.mushroom(g, s, "#e23b3b"), -m.outer * 0.55, m.low, m.near, 0.7, 0.6, 0.9);
-  stamp(group, "mush-tan", (g, s) => draw.mushroom(g, s, "#e8c9a0"), -m.outer * 0.2, m.low, m.near + 0.15, 0.55, 0.48, 0.9);
-  for (let i = 0; i < 4; i++) {
-    stamp(group, "grass", draw.grass, -m.outer * 0.35 + i * 0.38, m.low, m.groundZ - 0.15, 0.55, 0.48, 0.85);
-  }
-  stamp(group, "tree", draw.tree, -m.outer * 0.72, m.foot, m.sky + 0.15, 1.35, 1.55, 0.08);
-  stamp(group, "tree", draw.tree, m.outer * 0.7, m.foot, m.sky + 0.22, 1.15, 1.35, 0.08);
-  flakes(group, 14, 0xc47a3a, m, true);
+  const sq = stamp(group, "squirrel", draw.squirrel, 0, m.foot, m.far, 1.3, 1.15, 0.08);
+  idle(sq, 0.03, 2.2);
+  stamp(group, "tree", draw.tree, -m.outer * 0.82, m.foot, m.sky, 1.45, 1.5, 0.1);
+  const bird = stamp(group, "bluebird", draw.bluebird, -m.outer * 0.72, m.foot + 0.35, m.sky - 0.05, 0.9, 0.62, 0.15);
+  idle(bird, 0.035, 3);
+  stamp(group, "tree", draw.tree, m.outer * 0.82, m.foot, m.sky, 1.25, 1.35, 0.1);
 }
 
 function buildDesert(group, m) {
-  ground(group, m, 0xe6c27a, m.groundZ, m.outer * 0.36);
-  const liz = stamp(group, "lizard", draw.lizard, 0, m.foot, m.far, 1.25, 0.7, 0.08);
-  patrol(liz, m, 4, false);
-  loop((time) => { tilt(liz, Math.sin(time * 8) * 0.08); });
-  stamp(group, "cactus", draw.cactus, -m.outer * 0.78, m.foot, m.far, 0.7, 1.05, 0.08);
-  stamp(group, "cactus", draw.cactus, -m.outer * 0.45, m.low, m.groundZ, 1.15, 1.55, 0.88);
-  const palm = stamp(group, "palm", draw.palm, m.outer * 0.4, m.low, m.groundZ - 0.05, 1.35, 1.6, 0.88);
-  loop((time) => { tilt(palm, Math.sin(time * 1.5) * 0.05); });
-  stamp(group, "bone", draw.bone, m.outer * 0.72, m.foot - 0.05, m.far + 0.02, 0.7, 0.4, 0.2);
-  stamp(group, "dune", draw.dune, -m.outer * 0.2, m.foot, m.sky + 0.2, 1.6, 0.8, 0.2);
-  stamp(group, "dune", draw.dune, m.outer * 0.35, m.foot, m.sky + 0.28, 1.3, 0.7, 0.2);
-  flakes(group, 12, 0xe6c27a, m, false);
+  stamp(group, "dune", draw.dune, -m.outer * 0.48, m.foot, m.sky, 2.2, 1.15, 0.12);
+  stamp(group, "dune", draw.dune, m.outer * 0.52, m.foot, m.sky, 1.9, 1.0, 0.12);
+  stamp(group, "cactus", draw.cactus, -m.outer * 0.92, m.foot, m.far, 0.75, 1.2, 0.08);
+  const liz = stamp(group, "lizard", draw.lizard, 0.15, m.foot, m.far, 1.5, 0.78, 0.1);
+  idle(liz, 0.02, 2);
 }
 
 function buildIce(group, m) {
-  ground(group, m, 0xd7f4ff, m.groundZ, m.outer * 0.4);
-  const pen = stamp(group, "penguin", draw.penguin, 0, m.foot, m.far, 1.05, 1.25, 0.05);
-  patrol(pen, m, 6, false);
-  loop((time) => { tilt(pen, Math.sin(time * Math.PI * 4) * 0.12); });
-  const seal = stamp(group, "seal", draw.seal, m.outer * 0.45, m.low, m.groundZ, 1.35, 0.85, 0.85);
-  loop((time) => { seal.position.y = m.low + Math.sin(time * 2.1) * 0.06; });
-  const baby = stamp(group, "babyPen", draw.babyPen, -m.outer * 0.45, m.low, m.near, 0.7, 0.85, 0.9);
-  const babyW = Math.abs(baby.scale.x);
-  loop((time) => {
-    const p = pingpong(time + 1, 6);
-    baby.position.x = -m.outer * 0.7 + p * 0.7 * m.unit;
-    baby.scale.x = (time % 6 < 3 ? 1 : -1) * babyW;
-  });
-  for (let i = 0; i < 6; i++) {
-    stamp(group, "icicle", draw.icicle, -m.outer * 0.7 + i * (m.outer * 0.28), m.foot - 0.35, m.near - 0.02, 0.28, 0.55, 0.95);
+  const pen = stamp(group, "penguin", draw.penguin, 0, m.foot, m.far, 1.2, 1.45, 0.06);
+  idle(pen, 0.03, 2.1);
+  loop((time) => { tilt(pen, Math.sin(time * 2.1) * 0.06); });
+  stamp(group, "iceberg", draw.iceberg, -m.outer * 0.9, m.foot, m.sky, 2.05, 1.75, 0.1);
+  stamp(group, "iceberg", draw.iceberg, m.outer * 0.9, m.foot, m.sky, 1.7, 1.45, 0.1);
+  const count = 11;
+  const span = m.outer * 1.75;
+  for (let i = 0; i < count; i++) {
+    const x = -span / 2 + (i + 0.5) * (span / count);
+    const h = 0.32 + (i % 3) * 0.08;
+    stamp(group, "icicle", draw.icicle, x, 0.55, m.near - 0.04, 0.34, h, 0.88);
   }
-  stamp(group, "iceberg", draw.iceberg, -m.outer * 0.62, m.foot, m.sky + 0.25, 1.7, 1.45, 0.12);
-  stamp(group, "iceberg", draw.iceberg, m.outer * 0.68, m.foot, m.sky + 0.32, 1.35, 1.15, 0.12);
-  flakes(group, 16, 0xf4fbff, m, true);
 }
 
 function buildOcean(group, m) {
-  ground(group, m, 0x1471b4, m.groundZ, m.outer * 0.4);
-  const crab = stamp(group, "crab", draw.crab, 0, m.foot, m.far, 1.15, 0.95, 0.08);
-  patrol(crab, m, 6, false);
-  const gull = stamp(group, "gull", draw.gull, 0, m.foot + 0.4, m.sky, 1.2, 0.75, 0.4);
-  loop((time) => {
-    const p = (time % 6) / 6;
-    gull.position.x = (p * 2 - 1) * (m.outer + 0.15);
-  });
-  [-1, 1].forEach((side, i) => {
-    const key = side < 0 ? "fish-a" : "fish-b";
-    const body = side < 0 ? "#f2a020" : "#3ec4ff";
-    const fin = side < 0 ? "#e07a20" : "#2f7dff";
-    const fish = stamp(group, key, (g, s) => draw.fish(g, s, body, fin), side * m.outer * 0.35, m.low, m.groundZ, 1.05, 0.7, 0.8);
-    loop((time) => {
-      const hop = Math.max(0, Math.sin(time * 2.1 + i * 1.4));
-      fish.position.y = m.low + hop * 0.35;
-    });
-  });
-  stamp(group, "coral-a", (g, s) => draw.coral(g, s, "#ff5a7a"), -m.outer * 0.7, m.low, m.groundZ - 0.1, 0.7, 0.85, 0.88);
-  stamp(group, "coral-b", (g, s) => draw.coral(g, s, "#ff8a3a"), m.outer * 0.15, m.low, m.groundZ, 0.6, 0.75, 0.88);
-  stamp(group, "coral-c", (g, s) => draw.coral(g, s, "#c07aff"), m.outer * 0.6, m.low, m.groundZ + 0.05, 0.65, 0.8, 0.88);
-  stamp(group, "wave", draw.wave, -m.outer * 0.45, m.foot, m.sky + 0.2, 1.3, 0.55, 0.3);
-  stamp(group, "wave", draw.wave, m.outer * 0.45, m.foot, m.sky + 0.28, 1.15, 0.5, 0.3);
-  flakes(group, 12, 0xeaf8ff, m, true);
+  const crab = stamp(group, "crab", draw.crab, 0, m.foot, m.far, 1.25, 1.05, 0.08);
+  idle(crab, 0.03, 2.4);
+  const gull = stamp(group, "gull", draw.gull, -m.outer * 0.72, m.foot + 0.45, m.sky, 1.15, 0.72, 0.2);
+  idle(gull, 0.04, 2.6);
+  stamp(group, "wave", draw.wave, -m.outer * 0.35, m.foot, m.sky, 1.5, 0.7, 0.2);
+  stamp(group, "wave", draw.wave, m.outer * 0.55, m.foot, m.sky, 1.35, 0.62, 0.2);
 }
 
 function buildCrystal(group, m) {
-  ground(group, m, 0x2a2458, m.groundZ, m.outer * 0.34);
-  [[-0.7, "#9a78f0"], [0.7, "#7eb6e8"]].forEach(([x, color], i) => {
-    const gem = stamp(group, `gem-${i}`, (g, s) => draw.crystal(g, s, color), x * m.outer, m.foot, m.far, 0.85, 1.25, 0.08);
-    loop((time) => { gem.position.y = m.foot + Math.sin(time * 2 + i) * 0.04; });
+  [[-0.82, "#9a78f0", 1.15], [0.82, "#7eb6e8", 1.0], [-0.55, "#e4ecff", 0.7]].forEach(([x, color, s], i) => {
+    const gem = stamp(group, `gem-${i}`, (g, S) => draw.crystal(g, S, color), x * m.outer, m.foot, m.sky, 0.95 * s, 1.4 * s, 0.08);
+    idle(gem, 0.03, 1.8 + i);
   });
-  stamp(group, "gem-c", (g, s) => draw.crystal(g, s, "#b7c6e6"), -m.outer * 0.55, m.low, m.groundZ, 0.9, 1.2, 0.88);
-  stamp(group, "gem-d", (g, s) => draw.crystal(g, s, "#8ea0c8"), m.outer * 0.5, m.low, m.groundZ, 0.75, 1.05, 0.88);
-  [0, 2].forEach((phase, i) => {
-    const fly = stamp(group, "butterfly", draw.butterfly, 0, m.foot + 0.2, i ? m.near : m.sky, 0.85, 0.7, 0.5);
-    loop((time) => {
-      const a = time * 1.1 + phase;
-      fly.position.x = Math.sin(a) * m.outer * 0.55;
-      fly.position.y = (i ? m.low : m.foot) + 0.35 + Math.sin(a * 2) * 0.1;
-    });
-  });
-  flakes(group, 10, 0xe4ecff, m, false);
+  const fly = stamp(group, "butterfly", draw.butterfly, 0.2, m.foot + 0.35, m.sky, 0.8, 0.65, 0.4);
+  idle(fly, 0.06, 3);
 }
 
 function buildToy(group, m) {
-  ground(group, m, 0xf2c15a, m.groundZ, m.outer * 0.32);
-  const bot = stamp(group, "robot", draw.robot, 0, m.foot, m.far, 1.05, 1.15, 0.06);
-  patrol(bot, m, 6, true);
-  ["#ff5a9a", "#3ec4ff", "#f2c14a"].forEach((color, i) => {
-    const balloon = stamp(group, `bal-${i}`, (g, s) => draw.balloon(g, s, color), (i - 1) * m.outer * 0.4, m.low, m.groundZ, 0.7, 1.05, 0.85);
-    loop((time) => { balloon.position.y = m.low + Math.sin(time * 2 + i) * 0.08; });
-  });
-  stamp(group, "block-r", (g, s) => draw.block(g, s, "#e23b3b"), -m.outer * 0.7, m.foot, m.sky + 0.2, 0.55, 0.55, 0.15);
-  stamp(group, "block-b", (g, s) => draw.block(g, s, "#2f7dff"), -m.outer * 0.7, m.foot + 0.4, m.sky + 0.2, 0.42, 0.42, 0.15);
-  stamp(group, "block-y", (g, s) => draw.block(g, s, "#f2c14a"), m.outer * 0.68, m.foot, m.sky + 0.25, 0.6, 0.7, 0.15);
-  stamp(group, "block-g", (g, s) => draw.block(g, s, "#3d9a4a"), m.outer * 0.4, m.low, m.groundZ, 0.5, 0.5, 0.85);
+  const bot = stamp(group, "robot", draw.robot, 0, m.foot, m.far, 1.15, 1.25, 0.06);
+  idle(bot, 0.03, 2.2);
+  stamp(group, "block-r", (g, s) => draw.block(g, s, "#e23b3b"), -m.outer * 0.88, m.foot, m.sky, 0.62, 0.62, 0.12);
+  stamp(group, "block-b", (g, s) => draw.block(g, s, "#2f7dff"), -m.outer * 0.88, m.foot + 0.48, m.sky, 0.48, 0.48, 0.12);
+  stamp(group, "block-y", (g, s) => draw.block(g, s, "#f2c14a"), m.outer * 0.86, m.foot, m.sky, 0.7, 0.78, 0.12);
+  stamp(group, "block-g", (g, s) => draw.block(g, s, "#3d9a4a"), m.outer * 0.62, m.foot + 0.15, m.sky, 0.48, 0.48, 0.12);
 }
 
 function buildMushroom(group, m) {
-  ground(group, m, 0x3a2458, m.groundZ, m.outer * 0.34);
-  stamp(group, "house-a", (g, s) => draw.house(g, s, "#e23b3b"), -m.outer * 0.55, m.foot, m.sky + 0.2, 1.25, 1.35, 0.1);
-  stamp(group, "house-b", (g, s) => draw.house(g, s, "#c46eb0"), m.outer * 0.45, m.low, m.groundZ, 1.15, 1.2, 0.88);
-  stamp(group, "mush-s", (g, s) => draw.mushroom(g, s, "#e23b3b"), -m.outer * 0.75, m.foot, m.far, 0.6, 0.55, 0.1);
-  stamp(group, "mush-p", (g, s) => draw.mushroom(g, s, "#f08ab0"), m.outer * 0.72, m.foot, m.far, 0.55, 0.5, 0.1);
-  flakes(group, 12, 0xf2e27a, m, false);
+  stamp(group, "house-a", (g, s) => draw.house(g, s, "#e23b3b"), -m.outer * 0.7, m.foot, m.sky, 1.4, 1.45, 0.1);
+  stamp(group, "house-b", (g, s) => draw.house(g, s, "#c46eb0"), m.outer * 0.72, m.foot, m.sky, 1.2, 1.25, 0.1);
+  stamp(group, "mush-s", (g, s) => draw.mushroom(g, s, "#e23b3b"), -m.outer * 0.28, m.foot, m.far, 0.7, 0.62, 0.1);
+  stamp(group, "mush-p", (g, s) => draw.mushroom(g, s, "#f08ab0"), m.outer * 0.3, m.foot, m.far, 0.62, 0.55, 0.1);
 }
 
 function buildCandy(group, m) {
-  ground(group, m, 0xf7b4c8, m.groundZ, m.outer * 0.34);
-  const cookie = stamp(group, "cookie", draw.cookie, -m.outer * 0.4, m.low, m.groundZ, 0.9, 0.9, 0.85);
+  const popA = stamp(group, "pop", draw.pop, -m.outer * 0.82, m.foot, m.sky, 0.95, 1.45, 0.1);
+  const popB = stamp(group, "pop", draw.pop, m.outer * 0.82, m.foot, m.sky, 0.85, 1.3, 0.1);
   loop((time) => {
-    cookie.position.x = -m.outer * 0.65 + pingpong(time, 8) * m.outer * 0.45;
-    ownMat(cookie).rotation = time * 0.35;
+    tilt(popA, Math.sin(time * 1.6) * 0.08);
+    tilt(popB, Math.sin(time * 1.6 + 1) * 0.08);
   });
-  const popA = stamp(group, "pop", draw.pop, m.outer * 0.45, m.low, m.groundZ, 0.7, 1.15, 0.88);
-  const popB = stamp(group, "pop", draw.pop, -m.outer * 0.55, m.foot, m.sky + 0.15, 0.85, 1.3, 0.12);
-  loop((time) => {
-    tilt(popA, Math.sin(time * 2) * 0.12);
-    tilt(popB, Math.sin(time * 2 + 1) * 0.1);
-  });
-  stamp(group, "cream", draw.cream, -m.outer * 0.72, m.foot, m.far, 0.7, 0.6, 0.1);
-  stamp(group, "cream", draw.cream, m.outer * 0.7, m.foot, m.far, 0.62, 0.55, 0.1);
-  flakes(group, 14, 0xff8ab0, m, true);
+  stamp(group, "cream", draw.cream, -m.outer * 0.45, m.foot, m.far, 0.7, 0.6, 0.1);
+  stamp(group, "cream", draw.cream, m.outer * 0.42, m.foot, m.far, 0.62, 0.55, 0.1);
 }
 
 function buildLava(group, m) {
-  ground(group, m, 0x4a2018, m.groundZ, m.outer * 0.36);
-  const v1 = stamp(group, "volcano", draw.volcano, -m.outer * 0.55, m.foot, m.sky + 0.15, 1.45, 1.4, 0.1);
-  const v2 = stamp(group, "volcano", draw.volcano, m.outer * 0.6, m.foot, m.sky + 0.28, 1.15, 1.15, 0.1);
-  loop((time) => {
-    const p = (time % 3) / 3;
-    v1.position.y = m.foot + Math.sin(p * Math.PI) * 0.04;
-    v2.position.y = m.foot + Math.sin(p * Math.PI + 1) * 0.03;
-  });
-  stamp(group, "rock", draw.rock, -m.outer * 0.35, m.low, m.groundZ, 0.9, 0.6, 0.85);
-  stamp(group, "rock", draw.rock, m.outer * 0.4, m.low, m.groundZ + 0.05, 0.75, 0.5, 0.85);
-  stamp(group, "rock", draw.rock, m.outer * 0.75, m.foot, m.far, 0.55, 0.4, 0.15);
-  flakes(group, 16, 0xffb060, m, true);
+  const v1 = stamp(group, "volcano", draw.volcano, -m.outer * 0.78, m.foot, m.sky, 1.6, 1.5, 0.1);
+  const v2 = stamp(group, "volcano", draw.volcano, m.outer * 0.78, m.foot, m.sky, 1.3, 1.25, 0.1);
+  idle(v1, 0.02, 1.5);
+  idle(v2, 0.02, 1.8);
 }
 
 function buildJungle(group, m) {
-  ground(group, m, 0x1e5a38, m.groundZ, m.outer * 0.38);
-  const vine = stamp(group, "vine", draw.vine, m.outer * 0.78, m.foot + 0.15, m.far, 0.55, 1.35, 0.05);
-  const monk = stamp(group, "monkey", draw.monkey, m.outer * 0.78, m.foot - 0.15, m.far, 0.85, 1.15, 0.08);
+  stamp(group, "leaf", draw.leaf, -m.outer * 0.72, m.foot, m.sky, 1.55, 1.25, 0.12);
+  stamp(group, "leaf", draw.leaf, m.outer * 0.35, m.foot, m.sky, 1.2, 1.0, 0.12);
+  const vine = stamp(group, "vine", draw.vine, m.outer * 0.86, m.foot, m.far, 0.55, 1.45, 0.05);
+  const monk = stamp(group, "monkey", draw.monkey, m.outer * 0.86, m.foot - 0.05, m.far, 0.9, 1.2, 0.08);
   loop((time) => {
-    const s = Math.sin(time * 2.1);
-    monk.position.x = m.outer * 0.78 + s * 0.18 * m.unit;
-    tilt(monk, s * 0.35);
-    tilt(vine, s * 0.08);
+    const s = Math.sin(time * 1.6);
+    tilt(monk, s * 0.18);
+    tilt(vine, s * 0.06);
   });
-  const bird = stamp(group, "parrot", draw.parrot, -m.outer * 0.55, m.foot, m.far, 0.95, 0.8, 0.12);
-  const birdH = Math.abs(bird.scale.y);
-  loop((time) => {
-    const beat = (time % 4) < 0.35 || ((time % 4) > 0.5 && (time % 4) < 0.8);
-    bird.scale.y = beat ? birdH * 0.86 : birdH;
-  });
-  stamp(group, "leaf", draw.leaf, -m.outer * 0.4, m.foot, m.sky + 0.15, 1.3, 1.05, 0.15);
-  stamp(group, "leaf", draw.leaf, m.outer * 0.2, m.low, m.groundZ, 1.15, 0.9, 0.85);
-  stamp(group, "vine", draw.vine, -m.outer * 0.8, m.foot, m.sky + 0.1, 0.5, 1.2, 0.1);
+  const bird = stamp(group, "parrot", draw.parrot, -m.outer * 0.35, m.foot, m.far, 1.0, 0.85, 0.12);
+  idle(bird, 0.03, 2.4);
 }
 
 function buildAlien(group, m) {
-  ground(group, m, 0x2a1860, m.groundZ, m.outer * 0.34);
-  const alien = stamp(group, "alien-g", (g, s) => draw.alien(g, s, "#6adf5a"), 0, m.foot, m.far, 1.0, 1.15, 0.06);
-  patrol(alien, m, 6, true);
-  const ufo = stamp(group, "ufo", draw.ufo, 0, m.foot + 0.45, m.sky, 1.35, 0.9, 0.45);
-  loop((time) => {
-    const p = pingpong(time, 6);
-    ufo.position.x = (p * 2 - 1) * (m.outer - 0.4);
-  });
-  const pink = stamp(group, "alien-p", (g, s) => draw.alien(g, s, "#ff8ab0"), -m.outer * 0.3, m.low, m.groundZ, 0.85, 0.95, 0.85);
-  loop((time) => { pink.position.x = -m.outer * 0.6 + pingpong(time, 6) * m.outer * 0.4; });
-  stamp(group, "sprout", draw.sprout, m.outer * 0.5, m.low, m.groundZ, 0.7, 0.95, 0.88);
-  stamp(group, "sprout", draw.sprout, -m.outer * 0.45, m.foot, m.sky + 0.2, 0.85, 1.1, 0.12);
+  const alien = stamp(group, "alien-g", (g, s) => draw.alien(g, s, "#6adf5a"), 0, m.foot, m.far, 1.1, 1.25, 0.06);
+  idle(alien, 0.03, 2);
+  const ufo = stamp(group, "ufo", draw.ufo, m.outer * 0.55, m.foot + 0.35, m.sky, 1.25, 0.85, 0.35);
+  idle(ufo, 0.04, 1.6);
+  stamp(group, "sprout", draw.sprout, -m.outer * 0.82, m.foot, m.sky, 0.9, 1.15, 0.1);
+  stamp(group, "sprout", draw.sprout, m.outer * 0.88, m.foot, m.far, 0.75, 1.0, 0.1);
 }
 
 function buildMachine(group, m) {
-  ground(group, m, 0x2a3444, m.groundZ, m.outer * 0.32);
-  const bot = stamp(group, "bot", draw.bot, 0, m.foot, m.far, 1.05, 1.1, 0.06);
-  patrol(bot, m, 6, false);
-  const gears = [
-    [-0.72, m.far, m.foot, 0.7, 1],
-    [0.75, m.far, m.foot, 0.6, -1],
-    [-0.4, m.groundZ, m.low, 0.75, 1],
-    [0.05, m.groundZ, m.low, 0.65, -1],
-    [0.5, m.groundZ, m.low, 0.7, 1],
-  ];
-  gears.forEach(([x, z, y, size, dir], i) => {
-    const gear = stamp(group, "gear", draw.gear, x * m.outer, y, z, size, size, z < 0 ? 0.15 : 0.85);
-    loop((time) => { ownMat(gear).rotation = time * (Math.PI / 3) * dir; });
+  const bot = stamp(group, "bot", draw.bot, 0, m.foot, m.far, 1.1, 1.15, 0.06);
+  idle(bot, 0.025, 2);
+  [[-0.82, m.sky, 0.85, 1], [0.84, m.sky, 0.7, -1]].forEach(([x, z, size, dir], i) => {
+    const gear = stamp(group, "gear", draw.gear, x * m.outer, m.foot, z, size, size, 0.12);
+    loop((time) => { ownMat(gear).rotation = time * 0.7 * dir; });
   });
-  stamp(group, "pipe", draw.pipe, -m.outer * 0.4, m.foot, m.sky + 0.2, 0.7, 1.15, 0.12);
-  stamp(group, "pipe", draw.pipe, m.outer * 0.55, m.foot, m.sky + 0.28, 0.55, 0.95, 0.12);
-  flakes(group, 8, 0xd0d8e4, m, false);
+  stamp(group, "pipe", draw.pipe, -m.outer * 0.4, m.foot, m.sky, 0.75, 1.2, 0.1);
+  stamp(group, "pipe", draw.pipe, m.outer * 0.4, m.foot, m.sky, 0.6, 1.0, 0.1);
 }
 
 const BUILDERS = {

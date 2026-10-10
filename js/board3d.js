@@ -23,12 +23,11 @@ const BALL_R = 0.36;
 const BOARD_TOP = 0.5;
 const BALL_Y = BOARD_TOP + BALL_R;
 const REST_X = 0.045;
-const WALL_T = 0.28;
-const WALL_H = 0.42;
+const WALL_T = 0.52;
+const WALL_H = 0.4;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
-const FRAME_T = 0.46;
-const FRAME_H = 0.64;
-const FRAME_Y = 0.36;
+const FRAME_T = 1.24;
+const FRAME_H = 0.72;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
 
@@ -37,15 +36,61 @@ function mixHex(a, b, t) {
 }
 
 function framePalette(theme) {
-  if (theme.id === "wood") return { hi: 0xb6f59a, mid: 0x3fb83a, low: 0x1c6e28 };
+  if (theme.id === "wood") return { hi: 0xfffaf2, mid: 0xfff3e4, low: 0xd7c2a2 };
+  if (theme.id === "ice") return { hi: 0xffffff, mid: 0xc5e9f8, low: 0x3d7496 };
+  if (theme.id === "machine") return { hi: 0xf4f7fb, mid: 0xb7c2ce, low: 0x4e5964 };
   return {
-    hi: mixHex(theme.cap, 0xffffff, 0.42),
-    mid: theme.frame,
-    low: mixHex(theme.edge, 0x000000, 0.35),
+    hi: mixHex(theme.frame, 0xffffff, 0.7),
+    mid: mixHex(theme.frame, 0xffffff, 0.16),
+    low: mixHex(theme.edge, 0x000000, 0.18),
   };
 }
 
 const geos = new Map();
+function traceRoundRect(path, w, h, r, clockwise) {
+  const x = -w / 2;
+  const y = -h / 2;
+  const rad = Math.max(0.04, Math.min(r, w / 2 - 0.02, h / 2 - 0.02));
+  if (!clockwise) {
+    path.moveTo(x + rad, y);
+    path.lineTo(x + w - rad, y);
+    path.absarc(x + w - rad, y + rad, rad, -Math.PI / 2, 0, false);
+    path.lineTo(x + w, y + h - rad);
+    path.absarc(x + w - rad, y + h - rad, rad, 0, Math.PI / 2, false);
+    path.lineTo(x + rad, y + h);
+    path.absarc(x + rad, y + h - rad, rad, Math.PI / 2, Math.PI, false);
+    path.lineTo(x, y + rad);
+    path.absarc(x + rad, y + rad, rad, Math.PI, Math.PI * 1.5, false);
+    return;
+  }
+  path.moveTo(x + rad, y);
+  path.absarc(x + rad, y + rad, rad, -Math.PI / 2, Math.PI, true);
+  path.lineTo(x, y + h - rad);
+  path.absarc(x + rad, y + h - rad, rad, Math.PI, Math.PI / 2, true);
+  path.lineTo(x + w - rad, y + h);
+  path.absarc(x + w - rad, y + h - rad, rad, Math.PI / 2, 0, true);
+  path.lineTo(x + w, y + rad);
+  path.absarc(x + w - rad, y + rad, rad, 0, -Math.PI / 2, true);
+}
+
+function frameRingGeo(outerW, innerW, outerR, innerR, depth) {
+  const shape = new THREE.Shape();
+  traceRoundRect(shape, outerW, outerW, outerR, false);
+  const hole = new THREE.Path();
+  traceRoundRect(hole, innerW, innerW, Math.max(0.04, innerR), true);
+  shape.holes.push(hole);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth,
+    bevelEnabled: true,
+    bevelThickness: Math.min(0.035, depth * 0.1),
+    bevelSize: Math.min(0.028, depth * 0.08),
+    bevelSegments: 1,
+    curveSegments: 5,
+  });
+  geo.rotateX(-Math.PI / 2);
+  return geo;
+}
+
 function roundGeo(w, h, d, seg = 2, rad = 0.08) {
   const radius = Math.min(rad, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001);
   const key = `${w.toFixed(3)}|${h.toFixed(3)}|${d.toFixed(3)}|${seg}|${radius.toFixed(3)}`;
@@ -91,62 +136,166 @@ function woodCanvas(base, grain, light, rows) {
   return tex;
 }
 
+function roundFill(g, x, y, w, h, r) {
+  const rad = Math.min(r, w / 2, h / 2);
+  g.beginPath();
+  g.moveTo(x + rad, y);
+  g.arcTo(x + w, y, x + w, y + h, rad);
+  g.arcTo(x + w, y + h, x, y + h, rad);
+  g.arcTo(x, y + h, x, y, rad);
+  g.arcTo(x, y, x + w, y, rad);
+  g.closePath();
+  g.fill();
+}
+
+function rgbOf(hex) {
+  const n = parseInt(String(hex).replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mixRgb(a, b, t) {
+  return a.map((c, i) => Math.round(c + (b[i] - c) * t));
+}
+
 function makeBoardTexture(n, palette) {
-  const cell = 128;
+  const cell = 96;
   const size = n * cell;
   const floor = palette?.floor || "#e4a45e";
   const groove = palette?.groove || "112, 62, 24";
   const light = palette?.light || "255, 220, 168";
+  const id = palette?.id || "wood";
+  const base = rgbOf(floor);
+  const pale = mixRgb(base, [255, 255, 255], 0.5);
+  const deep = mixRgb(base, [0, 0, 0], 0.1);
+  const seam = mixRgb(base, [255, 255, 255], 0.22);
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const g = c.getContext("2d");
-  g.fillStyle = floor;
+  g.fillStyle = `rgb(${seam.join(",")})`;
   g.fillRect(0, 0, size, size);
-  const bands = n * 14;
-  for (let i = 0; i < bands; i++) {
-    const y = ((i + 0.5) / bands) * size;
-    g.strokeStyle = `rgba(${groove}, ${0.06 + (i % 4) * 0.04})`;
-    g.lineWidth = 2 + (i % 3);
-    g.beginPath();
-    g.moveTo(0, y);
-    g.bezierCurveTo(size * 0.28, y + 5, size * 0.66, y - 6, size, y + 2);
-    g.stroke();
+  const gap = 3;
+  const rad = 22;
+  for (let r = 0; r < n; r++) {
+    for (let col = 0; col < n; col++) {
+      const x = col * cell + gap;
+      const y = r * cell + gap;
+      const w = cell - gap * 2;
+      const tone = (r + col) % 2 === 0 ? pale : deep;
+      g.fillStyle = `rgb(${tone.join(",")})`;
+      roundFill(g, x, y, w, w, rad);
+      g.save();
+      g.beginPath();
+      roundFillPath(g, x, y, w, w, rad);
+      g.clip();
+      paintCellMotif(g, id, x, y, w, r, col, groove, light);
+      g.restore();
+    }
   }
-  g.strokeStyle = `rgba(${light}, 0.22)`;
-  g.lineWidth = 7;
-  for (let i = 0; i < n * 3; i++) {
-    const y = ((i * 53) % size);
-    g.beginPath();
-    g.moveTo(0, y);
-    g.bezierCurveTo(size * 0.4, y + 10, size * 0.62, y - 8, size, y + 1);
-    g.stroke();
-  }
-  for (let i = 1; i < n; i++) {
-    const p = i * cell;
-    g.strokeStyle = `rgba(${groove}, 0.5)`;
-    g.lineWidth = 5;
-    g.beginPath();
-    g.moveTo(p, 10);
-    g.lineTo(p, size - 10);
-    g.moveTo(10, p);
-    g.lineTo(size - 10, p);
-    g.stroke();
-    g.strokeStyle = `rgba(${light}, 0.4)`;
-    g.lineWidth = 1.6;
-    g.beginPath();
-    g.moveTo(p + 2.2, 10);
-    g.lineTo(p + 2.2, size - 10);
-    g.moveTo(10, p + 2.2);
-    g.lineTo(size - 10, p + 2.2);
-    g.stroke();
-  }
-  g.strokeStyle = `rgba(${groove}, 0.32)`;
-  g.lineWidth = 10;
-  g.strokeRect(7, 7, size - 14, size - 14);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
+}
+
+function roundFillPath(g, x, y, w, h, r) {
+  const rad = Math.min(r, w / 2, h / 2);
+  g.moveTo(x + rad, y);
+  g.arcTo(x + w, y, x + w, y + h, rad);
+  g.arcTo(x + w, y + h, x, y + h, rad);
+  g.arcTo(x, y + h, x, y, rad);
+  g.arcTo(x, y, x + w, y, rad);
+  g.closePath();
+}
+
+function paintCellMotif(g, id, x, y, w, r, col, groove, light) {
+  g.strokeStyle = `rgba(${groove}, 0.28)`;
+  g.fillStyle = `rgba(${groove}, 0.16)`;
+  g.lineWidth = 2;
+  g.lineCap = "round";
+  if (id === "ice" && (r * 3 + col) % 2 === 0) {
+    g.beginPath();
+    g.moveTo(x + w * 0.2, y + w * 0.7);
+    g.lineTo(x + w * 0.4, y + w * 0.45);
+    g.lineTo(x + w * 0.55, y + w * 0.62);
+    g.lineTo(x + w * 0.8, y + w * 0.28);
+    g.stroke();
+    return;
+  }
+  if (id === "wood") {
+    g.beginPath();
+    const cx = x + w / 2;
+    const cy = y + w / 2;
+    const rad = w * 0.28;
+    for (let i = 0; i < 6; i++) {
+      const a = -Math.PI / 2 + (i / 6) * Math.PI * 2;
+      const px = cx + Math.cos(a) * rad;
+      const py = cy + Math.sin(a) * rad;
+      if (i) g.lineTo(px, py);
+      else g.moveTo(px, py);
+    }
+    g.closePath();
+    g.stroke();
+    return;
+  }
+  if (id === "desert") {
+    g.beginPath();
+    g.ellipse(x + w * 0.5, y + w * 0.62, w * 0.28, w * 0.1, 0, 0, Math.PI * 2);
+    g.stroke();
+    return;
+  }
+  if (id === "ocean") {
+    g.beginPath();
+    g.arc(x + w * 0.35, y + w * 0.4, w * 0.08, 0, Math.PI * 2);
+    g.arc(x + w * 0.62, y + w * 0.58, w * 0.05, 0, Math.PI * 2);
+    g.fill();
+    return;
+  }
+  if (id === "crystal" || id === "toy") {
+    const cx = x + w * 0.5;
+    const cy = y + w * 0.5;
+    g.beginPath();
+    g.moveTo(cx, cy - w * 0.16);
+    g.lineTo(cx + w * 0.05, cy - w * 0.05);
+    g.lineTo(cx + w * 0.16, cy);
+    g.lineTo(cx + w * 0.05, cy + w * 0.05);
+    g.lineTo(cx, cy + w * 0.16);
+    g.lineTo(cx - w * 0.05, cy + w * 0.05);
+    g.lineTo(cx - w * 0.16, cy);
+    g.lineTo(cx - w * 0.05, cy - w * 0.05);
+    g.closePath();
+    g.fill();
+    return;
+  }
+  if (id === "candy") {
+    const colors = ["#ff5a9a", "#7adf5a", "#ffe14a", "#3ec4ff"];
+    for (let i = 0; i < 5; i++) {
+      g.fillStyle = colors[(r + col + i) % colors.length];
+      g.fillRect(x + 10 + ((i * 17 + col * 5) % (w - 16)), y + 12 + ((i * 13 + r * 7) % (w - 16)), 7, 3);
+    }
+    return;
+  }
+  if (id === "lava" && (r + col) % 3 === 0) {
+    g.strokeStyle = "rgba(255, 120, 40, 0.55)";
+    g.beginPath();
+    g.moveTo(x + w * 0.2, y + w * 0.3);
+    g.lineTo(x + w * 0.5, y + w * 0.55);
+    g.lineTo(x + w * 0.75, y + w * 0.4);
+    g.stroke();
+    return;
+  }
+  if (id === "jungle") {
+    g.beginPath();
+    g.ellipse(x + w * 0.5, y + w * 0.5, w * 0.22, w * 0.12, 0.6, 0, Math.PI * 2);
+    g.stroke();
+    return;
+  }
+  if (id === "machine") {
+    g.strokeStyle = `rgba(${light}, 0.35)`;
+    g.strokeRect(x + w * 0.22, y + w * 0.22, w * 0.56, w * 0.56);
+    g.beginPath();
+    g.arc(x + w * 0.5, y + w * 0.5, 3, 0, Math.PI * 2);
+    g.fill();
+  }
 }
 
 function makeOakBallMap() {
@@ -763,9 +912,9 @@ export function createView(canvas) {
 
   applyStudio(renderer, scene, 0.4);
 
-  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.58, metalness: 0.02 });
-  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.42, metalness: 0.03 });
-  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.3, metalness: 0.04 });
+  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.48, metalness: 0.04 });
+  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.32, metalness: 0.06 });
+  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.18, metalness: 0.05 });
   const frameGlossMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -773,8 +922,7 @@ export function createView(canvas) {
     depthWrite: false,
     toneMapped: false,
   });
-  const boltGoldMat = new THREE.MeshStandardMaterial({ color: 0xf2c14a, roughness: 0.32, metalness: 0.55 });
-  const boltDarkMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.4, metalness: 0.25 });
+  const frameInkMat = new THREE.MeshBasicMaterial({ color: 0x141414, toneMapped: false });
   const edgeMap = woodCanvas("#c88840", "#6a3a16", "#f2c48a", 18);
   const floorEdgeMat = new THREE.MeshStandardMaterial({ map: edgeMap, roughness: 0.78, metalness: 0.02 });
   let activeTheme = themeById("wood");
@@ -1177,8 +1325,8 @@ export function createView(canvas) {
     const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const fillW = 0.9;
-    const fillH = 0.7;
+    const fillW = 0.98;
+    const fillH = 0.74;
     const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
     const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
     const dist = Math.max(distW, distH);
@@ -1654,63 +1802,26 @@ export function createView(canvas) {
     const unit = n / 6;
     const frameT = FRAME_T * unit;
     const frameH = FRAME_H * unit;
-    const frameY = 0.04 + frameH / 2;
     const outer = inner + frameT;
-    viewHalf = outer + 0.05 * unit;
-    const bars = [
-      [outer * 2 + 0.02, frameH, frameT, 0, frameY, -(inner + frameT / 2)],
-      [outer * 2 + 0.02, frameH, frameT, 0, frameY, inner + frameT / 2],
-      [frameT, frameH, inner * 2, -(inner + frameT / 2), frameY, 0],
-      [frameT, frameH, inner * 2, inner + frameT / 2, frameY, 0],
-    ];
-    for (const [w, h, d, x, y, z] of bars) {
-      const body = new THREE.Mesh(roundGeo(w, h, d, 2, 0.08), frameLowMat);
-      body.position.set(x, y, z);
-      body.castShadow = true;
-      body.receiveShadow = true;
-      const ink = new THREE.Mesh(body.geometry, inkOutlineMaterial());
-      ink.scale.setScalar(1.06);
-      ink.raycast = () => {};
-      body.add(ink);
-      rig.add(body);
-      const alongX = w >= d;
-      const capH = 0.12 * unit;
-      const cw = alongX ? w * 0.99 : w * 0.56;
-      const cd = alongX ? d * 0.56 : d * 0.99;
-      const cap = new THREE.Mesh(roundGeo(cw, capH, cd, 2, 0.04), frameHiMat);
-      cap.position.set(
-        x + (alongX ? 0 : Math.sign(-x || 1) * w * 0.16),
-        y + h / 2 - capH * 0.2,
-        z + (alongX ? Math.sign(-z || 1) * d * 0.16 : 0)
-      );
-      cap.castShadow = true;
-      rig.add(cap);
-      const band = new THREE.Mesh(roundGeo(cw * 0.96, 0.05, cd * 0.72, 1, 0.02), frameMidMat);
-      band.position.set(cap.position.x, cap.position.y - 0.02, cap.position.z);
-      rig.add(band);
-      const gloss = new THREE.Mesh(roundGeo(cw * 0.62, 0.028, cd * 0.28, 1, 0.01), frameGlossMat);
-      gloss.position.set(cap.position.x, cap.position.y + capH * 0.35, cap.position.z);
-      rig.add(gloss);
-    }
-    const boltY = frameY + frameH / 2 + 0.02 * unit;
-    const boltGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.07, 10);
-    const boltCapGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.035, 10);
-    for (const sx of [-1, 1]) {
-      for (const sz of [-1, 1]) {
-        const bolt = new THREE.Mesh(boltGeo, boltDarkMat);
-        bolt.scale.setScalar(unit);
-        bolt.position.set(sx * (outer - 0.22 * unit), boltY, sz * (outer - 0.22 * unit));
-        bolt.castShadow = true;
-        const boltInk = new THREE.Mesh(boltGeo, inkOutlineMaterial());
-        boltInk.scale.setScalar(1.16);
-        boltInk.raycast = () => {};
-        bolt.add(boltInk);
-        const stud = new THREE.Mesh(boltCapGeo, boltGoldMat);
-        stud.position.y = 0.04;
-        bolt.add(stud);
-        rig.add(bolt);
-      }
-    }
+    const skirt = 0.22 * unit;
+    viewHalf = outer + skirt + 0.04 * unit;
+    const outerW = outer * 2;
+    const holeW = inner * 2;
+    const outerR = Math.min(frameT * 0.9, outer * 0.46);
+    const innerR = Math.min(frameT * 0.58, inner * 0.34);
+    const addRing = (ow, iw, oR, iR, height, mat, y) => {
+      const mesh = new THREE.Mesh(frameRingGeo(ow, iw, oR, iR, height), mat);
+      mesh.position.y = y;
+      mesh.userData.ownGeo = true;
+      mesh.castShadow = false;
+      mesh.receiveShadow = mat !== frameInkMat;
+      rig.add(mesh);
+    };
+    addRing(outerW + skirt * 2, outerW - skirt * 0.15, outerR + skirt * 0.7, Math.max(0.08, outerR * 0.9), frameH * 0.5, frameInkMat, 0);
+    addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
+    addRing(outerW - 0.02 * unit, outerW - frameT * 0.36, outerR * 0.92, Math.max(0.08, outerR * 0.72), frameH * 0.14, frameHiMat, 0.03 + frameH * 0.88);
+    addRing(holeW + 0.18 * unit, holeW + 0.015 * unit, Math.max(0.08, innerR * 0.82), Math.max(0.05, innerR * 0.32), frameH * 0.12, frameLowMat, 0.035 + frameH * 0.92);
+    addRing(outerW + skirt * 2, outerW - 0.03 * unit, outerR + skirt * 0.55, Math.max(0.08, outerR * 0.96), frameH * 0.12, frameInkMat, 0.04 + frameH * 0.92);
     if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
 
     const boardH = 0.26;
@@ -1735,8 +1846,8 @@ export function createView(canvas) {
       return {
         x,
         z,
-        w: axis === "h" ? STEP * 0.92 : WALL_T,
-        d: axis === "h" ? WALL_T : STEP * 0.92,
+        w: axis === "h" ? STEP * 0.98 : WALL_T,
+        d: axis === "h" ? WALL_T : STEP * 0.98,
       };
     };
 
@@ -1749,34 +1860,28 @@ export function createView(canvas) {
       if (kind === "wall") {
         const longX = w >= d;
         const len = longX ? w : d;
-        const thick = longX ? d : w;
-        const piece = len * 0.29;
-        const gap = len * 0.04;
-        const run = piece * 3 + gap * 2;
-        const start = -run / 2 + piece / 2;
-        for (let i = 0; i < 3; i++) {
-          const bw = longX ? piece : thick * 0.94;
-          const bd = longX ? thick * 0.94 : piece;
-          const offset = start + i * (piece + gap);
-          const ox = longX ? offset : 0;
-          const oz = longX ? 0 : offset;
-          const body = new THREE.Mesh(roundGeo(bw, WALL_H * 0.68, bd, 2, 0.045), mat);
-          body.position.set(ox, 0.02, oz);
-          body.castShadow = true;
-          body.receiveShadow = true;
-          const ink = new THREE.Mesh(body.geometry, inkOutlineMaterial());
-          ink.scale.setScalar(1.1);
-          ink.raycast = () => {};
-          body.add(ink);
-          const base = new THREE.Mesh(roundGeo(bw * 1.05, WALL_H * 0.28, bd * 1.05, 1, 0.035), wallDim(color));
-          base.position.set(ox, -WALL_H * 0.3, oz);
-          const cap = new THREE.Mesh(roundGeo(bw * 0.82, WALL_H * 0.2, bd * 0.82, 1, 0.03), wallLit(color));
-          cap.position.set(ox, WALL_H * 0.34, oz);
-          const shine = new THREE.Mesh(roundGeo(bw * 0.36, 0.03, bd * 0.24, 1, 0.012), frameGlossMat);
-          shine.position.set(ox - bw * 0.12, WALL_H * 0.45, oz - bd * 0.1);
-          group.add(base, body, cap, shine);
-          if (!mesh) mesh = body;
-        }
+        const thick = Math.max(longX ? d : w, WALL_T);
+        const bw = longX ? len : thick;
+        const bd = longX ? thick : len;
+        const rad = Math.min(thick, WALL_H) * 0.46;
+        const body = new THREE.Mesh(roundGeo(bw, WALL_H * 0.7, bd, 2, rad), mat);
+        body.position.y = 0.03;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        const ink = new THREE.Mesh(body.geometry, inkOutlineMaterial());
+        ink.scale.setScalar(1.16);
+        ink.raycast = () => {};
+        body.add(ink);
+        const base = new THREE.Mesh(roundGeo(bw * 1.02, WALL_H * 0.34, bd * 1.04, 1, rad * 0.8), wallDim(color));
+        base.position.y = -WALL_H * 0.22;
+        const cap = new THREE.Mesh(roundGeo(bw * 0.9, WALL_H * 0.22, bd * 0.72, 1, rad * 0.55), wallLit(color));
+        cap.position.set(longX ? -bw * 0.02 : 0, WALL_H * 0.32, longX ? 0 : -bd * 0.02);
+        const shine = new THREE.Mesh(roundGeo(bw * 0.42, 0.035, bd * 0.28, 1, 0.012), frameGlossMat);
+        shine.position.set(longX ? -bw * 0.16 : 0, WALL_H * 0.44, longX ? -bd * 0.08 : -bd * 0.16);
+        const rim = new THREE.Mesh(roundGeo(bw * 1.08, 0.045, bd * 1.1, 1, rad * 0.7), frameInkMat);
+        rim.position.y = WALL_H * 0.3;
+        group.add(body, base, cap, shine, rim);
+        mesh = body;
       } else {
         mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, 0.07), mat);
         mesh.castShadow = true;

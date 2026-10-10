@@ -110,13 +110,18 @@ function sandRipple(variant) {
     machine: ["#6a737e", "#3a4048", "#f2c14a"],
   }[variant];
   rippleTex[variant] = canvasTex((g, s) => {
+    g.clearRect(0, 0, s, s);
+    g.beginPath();
+    g.arc(s * 0.5, s * 0.5, s * 0.46, 0, Math.PI * 2);
+    g.clip();
     g.fillStyle = pal[1];
     g.fillRect(0, 0, s, s);
     g.strokeStyle = pal[0];
-    g.lineWidth = 3;
-    for (let i = 1; i <= 5; i++) {
+    g.lineWidth = 4;
+    g.lineCap = "round";
+    for (let i = 1; i <= 4; i++) {
       g.beginPath();
-      g.ellipse(s * 0.5, s * 0.55, 10 + i * 10, 6 + i * 6, 0, 0, Math.PI * 2);
+      g.ellipse(s * 0.5, s * 0.55, 8 + i * 12, 5 + i * 7, 0, 0, Math.PI * 2);
       g.stroke();
     }
     g.fillStyle = pal[2];
@@ -147,15 +152,20 @@ function iceStreak(variant) {
   const line = variant === "alien" ? "rgba(255,255,255,0.8)" : variant === "machine" ? "rgba(180,230,255,0.9)" : "rgba(255,255,255,0.85)";
   const fill = variant === "alien" ? "#7a5ad8" : variant === "machine" ? "#8aa0b0" : "#7fe0ff";
   iceTex[variant] = canvasTex((g, s) => {
+    g.clearRect(0, 0, s, s);
+    g.beginPath();
+    g.arc(s * 0.5, s * 0.5, s * 0.46, 0, Math.PI * 2);
+    g.clip();
     g.fillStyle = fill;
     g.fillRect(0, 0, s, s);
     g.strokeStyle = line;
-    g.lineWidth = 7;
+    g.lineWidth = 10;
+    g.lineCap = "round";
     g.beginPath();
-    g.moveTo(8, s - 16);
-    g.lineTo(s - 16, 12);
-    g.moveTo(28, s - 8);
-    g.lineTo(s - 8, 36);
+    g.moveTo(s * 0.22, s * 0.74);
+    g.lineTo(s * 0.8, s * 0.2);
+    g.moveTo(s * 0.3, s * 0.86);
+    g.lineTo(s * 0.88, s * 0.36);
     g.stroke();
   });
   return iceTex[variant];
@@ -302,6 +312,15 @@ function basic(map, opacity = 1) {
   return mat;
 }
 
+function puck(parent, radius, height, material, y) {
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.96, height, 22), material);
+  mesh.position.y = y;
+  mesh.castShadow = false;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+
 function disc(parent, radius, material, y) {
   const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 22), material);
   mesh.rotation.x = -Math.PI / 2;
@@ -325,10 +344,9 @@ const SAND = {
 export function makeSand(x, z, variant) {
   const pal = SAND[variant] || SAND.home;
   const group = cellGroup(x, z);
-  slab(group, CELL * 1.06, 0.028, CELL * 1.06, std(INK, { roughness: 0.9, offset: -1 }), BOARD_TOP + 0.02);
-  slab(group, CELL, 0.045, CELL, std(pal.rim, { roughness: 0.88 }), BOARD_TOP + 0.032);
-  slab(group, CELL * 0.78, 0.03, CELL * 0.78, std(pal.deep, { roughness: 0.95 }), BOARD_TOP + 0.04);
-  disc(group, CELL * 0.34, mapped(sandRipple(variant), 0.92), BOARD_TOP + 0.058);
+  puck(group, CELL * 0.48, 0.03, std(INK, { roughness: 0.9 }), BOARD_TOP + 0.028);
+  puck(group, CELL * 0.42, 0.045, std(pal.fill, { roughness: 0.9 }), BOARD_TOP + 0.05);
+  disc(group, CELL * 0.4, mapped(sandRipple(variant), 0.92), BOARD_TOP + 0.078);
   return group;
 }
 
@@ -341,11 +359,11 @@ const ICE = {
 export function makeIce(x, z, variant) {
   const pal = ICE[variant] || ICE.home;
   const group = cellGroup(x, z);
-  slab(group, CELL * 1.05, 0.026, CELL * 1.05, std(INK, { roughness: 0.6 }), BOARD_TOP + 0.02);
-  const body = slab(group, CELL, 0.04, CELL, std(pal.fill, { roughness: 0.22, emissive: pal.glow, emissiveIntensity: 0.25 }), BOARD_TOP + 0.034);
-  disc(group, CELL * 0.36, mapped(iceStreak(variant), 0.18), BOARD_TOP + 0.058);
+  puck(group, CELL * 0.56, 0.03, std(INK, { roughness: 0.55 }), BOARD_TOP + 0.026);
+  const body = puck(group, CELL * 0.5, 0.05, std(pal.fill, { roughness: 0.16, emissive: pal.glow, emissiveIntensity: 0.22 }), BOARD_TOP + 0.05);
+  disc(group, CELL * 0.48, basic(iceStreak(variant), 0.96), BOARD_TOP + 0.08);
   actors.push((time) => {
-    body.material.emissiveIntensity = 0.18 + Math.sin(time * 1.6) * 0.07;
+    body.material.emissiveIntensity = 0.16 + Math.sin(time * 1.6) * 0.06;
   });
   return group;
 }
@@ -359,31 +377,24 @@ const JELLY = {
 export function makeJelly(x, z, variant) {
   const pal = JELLY[variant] || JELLY.home;
   const group = cellGroup(x, z);
-  slab(group, CELL * 1.04, 0.03, CELL * 1.04, std(INK, { roughness: 0.5 }), BOARD_TOP + 0.02);
-  const cushion = slab(
-    group,
-    CELL * 0.92,
-    0.09,
-    CELL * 0.92,
-    std(pal.fill, { roughness: 0.22, emissive: pal.glow, emissiveIntensity: 0.28, opacity: variant === "machine" ? 1 : 0.94 }),
-    BOARD_TOP + 0.06
+  puck(group, 0.4, 0.028, std(INK, { roughness: 0.7 }), BOARD_TOP + 0.03);
+  const cushion = new THREE.Mesh(
+    new THREE.SphereGeometry(0.34, 18, 14),
+    std(pal.fill, { roughness: 0.28, emissive: pal.glow, emissiveIntensity: 0.22 })
   );
+  cushion.position.y = BOARD_TOP + 0.4;
+  group.add(cushion);
   if (variant === "machine") {
     const coil = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.035, 6, 12), std(0xe07a3a, { roughness: 0.4, metal: 0.4 }));
     coil.rotation.x = Math.PI / 2;
-    coil.position.y = BOARD_TOP + 0.1;
+    coil.position.y = BOARD_TOP + 0.42;
     group.add(coil);
-    const coil2 = coil.clone();
-    coil2.scale.setScalar(0.62);
-    coil2.position.y = BOARD_TOP + 0.14;
-    group.add(coil2);
   } else {
-    const face = disc(group, 0.22, basic(jellyFace()), BOARD_TOP + 0.11);
+    const face = disc(group, 0.16, basic(jellyFace()), BOARD_TOP + 0.72);
     face.renderOrder = 2;
   }
   actors.push((time) => {
-    const bob = 1 + Math.sin(time * 3) * 0.04;
-    cushion.scale.y = bob;
+    cushion.position.y = BOARD_TOP + 0.4 + Math.sin(time * 3) * 0.03;
   });
   return group;
 }
@@ -391,8 +402,8 @@ export function makeJelly(x, z, variant) {
 export function makeSmog(x, z, row, col, variant) {
   const group = cellGroup(x, z);
   const cover = new THREE.Group();
-  const cloud = variant === "alien" ? 0x7adf5a : variant === "machine" ? 0xe8eef4 : 0xc06ad8;
-  const shade = variant === "alien" ? 0x3d9a4a : variant === "machine" ? 0xb7c4d0 : 0x7a3a98;
+  const cloud = variant === "alien" ? 0x243028 : variant === "machine" ? 0x4a545e : 0x2a2e36;
+  const shade = variant === "alien" ? 0x141814 : variant === "machine" ? 0x2c3238 : 0x14161c;
   const puffGeo = new THREE.SphereGeometry(0.22, 7, 5);
   const spots = [[-0.22, 0.42, 0.05], [0.18, 0.5, -0.08], [0.02, 0.58, 0.12], [-0.08, 0.36, -0.16], [0.24, 0.38, 0.14], [-0.28, 0.5, 0.1]];
   spots.forEach(([px, py, pz], i) => {
@@ -456,6 +467,13 @@ export function makeMagma(x, z, at, variant) {
   const calmMat = std(pal.calm, { roughness: 0.8, emissive: pal.calm, emissiveIntensity: 0.25 });
   const warnMat = std(pal.hot, { roughness: 0.35, emissive: pal.hot, emissiveIntensity: 0.85 });
   const calm = crackFan(calmMat);
+  const calmPool = new THREE.Mesh(
+    new THREE.CircleGeometry(0.4, 20),
+    std(pal.hot, { roughness: 0.35, emissive: pal.hot, emissiveIntensity: 0.55 })
+  );
+  calmPool.rotation.x = -Math.PI / 2;
+  calmPool.position.y = BOARD_TOP + 0.03;
+  calm.add(calmPool);
   const warn = crackFan(warnMat);
   const hot = new THREE.Group();
   const rockGeo = new THREE.ConeGeometry(0.16, 0.42, 5);
@@ -495,8 +513,8 @@ export function makeTeleport(x, z, variant) {
   const group = cellGroup(x, z);
   const well = variant === "alien" ? 0x3a1868 : variant === "machine" ? 0x2a3138 : 0x0c4a66;
   const arm = variant === "alien" ? 0xd0b6ff : variant === "machine" ? 0x7fd6ff : 0x9ee7ff;
-  slab(group, CELL * 0.92, 0.03, CELL * 0.92, std(INK), BOARD_TOP + 0.018);
-  disc(group, 0.4, std(well, { roughness: 0.4, emissive: well, emissiveIntensity: 0.35 }), BOARD_TOP + 0.03);
+  puck(group, 0.42, 0.028, std(INK), BOARD_TOP + 0.02);
+  disc(group, 0.38, std(well, { roughness: 0.4, emissive: well, emissiveIntensity: 0.35 }), BOARD_TOP + 0.04);
   const spin = disc(group, 0.36, tinted(swirlMap(), arm), BOARD_TOP + 0.04);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.045, 8, 20), std(PAIR, { roughness: 0.4, emissive: 0xa21caf, emissiveIntensity: 0.35 }));
   ring.rotation.x = Math.PI / 2;
