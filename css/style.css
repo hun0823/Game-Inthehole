@@ -1777,3 +1777,130 @@ body {
     repeating-conic-gradient(from 10deg, #e8eef4 0 12deg, #6a7480 12deg 22deg),
     radial-gradient(circle at 50% 50%, #d0d8e4 0 34%, transparent 35%);
 }
+
+.ball-preview--baseball {
+  background:
+    radial-gradient(circle at 35% 32%, #fff, #f4f0e6 55%),
+    repeating-linear-gradient(115deg, transparent 0 18px, #c23b3b 19px 21px, transparent 22px 40px);
+}
+
+.ball-preview--tennis {
+  background:
+    radial-gradient(circle at 18% 50%, transparent 0 28%, #fff 29% 33%, transparent 34%),
+    radial-gradient(circle at 82% 50%, transparent 0 28%, #fff 29% 33%, transparent 34%),
+    radial-gradient(circle at 35% 32%, #f4f6a8, #d6e23a 55%, #8aa018 85%);
+}
+
+.ball-preview--golf {
+  background:
+    radial-gradient(circle at 30% 35%, #c8c8c0 0 3px, transparent 4px),
+    radial-gradient(circle at 55% 30%, #c8c8c0 0 3px, transparent 4px),
+    radial-gradient(circle at 42% 55%, #c8c8c0 0 3px, transparent 4px),
+    radial-gradient(circle at 68% 58%, #c8c8c0 0 3px, transparent 4px),
+    radial-gradient(circle at 35% 32%, #fff, #ecece6 60%);
+}
+
+.ball-preview--yarn {
+  background:
+    repeating-radial-gradient(circle at 50% 50%, #f6e4d4 0 3px, #e0b09a 4px 6px);
+}
+
+.ball-preview--donut {
+  background:
+    radial-gradient(circle at 30% 40%, #ff4d6a 0 3px, transparent 4px),
+    radial-gradient(circle at 55% 48%, #ffd24a 0 3px, transparent 4px),
+    radial-gradient(circle at 42% 62%, #4ec8ff 0 3px, transparent 4px),
+    linear-gradient(#f4a0c0 0 46%, #e7b07a 46%);
+}
+
+.ball-preview--melon {
+  background: repeating-linear-gradient(180deg, #1f7a3a 0 8px, #14632c 8px 14px, #8fd48a 14px 16px);
+}
+
+.ball-preview--disco {
+  background:
+    conic-gradient(#f4f6f8 0 40deg, #8aa0b8 40deg 80deg, #1a1c28 80deg 120deg, #f7f1c8 120deg 160deg, #d4dde8 160deg 220deg, #1a1c28 220deg 280deg, #f4f6f8 280deg 360deg);
+}
+
+.ball-preview--lucky {
+  background:
+    linear-gradient(#c4363a 0 42%, #f2c14a 42% 58%, #c4363a 58%);
+}
+
+.ball-preview--cat {
+  background:
+    repeating-linear-gradient(70deg, transparent 0 6px, rgba(90, 60, 40, 0.35) 7px 8px),
+    radial-gradient(circle at 35% 32%, #f0d2b0, #c9a27a 55%, #8c6848 85%);
+}
+
+.ball-preview--pixel {
+  background:
+    linear-gradient(#1a2040, #1a2040) padding-box,
+    repeating-linear-gradient(90deg, #3a6cff 0 8px, #ffd24a 8px 16px, #ff5a5a 16px 24px, #6adf55 24px 32px);
+  image-rendering: pixelated;
+}
+
+.ball-preview--globe {
+  background:
+    radial-gradient(circle at 35% 40%, #3d9a4a 0 18%, transparent 19%),
+    radial-gradient(circle at 62% 58%, #3d9a4a 0 16%, transparent 17%),
+    radial-gradient(circle at 35% 32%, #7ec0f0, #2f78d0 60%);
+}
+
+.ball-preview--skull {
+  background:
+    radial-gradient(circle at 35% 42%, #2a1838 0 12%, transparent 13%),
+    radial-gradient(circle at 65% 42%, #2a1838 0 12%, transparent 13%),
+    radial-gradient(circle at 35% 32%, #fff, #efe8dc 55%, #c8b8d8 85%);
+}
+
+.store-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 0.45rem;
+}
+
+.store-tabs button {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  padding: 5px 2px 4px;
+  font-family: inherit;
+  font-size: 0.62rem;
+  line-height: 1.05;
+  color: #6a3814;
+  background: rgba(255, 248, 220, 0.72);
+  cursor: pointer;
+}
+
+.store-tabs button.is-on {
+  color: #fff;
+  background: linear-gradient(180deg, #9dffd8, #12b37c);
+  -webkit-text-stroke: 2px #064e38;
+  paint-order: stroke fill;
+}
+
+.shop-swatch {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 3px solid var(--ink);
+  box-shadow: inset -6px -6px 0 rgba(0, 0, 0, 0.12);
+}
+
+.shop-swatch--trails-none { background: repeating-linear-gradient(135deg, #f4efe4 0 6px, #d7cfc2 6px 8px); }
+.shop-swatch--trails-rainbow { background: linear-gradient(90deg, #ff5a5a, #ffd24a, #6adf55, #4ec8ff, #c07aff); border-radius: 50%; }
+.shop-swatch--trails-hearts { background: radial-gradient(circle at 50% 58%, #ff5a8a 0 34%, #f4efe4 35%); border-radius: 50%; }
+.shop-swatch--trails-notes { background: radial-gradient(circle at 40% 45%, #3a6cff 0 16%, transparent 17%), radial-gradient(circle at 68% 40%, #f2c14a 0 14%, #f4efe4 15%); border-radius: 50%; }
+.shop-swatch--trails-footprints { background: radial-gradient(ellipse at 35% 55%, #c4a882 0 18%, transparent 19%), radial-gradient(ellipse at 68% 48%, #c4a882 0 16%, #f4efe4 17%); border-radius: 50%; }
+.shop-swatch--bgs-planet { background: linear-gradient(#1b3d86, #081428); }
+.shop-swatch--bgs-sunset { background: linear-gradient(#ff9a62, #d24b6a 46%, #2c1848); }
+.shop-swatch--bgs-blossom { background: linear-gradient(#f8c4dc, #c45b8c 50%, #3a1844); }
+.shop-swatch--bgs-snow { background: linear-gradient(#243e68, #070e18); }
+.shop-swatch--bgs-station { background: linear-gradient(#3a4558, #080a10); }
+.shop-swatch--celes-burst { background: radial-gradient(circle at 50% 50%, #ffe14a, #ff8a1a 70%); border-radius: 50%; }
+.shop-swatch--celes-fireworks { background: radial-gradient(circle at 30% 40%, #ff5a5a, transparent 40%), radial-gradient(circle at 70% 35%, #4ec8ff, transparent 36%), #1a1028; }
+.shop-swatch--celes-confetti { background: repeating-linear-gradient(90deg, #ff5a5a 0 8px, #ffd24a 8px 16px, #4ec8ff 16px 24px, #6adf55 24px 32px); }
+.shop-swatch--celes-rainbow { background: linear-gradient(#ff5a5a, #ffd24a, #6adf55, #4ec8ff, #c07aff); }
+.shop-swatch--celes-dance { background: radial-gradient(circle at 50% 38%, #ff8ab0 0 22%, #3a2418 23% 48%, #ff8ab0 49%); border-radius: 50%; }
