@@ -14,7 +14,7 @@ import {
   makeSand, makeIce, makeJelly, makeSmog, makeMagma, makeTeleport, makeCurrent, makeButton,
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
-import { beginDeco, tickDeco, decoWanted, createBoardDeco, layoutDeco } from "./boardDeco.js";
+import { beginDeco, tickDeco, decoWanted, createBoardDeco } from "./boardDeco.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -26,8 +26,8 @@ const REST_X = 0.045;
 const WALL_T = 0.52;
 const WALL_H = 0.4;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
-const FRAME_T = 1.24;
-const FRAME_H = 0.72;
+const FRAME_T = 0.4;
+const FRAME_H = 0.3;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
 
@@ -36,13 +36,10 @@ function mixHex(a, b, t) {
 }
 
 function framePalette(theme) {
-  if (theme.id === "wood") return { hi: 0xfffaf2, mid: 0xfff3e4, low: 0xd7c2a2 };
-  if (theme.id === "ice") return { hi: 0xffffff, mid: 0xc5e9f8, low: 0x3d7496 };
-  if (theme.id === "machine") return { hi: 0xf4f7fb, mid: 0xb7c2ce, low: 0x4e5964 };
   return {
-    hi: mixHex(theme.frame, 0xffffff, 0.7),
-    mid: mixHex(theme.frame, 0xffffff, 0.16),
-    low: mixHex(theme.edge, 0x000000, 0.18),
+    mid: theme.frame,
+    hi: mixHex(theme.frame, 0xffffff, 0.58),
+    low: mixHex(theme.frame, 0x141414, 0.5),
   };
 }
 
@@ -157,145 +154,148 @@ function mixRgb(a, b, t) {
   return a.map((c, i) => Math.round(c + (b[i] - c) * t));
 }
 
+const BRICKS = [
+  [242, 226, 196],
+  [244, 206, 214],
+  [196, 228, 210],
+  [244, 230, 176],
+  [216, 204, 232],
+  [196, 220, 236],
+];
+
+function brickIndex(n) {
+  const used = Array.from({ length: n }, () => Array(n).fill(-1));
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      let k = (r * 2 + c * 3) % BRICKS.length;
+      const left = c > 0 ? used[r][c - 1] : -1;
+      const up = r > 0 ? used[r - 1][c] : -1;
+      while (k === left || k === up) k = (k + 1) % BRICKS.length;
+      used[r][c] = k;
+    }
+  }
+  return used;
+}
+
+function paintStuds(g, x, y, w, rgb) {
+  const lite = rgb.map((c) => Math.min(255, c + 22));
+  const dark = rgb.map((c) => Math.max(0, c - 22));
+  const s = w * 0.15;
+  for (const [u, v] of [[0.3, 0.32], [0.7, 0.32], [0.3, 0.68], [0.7, 0.68]]) {
+    const cx = x + w * u;
+    const cy = y + w * v;
+    g.fillStyle = `rgba(${dark.join(",")}, 0.55)`;
+    g.beginPath();
+    g.ellipse(cx, cy + s * 0.22, s * 0.72, s * 0.28, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = `rgb(${rgb.join(",")})`;
+    g.beginPath();
+    g.arc(cx, cy, s * 0.62, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = `rgba(${dark.join(",")}, 0.65)`;
+    g.lineWidth = 1.5;
+    g.stroke();
+    g.fillStyle = `rgba(${lite.join(",")}, 0.9)`;
+    g.beginPath();
+    g.ellipse(cx - s * 0.12, cy - s * 0.14, s * 0.22, s * 0.1, -0.4, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+function paintMotif(g, id, x, y, w, groove) {
+  g.strokeStyle = `rgba(${groove}, 0.22)`;
+  g.fillStyle = `rgba(${groove}, 0.14)`;
+  g.lineWidth = 2;
+  g.lineCap = "round";
+  const cx = x + w * 0.5;
+  const cy = y + w * 0.5;
+  if (id === "ice") {
+    g.beginPath();
+    g.moveTo(x + w * 0.22, y + w * 0.68);
+    g.lineTo(x + w * 0.42, y + w * 0.46);
+    g.lineTo(x + w * 0.78, y + w * 0.3);
+    g.stroke();
+  } else if (id === "wood" || id === "desert" || id === "jungle") {
+    g.beginPath();
+    g.ellipse(cx, cy, w * 0.22, w * 0.12, id === "jungle" ? 0.6 : 0, 0, Math.PI * 2);
+    g.stroke();
+  } else if (id === "ocean") {
+    g.beginPath();
+    g.arc(x + w * 0.38, y + w * 0.4, w * 0.07, 0, Math.PI * 2);
+    g.arc(x + w * 0.62, y + w * 0.58, w * 0.045, 0, Math.PI * 2);
+    g.fill();
+  } else if (id === "crystal" || id === "mushroom" || id === "candy" || id === "alien") {
+    g.beginPath();
+    g.moveTo(cx, cy - w * 0.16);
+    g.lineTo(cx + w * 0.05, cy);
+    g.lineTo(cx, cy + w * 0.16);
+    g.lineTo(cx - w * 0.05, cy);
+    g.closePath();
+    g.fill();
+  } else if (id === "lava") {
+    g.strokeStyle = "rgba(255, 140, 60, 0.35)";
+    g.beginPath();
+    g.moveTo(x + w * 0.25, y + w * 0.35);
+    g.lineTo(x + w * 0.5, y + w * 0.58);
+    g.lineTo(x + w * 0.74, y + w * 0.4);
+    g.stroke();
+  } else if (id === "machine") {
+    g.strokeRect(x + w * 0.28, y + w * 0.28, w * 0.44, w * 0.44);
+  }
+}
+
 function makeBoardTexture(n, palette) {
   const cell = 96;
   const size = n * cell;
-  const floor = palette?.floor || "#e4a45e";
-  const groove = palette?.groove || "112, 62, 24";
-  const light = palette?.light || "255, 220, 168";
   const id = palette?.id || "wood";
-  const base = rgbOf(floor);
-  const pale = mixRgb(base, [255, 255, 255], 0.5);
-  const deep = mixRgb(base, [0, 0, 0], 0.1);
-  const seam = mixRgb(base, [255, 255, 255], 0.22);
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const g = c.getContext("2d");
-  g.fillStyle = `rgb(${seam.join(",")})`;
-  g.fillRect(0, 0, size, size);
-  const gap = 3;
-  const rad = 22;
-  for (let r = 0; r < n; r++) {
-    for (let col = 0; col < n; col++) {
-      const x = col * cell + gap;
-      const y = r * cell + gap;
-      const w = cell - gap * 2;
-      const tone = (r + col) % 2 === 0 ? pale : deep;
-      g.fillStyle = `rgb(${tone.join(",")})`;
-      roundFill(g, x, y, w, w, rad);
-      g.save();
-      g.beginPath();
-      roundFillPath(g, x, y, w, w, rad);
-      g.clip();
-      paintCellMotif(g, id, x, y, w, r, col, groove, light);
-      g.restore();
+  if (id === "toy") {
+    g.fillStyle = "#e4d5c6";
+    g.fillRect(0, 0, size, size);
+    const used = brickIndex(n);
+    const gap = 3;
+    for (let r = 0; r < n; r++) {
+      for (let col = 0; col < n; col++) {
+        const x = col * cell + gap;
+        const y = r * cell + gap;
+        const w = cell - gap * 2;
+        const rgb = BRICKS[used[r][col]];
+        const shade = rgb.map((ch) => Math.max(0, ch - 12));
+        g.fillStyle = `rgb(${shade.join(",")})`;
+        roundFill(g, x, y + 2, w, w - 2, 8);
+        g.fillStyle = `rgb(${rgb.join(",")})`;
+        roundFill(g, x, y, w, w - 2, 8);
+        paintStuds(g, x, y, w, rgb);
+      }
+    }
+  } else {
+    const floor = palette?.floor || "#e4a45e";
+    const base = rgbOf(floor);
+    const pale = mixRgb(base, [255, 255, 255], 0.46);
+    const deep = mixRgb(base, [0, 0, 0], 0.12);
+    const seam = mixRgb(base, [255, 255, 255], 0.18);
+    const groove = palette?.groove || "80, 80, 80";
+    g.fillStyle = `rgb(${seam.join(",")})`;
+    g.fillRect(0, 0, size, size);
+    const gap = 2;
+    for (let r = 0; r < n; r++) {
+      for (let col = 0; col < n; col++) {
+        const x = col * cell + gap;
+        const y = r * cell + gap;
+        const w = cell - gap * 2;
+        const tone = (r + col) % 2 === 0 ? pale : deep;
+        g.fillStyle = `rgb(${tone.join(",")})`;
+        roundFill(g, x, y, w, w, 8);
+        paintMotif(g, id, x, y, w, groove);
+      }
     }
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 4;
   return tex;
-}
-
-function roundFillPath(g, x, y, w, h, r) {
-  const rad = Math.min(r, w / 2, h / 2);
-  g.moveTo(x + rad, y);
-  g.arcTo(x + w, y, x + w, y + h, rad);
-  g.arcTo(x + w, y + h, x, y + h, rad);
-  g.arcTo(x, y + h, x, y, rad);
-  g.arcTo(x, y, x + w, y, rad);
-  g.closePath();
-}
-
-function paintCellMotif(g, id, x, y, w, r, col, groove, light) {
-  g.strokeStyle = `rgba(${groove}, 0.28)`;
-  g.fillStyle = `rgba(${groove}, 0.16)`;
-  g.lineWidth = 2;
-  g.lineCap = "round";
-  if (id === "ice" && (r * 3 + col) % 2 === 0) {
-    g.beginPath();
-    g.moveTo(x + w * 0.2, y + w * 0.7);
-    g.lineTo(x + w * 0.4, y + w * 0.45);
-    g.lineTo(x + w * 0.55, y + w * 0.62);
-    g.lineTo(x + w * 0.8, y + w * 0.28);
-    g.stroke();
-    return;
-  }
-  if (id === "wood") {
-    g.beginPath();
-    const cx = x + w / 2;
-    const cy = y + w / 2;
-    const rad = w * 0.28;
-    for (let i = 0; i < 6; i++) {
-      const a = -Math.PI / 2 + (i / 6) * Math.PI * 2;
-      const px = cx + Math.cos(a) * rad;
-      const py = cy + Math.sin(a) * rad;
-      if (i) g.lineTo(px, py);
-      else g.moveTo(px, py);
-    }
-    g.closePath();
-    g.stroke();
-    return;
-  }
-  if (id === "desert") {
-    g.beginPath();
-    g.ellipse(x + w * 0.5, y + w * 0.62, w * 0.28, w * 0.1, 0, 0, Math.PI * 2);
-    g.stroke();
-    return;
-  }
-  if (id === "ocean") {
-    g.beginPath();
-    g.arc(x + w * 0.35, y + w * 0.4, w * 0.08, 0, Math.PI * 2);
-    g.arc(x + w * 0.62, y + w * 0.58, w * 0.05, 0, Math.PI * 2);
-    g.fill();
-    return;
-  }
-  if (id === "crystal" || id === "toy") {
-    const cx = x + w * 0.5;
-    const cy = y + w * 0.5;
-    g.beginPath();
-    g.moveTo(cx, cy - w * 0.16);
-    g.lineTo(cx + w * 0.05, cy - w * 0.05);
-    g.lineTo(cx + w * 0.16, cy);
-    g.lineTo(cx + w * 0.05, cy + w * 0.05);
-    g.lineTo(cx, cy + w * 0.16);
-    g.lineTo(cx - w * 0.05, cy + w * 0.05);
-    g.lineTo(cx - w * 0.16, cy);
-    g.lineTo(cx - w * 0.05, cy - w * 0.05);
-    g.closePath();
-    g.fill();
-    return;
-  }
-  if (id === "candy") {
-    const colors = ["#ff5a9a", "#7adf5a", "#ffe14a", "#3ec4ff"];
-    for (let i = 0; i < 5; i++) {
-      g.fillStyle = colors[(r + col + i) % colors.length];
-      g.fillRect(x + 10 + ((i * 17 + col * 5) % (w - 16)), y + 12 + ((i * 13 + r * 7) % (w - 16)), 7, 3);
-    }
-    return;
-  }
-  if (id === "lava" && (r + col) % 3 === 0) {
-    g.strokeStyle = "rgba(255, 120, 40, 0.55)";
-    g.beginPath();
-    g.moveTo(x + w * 0.2, y + w * 0.3);
-    g.lineTo(x + w * 0.5, y + w * 0.55);
-    g.lineTo(x + w * 0.75, y + w * 0.4);
-    g.stroke();
-    return;
-  }
-  if (id === "jungle") {
-    g.beginPath();
-    g.ellipse(x + w * 0.5, y + w * 0.5, w * 0.22, w * 0.12, 0.6, 0, Math.PI * 2);
-    g.stroke();
-    return;
-  }
-  if (id === "machine") {
-    g.strokeStyle = `rgba(${light}, 0.35)`;
-    g.strokeRect(x + w * 0.22, y + w * 0.22, w * 0.56, w * 0.56);
-    g.beginPath();
-    g.arc(x + w * 0.5, y + w * 0.5, 3, 0, Math.PI * 2);
-    g.fill();
-  }
 }
 
 function makeOakBallMap() {
@@ -912,9 +912,9 @@ export function createView(canvas) {
 
   applyStudio(renderer, scene, 0.4);
 
-  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.48, metalness: 0.04 });
-  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.32, metalness: 0.06 });
-  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.18, metalness: 0.05 });
+  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.55, metalness: 0.02 });
+  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.4, metalness: 0.04 });
+  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.28, metalness: 0.04 });
   const frameGlossMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -1355,21 +1355,19 @@ export function createView(canvas) {
     const vFov = THREE.MathUtils.degToRad(fov);
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
     const half = viewHalf;
-    // 82° from the floor: near top-down, still enough pitch that screen-up
-    // stays the board's -Z (the "up" tilt). A tall free rectangle fits the
-    // width and leaves vertical bands for the trim. A short one (375×667,
-    // where the free height is under the width) fits the height instead,
-    // and the trim moves into the side gutters.
+    // 82° from the floor: screen-up stays the board's -Z. The frame
+    // targets about 92% of the screen width and sits against the free
+    // rectangle, so a short one falls back to the height.
     const elev = THREE.MathUtils.degToRad(82);
     const sinE = Math.sin(elev);
     const cosE = Math.cos(elev);
-    const sideGutters = h + 1 < w;
-    const fillW = sideGutters ? 1 : 0.98;
-    const fillH = sideGutters ? 0.93 : 0.74;
+    const screenW = typeof window !== "undefined" ? window.innerWidth || w : w;
+    const want = Math.min(w * 0.99, screenW * 0.92);
+    const fillW = Math.min(1.02, (want / Math.max(1, w)) * 1.035);
+    const fillH = 0.98;
     const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
     const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
-    const dist = sideGutters ? distH : Math.max(distW, distH);
-    layoutDeco(rig.getObjectByName("board-deco"), sideGutters ? "sides" : "frame", half);
+    const dist = Math.max(distW, distH);
     const lookY = 0.42;
     camera.position.set(0, lookY + dist * sinE, dist * cosE);
     camera.lookAt(0, lookY, 0);
@@ -1836,19 +1834,20 @@ export function createView(canvas) {
     clearRig();
     clearFx();
     const span = n * STEP;
-    const inner = span / 2 - 0.02;
-    // 6×6 is the look the trim was drawn for. Thickness and margin track
-    // the board so 3×3 through 8×8 keep the same frame weight on screen.
+    const inner = span / 2 - 0.01;
+    // Thickness tracks board size so 3×3 through 8×8 keep about the same
+    // outline weight: a charcoal stroke and one theme-color band.
     const unit = n / 6;
     const frameT = FRAME_T * unit;
     const frameH = FRAME_H * unit;
+    const ink = 0.05 * unit;
+    const line = 0.045 * unit;
     const outer = inner + frameT;
-    const skirt = 0.22 * unit;
-    viewHalf = outer + skirt + 0.04 * unit;
+    viewHalf = outer + ink;
     const outerW = outer * 2;
     const holeW = inner * 2;
-    const outerR = Math.min(frameT * 0.9, outer * 0.46);
-    const innerR = Math.min(frameT * 0.58, inner * 0.34);
+    const outerR = Math.min(0.62 * unit, outer * 0.2);
+    const innerR = Math.min(0.26 * unit, inner * 0.1);
     const addRing = (ow, iw, oR, iR, height, mat, y) => {
       const mesh = new THREE.Mesh(frameRingGeo(ow, iw, oR, iR, height), mat);
       mesh.position.y = y;
@@ -1857,11 +1856,10 @@ export function createView(canvas) {
       mesh.receiveShadow = mat !== frameInkMat;
       rig.add(mesh);
     };
-    addRing(outerW + skirt * 2, outerW - skirt * 0.15, outerR + skirt * 0.7, Math.max(0.08, outerR * 0.9), frameH * 0.5, frameInkMat, 0);
     addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
-    addRing(outerW - 0.02 * unit, outerW - frameT * 0.36, outerR * 0.92, Math.max(0.08, outerR * 0.72), frameH * 0.14, frameHiMat, 0.03 + frameH * 0.88);
-    addRing(holeW + 0.18 * unit, holeW + 0.015 * unit, Math.max(0.08, innerR * 0.82), Math.max(0.05, innerR * 0.32), frameH * 0.12, frameLowMat, 0.035 + frameH * 0.92);
-    addRing(outerW + skirt * 2, outerW - 0.03 * unit, outerR + skirt * 0.55, Math.max(0.08, outerR * 0.96), frameH * 0.12, frameInkMat, 0.04 + frameH * 0.92);
+    addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9);
+    addRing(holeW + line * 2.1, holeW + 0.006 * unit, Math.max(0.05, innerR * 0.85), Math.max(0.04, innerR * 0.35), frameH * 0.1, frameLowMat, 0.025 + frameH * 0.86);
+    addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.7, Math.max(0.05, outerR * 0.92), Math.max(0.04, frameH * 0.16), frameInkMat, 0.02 + frameH * 0.9);
     if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
 
     const boardH = 0.26;
@@ -2013,7 +2011,7 @@ export function createView(canvas) {
     for (const btn of level.buttons || []) {
       const { x, z } = cellXZ(btn.row, btn.col);
       const color = GEM_HEX[btn.color] ? btn.color : "red";
-      const mesh = makeButton(x, z, color, btn.row, btn.col, skin);
+      const mesh = makeButton(x, z, color, btn.row, btn.col, activeTheme.id);
       rig.add(mesh);
       buttons.push(mesh);
     }
@@ -2157,6 +2155,10 @@ export function createView(canvas) {
   function startOpen(mesh) {
     if (!mesh.parent || mesh.userData.opening || !mesh.parent.visible) return;
     mesh.userData.opening = { t: 0, baseY: mesh.parent.position.y };
+    const hex = GEM_HEX[mesh.userData.color] || GEM_HEX.red;
+    const col = new THREE.Color(hex);
+    const p = mesh.parent.position;
+    burst(p.x, p.y + 0.15, p.z, 12, 1.25, [[col.r, col.g, col.b], [1, 0.97, 0.9]]);
   }
 
   function openColor(color, dipRow, dipCol) {
@@ -2164,10 +2166,11 @@ export function createView(canvas) {
       if (b.userData.color !== color) continue;
       b.userData.pendingSpent = false;
       b.userData.spent = true;
-      b.material.transparent = true;
-      b.material.opacity = 0.4;
-      b.position.y = BOARD_TOP + 0.05;
-      if (b.userData.row === dipRow && b.userData.col === dipCol) b.userData.dip = 1;
+      if (b.userData.row === dipRow && b.userData.col === dipCol) {
+        b.userData.dip = 1;
+        b.userData.ringT = 1;
+        b.userData.ringArmed = true;
+      }
     }
     for (const mesh of colored) {
       if (mesh.userData.color === color) startOpen(mesh);
@@ -2334,15 +2337,7 @@ export function createView(canvas) {
         mesh.userData.spent = spent;
         mesh.userData.ready =
           ready && !spent && game.ball[0] === mesh.userData.row && game.ball[1] === mesh.userData.col;
-        if (!spent) {
-          mesh.material.opacity = 1;
-          mesh.material.transparent = false;
-          mesh.position.y = mesh.userData.baseY;
-        } else {
-          mesh.material.transparent = true;
-          mesh.material.opacity = 0.4;
-          mesh.position.y = BOARD_TOP + 0.05;
-        }
+        if (!spent) mesh.position.y = mesh.userData.baseY;
       }
     }
     if (!skipGlass) {
@@ -2464,7 +2459,10 @@ export function createView(canvas) {
 
   function dipButton(row, col) {
     const mesh = buttons.find((b) => b.userData.row === row && b.userData.col === col);
-    if (mesh) mesh.userData.dip = 1;
+    if (!mesh) return;
+    mesh.userData.dip = 1;
+    mesh.userData.ringT = 1;
+    mesh.userData.ringArmed = true;
   }
 
   const raycaster = new THREE.Raycaster();
@@ -2886,14 +2884,44 @@ export function createView(canvas) {
 
       for (const mesh of buttons) {
         const dip = mesh.userData.dip || 0;
-        if (dip > 0) mesh.userData.dip = Math.max(0, dip - dt * 3.2);
-        const readyPulse = mesh.userData.ready ? 1 + Math.sin(time * 6) * 0.06 : 1;
-        const hintPulse = mesh.userData.hint ? 1.12 + Math.sin(time * 8) * 0.1 : 1;
-        const press = 1 - (mesh.userData.dip || 0) * 0.22;
-        mesh.scale.set(readyPulse * hintPulse, press, readyPulse * hintPulse);
-        if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY - (mesh.userData.dip || 0) * 0.1;
-        if (mesh.userData.hint) mesh.material.emissiveIntensity = 0.35 + Math.sin(time * 8) * 0.2;
-        else mesh.material.emissiveIntensity = 0;
+        if (dip > 0) mesh.userData.dip = Math.max(0, dip - dt * 2.3);
+        if (dip > 0.92 && !mesh.userData.ringArmed) {
+          mesh.userData.ringArmed = true;
+          mesh.userData.ringT = 1;
+        }
+        if (dip < 0.02) mesh.userData.ringArmed = false;
+        const press = mesh.userData.spent ? 1 : (mesh.userData.dip || 0);
+        const rest = mesh.userData.domeRest;
+        const dome = mesh.userData.dome;
+        if (dome && rest) {
+          const breathe = mesh.userData.ready && press < 0.15 ? 1 + Math.sin(time * 6) * 0.04 : 1;
+          const squash = 1 - press * 0.48;
+          const spread = (1 + press * 0.16) * breathe;
+          dome.scale.set(spread * 0.92, rest.sy * squash, spread * 0.92);
+          dome.position.y = rest.y - press * 0.055;
+          const side = mesh.userData.side;
+          if (side) {
+            side.scale.set(spread * 1.05, rest.sideSy * squash, spread * 1.05);
+            side.position.y = rest.sideY - press * 0.04;
+          }
+          const hi = mesh.userData.hi;
+          if (hi) hi.position.y = rest.hiY - press * 0.05;
+          const hint = mesh.userData.hint ? 0.4 + Math.sin(time * 8) * 0.2 : 0.06;
+          dome.material.emissiveIntensity = hint;
+        }
+        const ring = mesh.userData.ring;
+        const ringT = mesh.userData.ringT || 0;
+        if (ring && ringT > 0) {
+          mesh.userData.ringT = Math.max(0, ringT - dt * 2.5);
+          const t = 1 - mesh.userData.ringT;
+          ring.visible = true;
+          ring.scale.setScalar(1 + t * 1.7);
+          ring.material.opacity = 0.9 * mesh.userData.ringT;
+        } else if (ring) {
+          ring.visible = false;
+        }
+        mesh.scale.set(1, 1, 1);
+        if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY;
       }
 
       if (useBloom && bloomFx) bloomFx.render(scene, camera);
