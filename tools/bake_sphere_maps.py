@@ -254,19 +254,26 @@ def paint_melon(x, y, z, theta, phi):
 
 
 def paint_oak(x, y, z):
-    """Warm wood, a few soft grain lines, two knots. Almost no bump."""
-    angle = np.arctan2(z, x)
-    radial = np.sqrt(x * x + z * z)
-    axis = y * 0.92 + x * 0.28
-    warp = fbm(x * 1.3, y * 0.6, z * 1.3, 2)
-    flow = axis * 8.0 + 0.45 * np.sin(z * 3.0 + x) + (warp - 0.5) * 0.7
-    grain = wrap_blur(np.sin(flow).astype(np.float32), 1)
-    base = mix(rgb_of("#c9924e"), rgb_of("#f3d7ae"), np.clip(0.55 + 0.45 * grain, 0, 1))
-    line = smoothstep(0.35, -0.05, grain)
-    col = mix(base, rgb_of("#7a4e28"), line * 0.7)
-    end = smoothstep(0.8, 0.96, np.abs(y))
-    rings = 0.5 + 0.5 * np.sin(radial * 18.0 + warp * 0.8)
-    col = mix(col, mix(rgb_of("#a86a32"), rgb_of("#f0c98a"), rings), end * 0.8)
+    """Warm oak with fine, soft fibers along the axis. One or two knots.
+
+    Color varies around the log, not along it, so the ball is not a few wide
+    latitude bands. Contrast stays low and the bump stays small.
+    """
+    radial = np.sqrt(x * x + z * z + np.float32(1e-6))
+    # Long soft fibers: high frequency around the log, low frequency along it.
+    fiber = fbm(x * 14.0 + y * 0.4, y * 1.6, z * 14.0, 3)
+    fiber = wrap_blur(fiber, 2)
+    vein = smoothstep(0.58, 0.82, fbm(x * 7.0, y * 0.8, z * 7.0, 2))
+    shadow = rgb_of("#b87432")
+    light = rgb_of("#e6c08a")
+    col = mix(shadow, light, 0.42 + 0.36 * fiber)
+    col = mix(col, rgb_of("#8d5528"), vein * 0.16)
+    warmth = fbm(x * 0.6, y * 0.25, z * 0.6, 2)
+    col = mix(col, rgb_of("#d7a45c"), np.clip(warmth - 0.35, 0, 1) * 0.18)
+    end = smoothstep(0.78, 0.97, np.abs(y))
+    rings = 0.5 + 0.5 * np.sin(radial * 28.0)
+    end_col = mix(rgb_of("#a86a32"), rgb_of("#f0d2a4"), 0.35 + 0.4 * rings)
+    col = mix(col, end_col, end * 0.82)
 
     def knot_mask(dx, dy, dz, edge):
         direction = np.array([dx, dy, dz], dtype=np.float32)
@@ -278,10 +285,11 @@ def paint_oak(x, y, z):
 
     core_a, halo_a = knot_mask(0.12, 0.02, 0.99, 0.986)
     core_b, halo_b = knot_mask(-0.62, 0.28, 0.62, 0.993)
-    col = mix(col, rgb_of("#6a3c18"), np.clip(halo_a + halo_b, 0, 1))
-    col = mix(col, rgb_of("#3e2412"), np.clip(core_a + core_b, 0, 1))
-    height = grain * 0.04 - core_a * 0.06 - core_b * 0.04
-    rough = np.full(x.shape, 0.82, dtype=np.float32)
+    col = mix(col, rgb_of("#6a3c18"), np.clip(halo_a * 0.85 + halo_b * 0.65, 0, 1))
+    col = mix(col, rgb_of("#3e2412"), np.clip(core_a + core_b * 0.8, 0, 1))
+    height = (fiber - 0.5) * 0.012 + vein * 0.008 - core_a * 0.04 - core_b * 0.025
+    rough = np.full(x.shape, 0.9, dtype=np.float32)
+    rough = mix(rough, np.float32(0.84), end)
     return np.clip(col, 0, 1), height.astype(np.float32), rough
 
 
@@ -532,10 +540,11 @@ def main():
     args = parser.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
 
+    # Oak bump stays small (0.16) so a --rebuild keeps the soft grain.
     balls = {
         "ball_baseball": (paint_baseball, 0.85, 84, False),
         "ball_tennis": (paint_tennis, 0.4, 82, False),
-        "ball_oak": (paint_oak, 0.32, 82, False),
+        "ball_oak": (paint_oak, 0.16, 82, False),
         "ball_melon": (paint_melon, 0.4, 82, False),
     }
     planets = {

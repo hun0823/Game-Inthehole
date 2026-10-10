@@ -34,7 +34,7 @@ const BALL_LOOK = {
   baseball: { metalness: 0.02, envMapIntensity: 0.18, normalScale: 0.75 },
   tennis: { metalness: 0.0, envMapIntensity: 0.1, normalScale: 0.35 },
   melon: { metalness: 0.0, envMapIntensity: 0.12, normalScale: 0.28 },
-  oak: { metalness: 0.0, envMapIntensity: 0.0, normalScale: 0.22 },
+  oak: { metalness: 0.0, envMapIntensity: 0.0, normalScale: 0.12 },
   dune: { metalness: 0.02, envMapIntensity: 0.1, normalScale: 0.55 },
   marble: { metalness: 0.04, envMapIntensity: 0.2, normalScale: 0.3, clearcoat: 0.45 },
   soccer: { metalness: 0.02, envMapIntensity: 0.14, normalScale: 0.4 },
