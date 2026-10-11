@@ -3,7 +3,8 @@ import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
 import { createConstellation, mapLayout } from "./constellation.js";
-import { shotBall, shotGoal } from "./showcase.js";
+import { beginShots, endShots, shotBall, shotGoal, shotGoalBadge } from "./showcase.js";
+import { resolveTestUnlock } from "./testUnlock.js";
 import { BALLS, ballById } from "./balls.js";
 import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, trailById } from "./cosmetics.js";
 import { detectLang, t, planetName, ballCopy, cosmeticCopy, lessonCopy } from "./i18n.js";
@@ -22,6 +23,13 @@ const STORAGE_BGS = "inthehole_bgs_owned";
 const STORAGE_BG = "inthehole_bg_equipped";
 const STORAGE_CELES = "inthehole_celes_owned";
 const STORAGE_CELE = "inthehole_cele_equipped";
+
+const testUnlockOn = resolveTestUnlock(
+  location.hostname,
+  location.search,
+  (key) => localStorage.getItem(key),
+  (key, value) => localStorage.setItem(key, value),
+);
 
 const skyEl = document.getElementById("sky");
 const boardWrapEl = document.querySelector(".board-wrap");
@@ -54,6 +62,12 @@ const storeConfirm = document.getElementById("store-confirm");
 const storeConfirmText = document.getElementById("store-confirm-text");
 const storeClose = document.getElementById("store-close");
 const storeSpend = document.getElementById("store-spend");
+const storeDetail = document.getElementById("store-detail");
+const storeDetailBall = document.getElementById("store-detail-ball");
+const storeDetailGoal = document.getElementById("store-detail-goal");
+const storeDetailName = document.getElementById("store-detail-name");
+const storeDetailBlurb = document.getElementById("store-detail-blurb");
+const storeDetailPrice = document.getElementById("store-detail-price");
 const mapEl = document.getElementById("map");
 const mapTrack = document.getElementById("constellation-track");
 const mapScroll = document.getElementById("constellation-scroll");
@@ -423,6 +437,7 @@ function planetCleared(p) {
 }
 
 function planetUnlocked(p) {
+  if (testUnlockOn) return p >= 0 && p < PLANET_ORDER.length;
   return p <= 0 || planetCleared(p - 1);
 }
 
@@ -1122,6 +1137,56 @@ function paintSky() {
   drawSky(skyEl, override.sky || themeById(LEVELS[stageIndex].planet));
 }
 
+let bakeToken = 0;
+let detailId = null;
+
+function closeBallDetail() {
+  detailId = null;
+  if (storeDetail) storeDetail.hidden = true;
+}
+
+function openBallDetail(id) {
+  const item = ballById(id);
+  if (!item || item.id !== id || storeTab !== "balls") return;
+  detailId = id;
+  const copy = ballCopy(lang, id);
+  storeDetail.hidden = false;
+  storeDetailName.textContent = copy.name;
+  storeDetailBlurb.textContent = copy.blurb;
+  storeDetailPrice.textContent = item.price === 0 ? t(lang, "free") : `${item.price} ${t(lang, "stars")}`;
+  document.getElementById("store-detail-ball-label").textContent = t(lang, "ball-word");
+  document.getElementById("store-detail-goal-label").textContent = t(lang, "goal-word");
+  storeDetailBall.alt = copy.name;
+  storeDetailGoal.alt = t(lang, "goal-word");
+  shotBall(id, 168).then((url) => {
+    if (detailId === id) storeDetailBall.src = url;
+  });
+  shotGoalBadge(id, 220).then((url) => {
+    if (detailId === id) storeDetailGoal.src = url;
+  });
+}
+
+function paintBallThumbs(token, nodes) {
+  beginShots().then(async () => {
+    try {
+      for (const node of nodes) {
+        if (token !== bakeToken) return;
+        try {
+          const ballUrl = await shotBall(node.id, 168);
+          const goalUrl = await shotGoalBadge(node.id, 128);
+          if (token !== bakeToken) return;
+          node.ball.src = ballUrl;
+          node.goal.src = goalUrl;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    } finally {
+      await endShots();
+    }
+  });
+}
+
 function renderStore() {
   const tab = SHOP_TABS[storeTab] ? storeTab : "balls";
   const spec = SHOP_TABS[tab];
@@ -1130,14 +1195,40 @@ function renderStore() {
   const stars = purse();
   storeStars.textContent = String(stars);
   storeList.replaceChildren();
+  const thumbs = [];
+  bakeToken += 1;
+  const token = bakeToken;
   for (const item of spec.items) {
     const li = document.createElement("li");
     li.className = "store-row" + (item.id === equipped ? " is-equipped" : "");
-    const preview = document.createElement("span");
-    preview.className = tab === "balls"
-      ? `ball-preview ball-preview--${item.id}`
-      : `shop-swatch shop-swatch--${tab}-${item.id}`;
-    preview.setAttribute("aria-hidden", "true");
+    let preview;
+    if (tab === "balls") {
+      const copy = itemCopy(tab, item.id);
+      preview = document.createElement("button");
+      preview.type = "button";
+      preview.className = "ball-pair";
+      preview.dataset.act = "detail";
+      preview.dataset.id = item.id;
+      preview.setAttribute("aria-label", `${copy.name}, ${t(lang, "goal-word")}`);
+      const ballWrap = document.createElement("span");
+      ballWrap.className = "ball-pair-ball";
+      const ballImg = document.createElement("img");
+      ballImg.alt = "";
+      ballImg.setAttribute("aria-hidden", "true");
+      ballWrap.append(ballImg);
+      const goalWrap = document.createElement("span");
+      goalWrap.className = "ball-pair-goal";
+      const goalImg = document.createElement("img");
+      goalImg.alt = "";
+      goalImg.setAttribute("aria-hidden", "true");
+      goalWrap.append(goalImg);
+      preview.append(ballWrap, goalWrap);
+      thumbs.push({ id: item.id, ball: ballImg, goal: goalImg });
+    } else {
+      preview = document.createElement("span");
+      preview.className = `shop-swatch shop-swatch--${tab}-${item.id}`;
+      preview.setAttribute("aria-hidden", "true");
+    }
     const copy = document.createElement("span");
     copy.className = "store-copy";
     const copyText = itemCopy(tab, item.id);
@@ -1180,6 +1271,9 @@ function renderStore() {
     }
     storeList.append(li);
   }
+  if (tab === "balls" && thumbs.length) paintBallThumbs(token, thumbs);
+  if (tab === "balls" && detailId && spec.items.some((item) => item.id === detailId)) openBallDetail(detailId);
+  else closeBallDetail();
 }
 
 function openStore() {
@@ -1193,6 +1287,7 @@ function openStore() {
 function closeStore() {
   pendingBuy = null;
   storeConfirm.hidden = true;
+  closeBallDetail();
   storeEl.hidden = true;
 }
 
@@ -1245,6 +1340,7 @@ function equipOwned(id) {
 function selectStoreTab(tab) {
   if (!SHOP_TABS[tab]) return;
   storeTab = tab;
+  closeBallDetail();
   document.querySelectorAll(".store-tabs button").forEach((btn) => {
     const on = btn.dataset.tab === tab;
     btn.classList.toggle("is-on", on);
@@ -1264,9 +1360,11 @@ document.getElementById("store-cancel").addEventListener("click", () => cancelBu
 storeList.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-act]");
   if (!btn || !storeList.contains(btn)) return;
-  if (btn.dataset.act === "buy") askBuy(btn.dataset.id);
+  if (btn.dataset.act === "detail") openBallDetail(btn.dataset.id);
+  else if (btn.dataset.act === "buy") askBuy(btn.dataset.id);
   else if (btn.dataset.act === "equip") equipOwned(btn.dataset.id);
 });
+document.getElementById("store-detail-close").addEventListener("click", () => closeBallDetail());
 document.querySelector(".store-tabs").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-tab]");
   if (!btn) return;
@@ -1657,6 +1755,7 @@ function applyLang() {
   });
   document.querySelector(".store-balance").lastChild.textContent = ` ${t(lang, "stars")}`;
   storeClose.setAttribute("aria-label", t(lang, "close"));
+  document.getElementById("store-detail-close").setAttribute("aria-label", t(lang, "close"));
   storeSpend.textContent = t(lang, "spend");
   document.getElementById("store-cancel").textContent = t(lang, "not-now");
   document.getElementById("dialog-close").textContent = t(lang, "close");

@@ -1,6 +1,8 @@
 /**
  * One offscreen (or shared) renderer that snapshots balls, goals, and planets.
  * The game page borrows the constellation renderer so a phone keeps two contexts.
+ * Shots are queued and cached. beginShots/endShots bake a batch before the
+ * host canvas is restored, so the shop does not resize the map once per ball.
  */
 import * as THREE from "./vendor/three.module.js";
 import { ballById } from "./balls.js";
@@ -18,19 +20,41 @@ let prevMaps = null;
 let ballInk = null;
 let renderer = null;
 let restoreCb = null;
-let ownsRenderer = false;
 let ballSpin = null;
 let ballMesh = null;
 let sport = null;
 let goalGroup = null;
 let mats = null;
 let kit = null;
+let stageScene = null;
+let stageCamera = null;
+let restoreHold = 0;
+let chain = Promise.resolve();
 const cache = new Map();
 
 export function bindHost(next, restore) {
   renderer = next;
   restoreCb = restore;
-  ownsRenderer = false;
+}
+
+function enqueue(work) {
+  const run = chain.then(work, work);
+  chain = run.then(() => {}, () => {});
+  return run;
+}
+
+/** Hold the host canvas until endShots, so a thumbnail batch restores once. */
+export function beginShots() {
+  return enqueue(async () => {
+    restoreHold += 1;
+  });
+}
+
+export function endShots() {
+  return enqueue(async () => {
+    restoreHold = Math.max(0, restoreHold - 1);
+    if (restoreHold === 0 && restoreCb) restoreCb();
+  });
 }
 
 function ensure() {
@@ -42,7 +66,6 @@ function ensure() {
       alpha: true,
       preserveDrawingBuffer: true,
     });
-    ownsRenderer = true;
   }
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -62,17 +85,23 @@ function ensure() {
 }
 
 function stage() {
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 40);
-  applyStudio(renderer, scene, 0.4);
-  scene.add(new THREE.AmbientLight(0xffffff, 0.78));
-  const key = new THREE.DirectionalLight(0xffffff, 1.3);
-  key.position.set(3, 4.2, 5);
-  scene.add(key);
-  const fill = new THREE.DirectionalLight(0xc5d6ff, 0.45);
-  fill.position.set(-3.5, 1.2, -2);
-  scene.add(fill);
-  return { scene, camera };
+  if (!stageScene) {
+    stageScene = new THREE.Scene();
+    stageCamera = new THREE.PerspectiveCamera(28, 1, 0.05, 40);
+    applyStudio(renderer, stageScene, 0.4);
+    stageScene.add(new THREE.AmbientLight(0xffffff, 0.78));
+    const key = new THREE.DirectionalLight(0xffffff, 1.3);
+    key.position.set(3, 4.2, 5);
+    stageScene.add(key);
+    const fill = new THREE.DirectionalLight(0xc5d6ff, 0.45);
+    fill.position.set(-3.5, 1.2, -2);
+    stageScene.add(fill);
+  }
+  for (let i = stageScene.children.length - 1; i >= 0; i--) {
+    if (!stageScene.children[i].isLight) stageScene.remove(stageScene.children[i]);
+  }
+  stageCamera.fov = 28;
+  return { scene: stageScene, camera: stageCamera };
 }
 
 function snap(scene, camera, size) {
@@ -85,7 +114,7 @@ function snap(scene, camera, size) {
   camera.updateProjectionMatrix();
   r.render(scene, camera);
   const url = r.domElement.toDataURL("image/png");
-  if (restoreCb) restoreCb();
+  if (restoreHold === 0 && restoreCb) restoreCb();
   return url;
 }
 
@@ -110,27 +139,86 @@ async function prepareMaps() {
   return currentMaps;
 }
 
-export async function shotBall(id, size = 160) {
-  const key = `b|${id}|${size}`;
-  if (cache.has(key)) return cache.get(key);
-  await prepareMaps();
+function renderBall(id, size) {
   const { scene, camera } = stage();
   ballMesh.material = mats[id] || mats.oak;
   const textured = id === "baseball" || id === "tennis";
   sport.show(textured ? "" : id);
+  ballInk.visible = true;
   ballSpin.rotation.set(0.16, 0.42, 0.02);
   scene.add(ballSpin);
   camera.position.set(0.02, 0.2, 1.55);
   camera.lookAt(0, 0, 0);
-  return remember(key, snap(scene, camera, size));
+  return snap(scene, camera, size);
 }
 
-export async function shotGoal(ballId, size = 160) {
+export function shotBall(id, size = 160) {
+  const key = `b|${id}|${size}`;
+  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  return enqueue(async () => {
+    if (cache.has(key)) return cache.get(key);
+    await prepareMaps();
+    return remember(key, renderBall(id, size));
+  });
+}
+
+export function shotGoal(ballId, size = 160) {
   const kind = ballById(ballId).goal || "knot";
   const key = `g|${kind}|${size}`;
-  if (cache.has(key)) return cache.get(key);
-  await prepareMaps();
-  return remember(key, frameGoal(kind, false, "wood", size));
+  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  return enqueue(async () => {
+    if (cache.has(key)) return cache.get(key);
+    await prepareMaps();
+    return remember(key, frameGoal(kind, false, "wood", size));
+  });
+}
+
+/** Tight crop of the goal v3 prop, for the small shop badge. */
+export function shotGoalBadge(ballId, size = 128) {
+  const kind = ballById(ballId).goal || "knot";
+  const key = `gi|${kind}|${size}`;
+  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  return enqueue(async () => {
+    if (cache.has(key)) return cache.get(key);
+    await prepareMaps();
+    return remember(key, frameGoalBadge(kind, size));
+  });
+}
+
+function propBounds(root) {
+  root.updateWorldMatrix(true, true);
+  const box = new THREE.Box3();
+  root.traverse((node) => {
+    if (!node.isMesh || !node.geometry) return;
+    const mat = node.material;
+    // Contact shadows are wide transparent discs. They blow the frame out.
+    if (mat && mat.transparent && mat.map && mat.depthWrite === false) return;
+    if (mat && mat.opacity === 0) return;
+    if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+    box.union(node.geometry.boundingBox.clone().applyMatrix4(node.matrixWorld));
+  });
+  if (box.isEmpty()) box.setFromObject(root);
+  return box;
+}
+
+function frameGoalBadge(kind, size) {
+  clearGoal(goalGroup);
+  const { scene, camera } = stage();
+  mountGoal(goalGroup, kind, kit, { legacy: false, theme: themeById("wood") });
+  scene.add(goalGroup);
+  const props = goalGroup.getObjectByName("goal-props") || goalGroup;
+  const box = propBounds(props);
+  const center = box.getCenter(new THREE.Vector3());
+  const sphere = box.getBoundingSphere(new THREE.Sphere());
+  const radius = Math.max(sphere.radius || 0, 0.12);
+  const fov = 28;
+  const dist = (radius / Math.tan((fov * Math.PI) / 360)) * 1.12;
+  camera.fov = fov;
+  camera.position.copy(center).add(new THREE.Vector3(0.4, 1.15, 0.9).normalize().multiplyScalar(dist));
+  camera.near = 0.01;
+  camera.far = dist * 12 + 8;
+  camera.lookAt(center);
+  return snap(scene, camera, size);
 }
 
 function framePlanet(id, era, size) {
@@ -231,44 +319,49 @@ function frameGoal(kind, legacy, themeId, size) {
   return url;
 }
 
-export async function shotCompare(kind, id, size = 320) {
-  await prepareMaps();
-  if (kind === "planet") {
-    return {
-      main: framePlanet(id, "main", size),
-      trial: prevMaps ? framePlanet(id, "trial", size) : "",
-      arcade: framePlanet(id, "arcade", size),
+export function shotCompare(kind, id, size = 320) {
+  return enqueue(async () => {
+    await prepareMaps();
+    if (kind === "planet") {
+      return {
+        main: framePlanet(id, "main", size),
+        trial: prevMaps ? framePlanet(id, "trial", size) : "",
+        arcade: framePlanet(id, "arcade", size),
+      };
+    }
+    if (kind === "goal") {
+      const goalKind = id === "ice" ? "" : (ballById(id).goal || "knot");
+      const themeId = id === "ice" ? "ice" : "wood";
+      return {
+        before: frameGoal(goalKind, true, themeId, size),
+        after: frameGoal(goalKind, false, themeId, size),
+      };
+    }
+    const shot = {
+      main: frameBall(id, "main", size),
+      trial: prevMaps ? frameBall(id, "trial", size) : "",
+      arcade: frameBall(id, "arcade", size),
     };
-  }
-  if (kind === "goal") {
-    const goalKind = id === "ice" ? "" : (ballById(id).goal || "knot");
-    const themeId = id === "ice" ? "ice" : "wood";
-    return {
-      before: frameGoal(goalKind, true, themeId, size),
-      after: frameGoal(goalKind, false, themeId, size),
-    };
-  }
-  const shot = {
-    main: frameBall(id, "main", size),
-    trial: prevMaps ? frameBall(id, "trial", size) : "",
-    arcade: frameBall(id, "arcade", size),
-  };
-  applyBallMaps(mats, currentMaps);
-  ballInk.visible = true;
-  return shot;
+    applyBallMaps(mats, currentMaps);
+    ballInk.visible = true;
+    return shot;
+  });
 }
 
-export async function shotPlanet(id, size = 180) {
+export function shotPlanet(id, size = 180) {
   const key = `p|${id}|${size}`;
-  if (cache.has(key)) return cache.get(key);
-  await prepareMaps();
-  const planet = createPlanet(id, { ephemeral: true });
-  planet.rotation.y = 0.55;
-  const { scene, camera } = stage();
-  scene.add(planet);
-  camera.position.set(1.15, 0.62, 2.45);
-  camera.lookAt(0, 0.02, 0);
-  const url = snap(scene, camera, size);
-  disposeObject(planet);
-  return Promise.resolve(remember(key, url));
+  if (cache.has(key)) return Promise.resolve(cache.get(key));
+  return enqueue(async () => {
+    if (cache.has(key)) return cache.get(key);
+    await prepareMaps();
+    const planet = createPlanet(id, { ephemeral: true });
+    planet.rotation.y = 0.55;
+    const { scene, camera } = stage();
+    scene.add(planet);
+    camera.position.set(1.15, 0.62, 2.45);
+    camera.lookAt(0, 0.02, 0);
+    const url = snap(scene, camera, size);
+    disposeObject(planet);
+    return remember(key, url);
+  });
 }
