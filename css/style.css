@@ -1339,7 +1339,7 @@ body {
 
 .store-row {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-columns: 62px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   margin-bottom: 8px;
@@ -1416,6 +1416,139 @@ body {
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.65), 0 1px 0 #0c6848;
 }
 
+.ball-pair {
+  position: relative;
+  width: 58px;
+  height: 58px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ball-pair-ball,
+.ball-pair-goal {
+  display: block;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #2a2148;
+}
+
+.ball-pair-ball {
+  width: 52px;
+  height: 52px;
+  margin: 3px 0 0 2px;
+  border: 3px solid var(--ink);
+}
+
+.ball-pair-goal {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink);
+  background: #f4efe4;
+  box-shadow: 0 1px 0 #141414;
+}
+
+.ball-pair img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.ball-pair-goal img {
+  object-fit: contain;
+}
+
+.store-detail {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 22px;
+  background: rgba(8, 6, 24, 0.55);
+}
+
+.store-detail[hidden] {
+  display: none;
+}
+
+.store-detail-card {
+  position: relative;
+  width: min(100%, 300px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 0.9rem 0.75rem 0.85rem;
+  text-align: center;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #6d4dff, #2b1f7a);
+  border: 4px solid var(--ink);
+  box-shadow: 0 6px 0 var(--ink);
+  color: #fff;
+}
+
+.store-detail-card .store-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.25rem;
+}
+
+.store-detail-pair {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0.15rem 0 0.4rem;
+}
+
+.store-detail-pair figure {
+  margin: 0;
+}
+
+.store-detail-pair img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 16px;
+  border: 3px solid var(--ink);
+  background: rgba(8, 6, 24, 0.45);
+}
+
+.store-detail-pair figcaption {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: #e4e8f8;
+}
+
+.store-detail-card h3 {
+  margin: 0.15rem 1.6rem 0;
+  font-size: 1.15rem;
+  color: #fff;
+  -webkit-text-stroke: 3px var(--ink);
+  paint-order: stroke fill;
+}
+
+.store-detail-card p {
+  margin: 0.28rem 0 0;
+  color: #e4e8f8;
+  font-size: 0.82rem;
+  line-height: 1.25;
+}
+
+.store-detail-card #store-detail-price {
+  color: var(--gold);
+  font-size: 0.95rem;
+}
+
 .ball-preview {
   width: 48px;
   height: 48px;
@@ -1484,7 +1617,7 @@ body {
 .store-confirm {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 4;
   display: flex;
   align-items: center;
   justify-content: center;

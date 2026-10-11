@@ -118,6 +118,24 @@
           <button type="button" data-tab="celes" role="tab" aria-selected="false">Celebrations</button>
         </div>
         <ul id="store-list" class="store-list"></ul>
+        <div id="store-detail" class="store-detail" hidden>
+          <div class="store-detail-card">
+            <button type="button" id="store-detail-close" class="store-close" aria-label="Close">×</button>
+            <div class="store-detail-pair">
+              <figure>
+                <img id="store-detail-ball" alt="" width="168" height="168">
+                <figcaption id="store-detail-ball-label"></figcaption>
+              </figure>
+              <figure>
+                <img id="store-detail-goal" alt="" width="168" height="168">
+                <figcaption id="store-detail-goal-label"></figcaption>
+              </figure>
+            </div>
+            <h3 id="store-detail-name"></h3>
+            <p id="store-detail-blurb"></p>
+            <p id="store-detail-price"></p>
+          </div>
+        </div>
         <div id="store-confirm" class="store-confirm" hidden>
           <div class="store-confirm-card">
             <p id="store-confirm-text"></p>
