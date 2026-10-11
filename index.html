@@ -232,6 +232,16 @@
           <button type="button" data-glow="on">On</button>
           <button type="button" data-glow="off">Off</button>
         </div>
+        <p id="audio-label">Audio</p>
+        <label class="audio-slider">
+          <span id="bgm-name">Music</span>
+          <input id="bgm-volume" type="range" min="0" max="100" step="1" value="70" aria-valuemin="0" aria-valuemax="100" aria-valuenow="70">
+        </label>
+        <label class="audio-slider">
+          <span id="sfx-name">Effects</span>
+          <input id="sfx-volume" type="range" min="0" max="100" step="1" value="80" aria-valuemin="0" aria-valuemax="100" aria-valuenow="80">
+        </label>
+        <button type="button" id="audio-mute" aria-pressed="false">Mute</button>
         <button type="button" id="settings-close">Close</button>
       </div>
     </div>

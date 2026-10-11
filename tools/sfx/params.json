@@ -1,0 +1,274 @@
+{
+  "defaults": {
+    "wave_type": 2,
+    "p_env_attack": 0,
+    "p_env_sustain": 0.08,
+    "p_env_punch": 0,
+    "p_env_decay": 0.2,
+    "p_base_freq": 0.3,
+    "p_freq_limit": 0,
+    "p_freq_ramp": 0,
+    "p_freq_dramp": 0,
+    "p_vib_strength": 0,
+    "p_vib_speed": 0,
+    "p_arp_mod": 0,
+    "p_arp_speed": 0,
+    "p_duty": 0,
+    "p_duty_ramp": 0,
+    "p_repeat_speed": 0,
+    "p_pha_offset": 0,
+    "p_pha_ramp": 0,
+    "p_lpf_freq": 1,
+    "p_lpf_ramp": 0,
+    "p_lpf_resonance": 0,
+    "p_hpf_freq": 0,
+    "p_hpf_ramp": 0,
+    "sound_vol": 0.4,
+    "sample_rate": 22050,
+    "sample_size": 16
+  },
+  "sounds": {
+    "roll": {
+      "label": "Ball roll start / slide",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.17,
+        "p_freq_ramp": 0.1,
+        "p_vib_strength": 0.05,
+        "p_vib_speed": 0.22,
+        "p_env_attack": 0.14,
+        "p_env_sustain": 0.32,
+        "p_env_decay": 0.36,
+        "p_lpf_freq": 0.38,
+        "p_lpf_resonance": 0.12,
+        "p_hpf_freq": 0.04
+      }
+    },
+    "bump": {
+      "label": "Wall bump",
+      "params": {
+        "wave_type": 3,
+        "p_base_freq": 0.2,
+        "p_freq_ramp": -0.28,
+        "p_env_sustain": 0.08,
+        "p_env_decay": 0.22,
+        "p_lpf_freq": 0.24,
+        "p_lpf_resonance": 0.18,
+        "p_hpf_freq": 0.03
+      }
+    },
+    "stop": {
+      "label": "Slide stop",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.21,
+        "p_freq_ramp": -0.38,
+        "p_env_sustain": 0.07,
+        "p_env_decay": 0.22,
+        "p_lpf_freq": 0.32
+      }
+    },
+    "goal": {
+      "label": "Goal sink",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.44,
+        "p_freq_ramp": -0.2,
+        "p_arp_mod": 0.32,
+        "p_arp_speed": 0.58,
+        "p_env_attack": 0.02,
+        "p_env_sustain": 0.1,
+        "p_env_punch": 0.22,
+        "p_env_decay": 0.3,
+        "p_lpf_freq": 0.62
+      }
+    },
+    "clear": {
+      "label": "Stage clear",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.4,
+        "p_freq_ramp": 0.06,
+        "p_arp_mod": 0.45,
+        "p_arp_speed": 0.52,
+        "p_env_attack": 0.02,
+        "p_env_sustain": 0.18,
+        "p_env_punch": 0.12,
+        "p_env_decay": 0.34,
+        "p_lpf_freq": 0.58
+      }
+    },
+    "star": {
+      "label": "Star earned",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.57,
+        "p_arp_mod": 0.4,
+        "p_arp_speed": 0.66,
+        "p_env_sustain": 0.06,
+        "p_env_punch": 0.18,
+        "p_env_decay": 0.24,
+        "p_lpf_freq": 0.7
+      }
+    },
+    "switch": {
+      "label": "Button / switch press",
+      "params": {
+        "wave_type": 0,
+        "p_duty": 0.42,
+        "p_base_freq": 0.46,
+        "p_freq_ramp": 0.16,
+        "p_env_sustain": 0.08,
+        "p_env_decay": 0.18,
+        "p_lpf_freq": 0.42
+      }
+    },
+    "gate": {
+      "label": "Gate open",
+      "params": {
+        "wave_type": 1,
+        "p_base_freq": 0.19,
+        "p_freq_ramp": 0.3,
+        "p_env_attack": 0.07,
+        "p_env_sustain": 0.1,
+        "p_env_decay": 0.22,
+        "p_lpf_freq": 0.34,
+        "p_hpf_freq": 0.05
+      }
+    },
+    "glass": {
+      "label": "Glass shatter",
+      "params": {
+        "wave_type": 3,
+        "p_base_freq": 0.58,
+        "p_freq_ramp": -0.12,
+        "p_env_sustain": 0.04,
+        "p_env_decay": 0.25,
+        "p_hpf_freq": 0.32,
+        "p_lpf_freq": 0.62,
+        "p_lpf_resonance": 0.28,
+        "p_pha_offset": 0.16
+      }
+    },
+    "ice": {
+      "label": "Ice slide",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.5,
+        "p_freq_ramp": 0.08,
+        "p_vib_strength": 0.04,
+        "p_vib_speed": 0.4,
+        "p_env_attack": 0.05,
+        "p_env_sustain": 0.16,
+        "p_env_decay": 0.22,
+        "p_lpf_freq": 0.58,
+        "p_hpf_freq": 0.1
+      }
+    },
+    "sand": {
+      "label": "Sand stop",
+      "params": {
+        "wave_type": 3,
+        "p_base_freq": 0.13,
+        "p_freq_ramp": -0.32,
+        "p_env_attack": 0.03,
+        "p_env_sustain": 0.08,
+        "p_env_decay": 0.26,
+        "p_lpf_freq": 0.16,
+        "p_hpf_freq": 0.02
+      }
+    },
+    "teleport": {
+      "label": "Teleport",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.48,
+        "p_freq_ramp": -0.1,
+        "p_arp_mod": -0.38,
+        "p_arp_speed": 0.62,
+        "p_env_sustain": 0.08,
+        "p_env_decay": 0.24,
+        "p_pha_offset": 0.28,
+        "p_pha_ramp": -0.12,
+        "p_lpf_freq": 0.55
+      }
+    },
+    "jelly": {
+      "label": "Jelly bounce",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.33,
+        "p_freq_ramp": -0.42,
+        "p_freq_dramp": 0.22,
+        "p_env_sustain": 0.05,
+        "p_env_punch": 0.42,
+        "p_env_decay": 0.26,
+        "p_lpf_freq": 0.48
+      }
+    },
+    "magma-warn": {
+      "label": "Magma warning",
+      "params": {
+        "wave_type": 1,
+        "p_base_freq": 0.12,
+        "p_freq_ramp": 0.06,
+        "p_vib_strength": 0.2,
+        "p_vib_speed": 0.28,
+        "p_env_attack": 0.06,
+        "p_env_sustain": 0.14,
+        "p_env_decay": 0.28,
+        "p_lpf_freq": 0.22
+      }
+    },
+    "magma": {
+      "label": "Magma erupt",
+      "params": {
+        "wave_type": 3,
+        "p_base_freq": 0.18,
+        "p_freq_ramp": -0.26,
+        "p_env_attack": 0.03,
+        "p_env_sustain": 0.12,
+        "p_env_decay": 0.36,
+        "p_lpf_freq": 0.26,
+        "p_lpf_resonance": 0.26,
+        "p_hpf_freq": 0.03
+      }
+    },
+    "ui": {
+      "label": "UI tap",
+      "params": {
+        "wave_type": 0,
+        "p_duty": 0.5,
+        "p_base_freq": 0.5,
+        "p_env_sustain": 0.09,
+        "p_env_decay": 0.18,
+        "p_lpf_freq": 0.4
+      }
+    },
+    "buy": {
+      "label": "Shop purchase",
+      "params": {
+        "wave_type": 2,
+        "p_base_freq": 0.54,
+        "p_arp_mod": 0.42,
+        "p_arp_speed": 0.68,
+        "p_env_sustain": 0.07,
+        "p_env_punch": 0.14,
+        "p_env_decay": 0.2,
+        "p_lpf_freq": 0.66
+      }
+    },
+    "denied": {
+      "label": "Locked / denied",
+      "params": {
+        "wave_type": 0,
+        "p_duty": 0.28,
+        "p_base_freq": 0.18,
+        "p_freq_ramp": -0.3,
+        "p_env_sustain": 0.08,
+        "p_env_decay": 0.22,
+        "p_lpf_freq": 0.24
+      }
+    }
+  }
+}

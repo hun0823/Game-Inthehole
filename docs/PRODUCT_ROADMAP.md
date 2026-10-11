@@ -17,6 +17,7 @@
 - [x] 행성/공 텍스처 파이프라인 — `tools/bake_sphere_maps.py`, [`TEXTURE_MAPS.md`](TEXTURE_MAPS.md)
 - [x] GitHub Pages 자동 배포
 - [x] Unity (`unity/InTheHole/`) **일시 중지** — 코드 보존, 웹과 규칙·레벨 포맷 불일치
+- [x] 오디오 기반 — `js/audio.js` 버스, 설정 볼륨·뮤트, jsfxr로 구운 SFX. **BGM 파일은 아직 없음** (`assets/audio/manifest.json`에 넣기 전까지 무음)
 
 ---
 
@@ -26,7 +27,7 @@
 
 | 항목 | 메모 |
 |------|------|
-| **오디오** | BGM + SFX **한 시스템**, 볼륨·뮤트 UI |
+| **BGM 선곡** | 시스템·SFX·설정은 있음. 메뉴/인게임 루프를 `assets/audio/manifest.json`에 추가 (디자이너 후보 → 오너 선택). README 「오디오」 |
 | **첫 30초 튜토리얼** | 손가락 가이드 — 기울이기 → 구멍 |
 | **210LAB 로고 스플래시** | 부팅·브랜딩 |
 | **저장 강화** | localStorage 이상 — 날아감·동기화 대비 (스키마·export 등) |
@@ -36,7 +37,7 @@
 | 항목 | 메모 |
 |------|------|
 | **배틀 모드** | [`GAME_DESIGN_REFERENCE.md` §5](GAME_DESIGN_REFERENCE.md) — **로컬 2P 프로토타입** 먼저 |
-| **iPhone 60fps / 발열** | 실기기 측정, `js/quality.js`·bloom 등 튜닝 |
+| **iPhone 60fps / 발열** | 실기기 측정. `?fps=1` 오버레이(FPS, p50/p95, draw call)로 확인. `js/quality.js`·bloom 튜닝 |
 | **텍스처·폰트 용량** | WebP/해상도, HUD 폰트 subset |
 | **테스트 해금** | Pages 테스트 hostname 해금; **릴리스에서는 OFF 확인** (`?unlock=` 동작 문서화) |
 | **Undo** | 도입 여부 **결정** (현재 없음) |
