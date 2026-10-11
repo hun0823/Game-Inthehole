@@ -235,15 +235,15 @@ def paint_tennis(x, y, z):
 
 
 def paint_melon(x, y, z, theta, phi):
-    """Dark green ground, slightly irregular darker stripes, vivid yellow-green bands."""
-    wobble = np.sin(theta) * 0.05 * np.sin(phi * 2.0 + 0.6)
+    """Yellow-green rind with wide dark stripes. The light bands stay yellow, not a second green."""
+    wobble = np.sin(theta) * 0.04 * np.sin(phi * 2.0 + 0.6)
     phase = phi + 0.55 + wobble
     wave = np.sin(phase * 8.0)
-    dark_k = smoothstep(-0.08, 0.42, wave)
-    cap = smoothstep(0.1, 0.38, theta) * smoothstep(0.1, 0.38, np.pi - theta)
+    dark_k = smoothstep(0.05, 0.55, wave)
+    cap = smoothstep(0.08, 0.28, theta) * smoothstep(0.08, 0.28, np.pi - theta)
     dark_k = dark_k * cap
-    field = rgb_of("#7ed42a")
-    stripe = rgb_of("#0c4a1e")
+    field = rgb_of("#d6ee4a")
+    stripe = rgb_of("#083018")
     col = mix(field, stripe, dark_k)
     stem = smoothstep(0.18, 0.03, theta)
     col = mix(col, rgb_of("#3a2414"), stem)
@@ -254,42 +254,33 @@ def paint_melon(x, y, z, theta, phi):
 
 
 def paint_oak(x, y, z):
-    """Warm oak with fine, soft fibers along the axis. One or two knots.
-
-    Color varies around the log, not along it, so the ball is not a few wide
-    latitude bands. Contrast stays low and the bump stays small.
-    """
-    radial = np.sqrt(x * x + z * z + np.float32(1e-6))
-    # Long soft fibers: high frequency around the log, low frequency along it.
-    fiber = fbm(x * 14.0 + y * 0.4, y * 1.6, z * 14.0, 3)
-    fiber = wrap_blur(fiber, 2)
-    vein = smoothstep(0.58, 0.82, fbm(x * 7.0, y * 0.8, z * 7.0, 2))
-    shadow = rgb_of("#b87432")
-    light = rgb_of("#e6c08a")
-    col = mix(shadow, light, 0.42 + 0.36 * fiber)
-    col = mix(col, rgb_of("#8d5528"), vein * 0.16)
-    warmth = fbm(x * 0.6, y * 0.25, z * 0.6, 2)
-    col = mix(col, rgb_of("#d7a45c"), np.clip(warmth - 0.35, 0, 1) * 0.18)
-    end = smoothstep(0.78, 0.97, np.abs(y))
-    rings = 0.5 + 0.5 * np.sin(radial * 28.0)
-    end_col = mix(rgb_of("#a86a32"), rgb_of("#f0d2a4"), 0.35 + 0.4 * rings)
-    col = mix(col, end_col, end * 0.82)
+    """Tight growth rings. The log end faces the overhead camera and the shop camera."""
+    axis = np.array([0.0, 0.62, 0.78], dtype=np.float32)
+    axis /= np.linalg.norm(axis)
+    along = x * axis[0] + y * axis[1] + z * axis[2]
+    radial = np.sqrt(np.maximum(np.float32(0.0), 1.0 - along * along))
+    rings = 0.5 + 0.5 * np.sin(radial * 78.0)
+    light = rgb_of("#f2d2a2")
+    mid = rgb_of("#c4843c")
+    dark = rgb_of("#6a3814")
+    col = mix(light, mid, smoothstep(0.15, 0.55, rings))
+    col = mix(col, dark, smoothstep(0.62, 0.9, rings))
+    fiber = fbm(x * 10.0, y * 2.0, z * 10.0, 2)
+    col = col * (0.94 + 0.08 * (fiber - 0.5))[..., None]
 
     def knot_mask(dx, dy, dz, edge):
         direction = np.array([dx, dy, dz], dtype=np.float32)
         direction /= np.linalg.norm(direction)
         dot = x * direction[0] + y * direction[1] + z * direction[2]
-        core = smoothstep(edge, edge + 0.01, dot)
-        halo = smoothstep(edge - 0.018, edge, dot) * (1.0 - core)
+        core = smoothstep(edge, edge + 0.008, dot)
+        halo = smoothstep(edge - 0.012, edge, dot) * (1.0 - core)
         return core, halo
 
-    core_a, halo_a = knot_mask(0.12, 0.02, 0.99, 0.986)
-    core_b, halo_b = knot_mask(-0.62, 0.28, 0.62, 0.993)
-    col = mix(col, rgb_of("#6a3c18"), np.clip(halo_a * 0.85 + halo_b * 0.65, 0, 1))
-    col = mix(col, rgb_of("#3e2412"), np.clip(core_a + core_b * 0.8, 0, 1))
-    height = (fiber - 0.5) * 0.012 + vein * 0.008 - core_a * 0.04 - core_b * 0.025
-    rough = np.full(x.shape, 0.9, dtype=np.float32)
-    rough = mix(rough, np.float32(0.84), end)
+    core_a, halo_a = knot_mask(0.55, -0.15, 0.82, 0.992)
+    col = mix(col, rgb_of("#8a4a1c"), halo_a * 0.7)
+    col = mix(col, rgb_of("#3a2010"), core_a)
+    height = (rings - 0.5) * 0.16 - core_a * 0.05
+    rough = np.full(x.shape, 0.82, dtype=np.float32)
     return np.clip(col, 0, 1), height.astype(np.float32), rough
 
 
@@ -544,7 +535,7 @@ def main():
     balls = {
         "ball_baseball": (paint_baseball, 0.85, 84, False),
         "ball_tennis": (paint_tennis, 0.4, 82, False),
-        "ball_oak": (paint_oak, 0.16, 82, False),
+        "ball_oak": (paint_oak, 0.55, 82, False),
         "ball_melon": (paint_melon, 0.4, 82, False),
     }
     planets = {

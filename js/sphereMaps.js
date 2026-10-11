@@ -8,11 +8,10 @@ export const MAP_BALLS = [
   "baseball", "tennis", "melon", "oak",
   "dune", "marble", "soccer", "tire", "slime", "snow",
   "basketball", "beach", "bowling", "meteor", "toy", "mushroom",
-  "coco", "alien", "gear", "golf", "yarn", "donut", "disco",
+  "coco", "gummy", "alien", "gear", "golf", "yarn", "donut", "disco",
   "lucky", "cat", "pixel", "globe", "skull",
 ];
-// Gummy stays a flat translucent jelly. A speckle map would not read at board size.
-export const UNMAPPED_BALLS = ["gummy"];
+export const UNMAPPED_BALLS = [];
 export const MAP_PLANETS = [
   "wood", "desert", "ocean", "lava",
   "ice", "crystal", "toy", "mushroom", "candy", "jungle", "alien", "machine",
@@ -34,7 +33,7 @@ const BALL_LOOK = {
   baseball: { metalness: 0.02, envMapIntensity: 0.18, normalScale: 0.75 },
   tennis: { metalness: 0.0, envMapIntensity: 0.1, normalScale: 0.35 },
   melon: { metalness: 0.0, envMapIntensity: 0.12, normalScale: 0.28 },
-  oak: { metalness: 0.0, envMapIntensity: 0.0, normalScale: 0.12 },
+  oak: { metalness: 0.0, envMapIntensity: 0.0, normalScale: 0.45 },
   dune: { metalness: 0.02, envMapIntensity: 0.1, normalScale: 0.55 },
   marble: { metalness: 0.04, envMapIntensity: 0.2, normalScale: 0.3, clearcoat: 0.45 },
   soccer: { metalness: 0.02, envMapIntensity: 0.14, normalScale: 0.4 },
@@ -47,7 +46,8 @@ const BALL_LOOK = {
   meteor: { metalness: 0.06, envMapIntensity: 0.12, normalScale: 0.65, emissiveIntensity: 0.85 },
   toy: { metalness: 0.02, envMapIntensity: 0.14, normalScale: 0.3 },
   mushroom: { metalness: 0.0, envMapIntensity: 0.1, normalScale: 0.35 },
-  coco: { metalness: 0.02, envMapIntensity: 0.08, normalScale: 0.5 },
+  coco: { metalness: 0.02, envMapIntensity: 0.08, normalScale: 0.85 },
+  gummy: { metalness: 0.0, envMapIntensity: 0.16, normalScale: 0.25 },
   alien: { metalness: 0.0, envMapIntensity: 0.16, normalScale: 0.28, emissiveIntensity: 0.4 },
   gear: { metalness: 0.62, envMapIntensity: 0.2, normalScale: 0.5 },
   golf: { metalness: 0.02, envMapIntensity: 0.12, normalScale: 0.65 },
@@ -55,7 +55,7 @@ const BALL_LOOK = {
   donut: { metalness: 0.0, envMapIntensity: 0.14, normalScale: 0.3 },
   disco: { metalness: 0.72, envMapIntensity: 0.22, normalScale: 0.55, clearcoat: 0.15 },
   lucky: { metalness: 0.08, envMapIntensity: 0.14, normalScale: 0.3 },
-  cat: { metalness: 0.0, envMapIntensity: 0.06, normalScale: 0.32 },
+  cat: { metalness: 0.0, envMapIntensity: 0.06, normalScale: 0.7 },
   pixel: { metalness: 0.0, envMapIntensity: 0.08, normalScale: 0.4 },
   globe: { metalness: 0.04, envMapIntensity: 0.16, normalScale: 0.35 },
   skull: { metalness: 0.02, envMapIntensity: 0.1, normalScale: 0.3, emissiveIntensity: 0.7 },

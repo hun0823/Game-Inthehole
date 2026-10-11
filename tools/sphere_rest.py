@@ -3,7 +3,7 @@
 Same baker as tools/bake_sphere_maps.py. Patterns are functions of the
 sphere direction, so the longitude seam is one point. Colors follow the
 canvas materials in js/board3d.js and the approved collection sheets.
-Gummy is intentionally absent: a flat jelly does not need a map.
+Gummy carries a freckle map so the jelly is not a flat hot-pink fill.
 """
 
 from __future__ import annotations
@@ -152,66 +152,51 @@ def paint_soccer(x, y, z):
 
 
 def paint_tire(x, y, z):
-    """Dark gray rubber with a tread belt, so the ball stays visible on a dark floor."""
-    rubber = rgb_of("#5a6168")
-    groove_c = rgb_of("#2c3138")
-    block = rgb_of("#8b939c")
-    speck = rgb_of("#d5dde6")
-    lat = np.abs(y)
-    belt = smoothstep(0.56, 0.4, lat)
-    lat_wave = 0.5 + 0.5 * np.sin(y * 46.0)
-    lon = np.arctan2(z, x)
-    lon_wave = 0.5 + 0.5 * np.sin(lon * 18.0)
-    lat_groove = smoothstep(0.72, 0.28, lat_wave)
-    lon_groove = smoothstep(0.82, 0.38, lon_wave)
-    groove = np.clip(np.maximum(lat_groove, lon_groove), 0.0, 1.0) * belt
-    raised = belt * (1.0 - groove)
-    speckle = smoothstep(0.62, 0.88, fbm(x * 14.0, y * 14.0, z * 14.0, 2))
-    col = mix(rubber, groove_c, groove)
-    col = mix(col, block, raised * 0.9)
-    col = mix(col, speck, speckle * raised * 0.75)
-    white_band = smoothstep(0.07, 0.0, np.abs(lat - 0.62))
-    yellow_band = smoothstep(0.055, 0.0, np.abs(lat - 0.74))
-    dash = smoothstep(0.42, 0.12, np.abs(np.sin(lon * 22.0))) * yellow_band
-    col = mix(col, rgb_of("#f4f6f8"), white_band)
-    col = mix(col, rgb_of("#f2c14a"), yellow_band)
-    col = mix(col, rgb_of("#1c2026"), dash)
-    height = raised * 0.62 - groove * 0.18 + white_band * 0.08 + yellow_band * 0.06
-    rough = np.full(x.shape, 0.78, dtype=np.float32)
-    rough = mix(rough, np.float32(0.42), speckle * raised)
-    rough = mix(rough, np.float32(0.5), np.maximum(white_band, yellow_band))
+    """Black rubber with concentric tread rings. No yellow sidewall, no block tread."""
+    axis = np.array([0.0, 0.62, 0.78], dtype=np.float32)
+    axis /= np.linalg.norm(axis)
+    along = x * axis[0] + y * axis[1] + z * axis[2]
+    radial = np.sqrt(np.maximum(np.float32(0.0), 1.0 - along * along))
+    wave = 0.5 + 0.5 * np.sin(radial * 36.0)
+    groove = smoothstep(0.28, 0.62, wave)
+    rubber = rgb_of("#2a2e34")
+    ring = rgb_of("#8e969e")
+    col = mix(rubber, ring, groove)
+    height = groove * 0.55
+    rough = mix(np.float32(0.9), np.float32(0.62), groove)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
 def paint_slime(x, y, z):
-    blobs = fbm(x * 2.4 + 1.2, y * 2.4, z * 2.4, 3)
-    spots = smoothstep(0.58, 0.72, blobs)
-    glaze = smoothstep(0.62, 0.8, fbm(x * 1.3 + 4.0, y * 1.1, z * 1.3, 2))
-    base = rgb_of("#3dcf4a")
-    dark = rgb_of("#1c8a2c")
-    light = rgb_of("#b6ff9a")
-    col = mix(base, dark, spots * 0.85)
-    col = mix(col, light, glaze * 0.35 * (1.0 - spots))
-    height = spots * 0.08 + glaze * 0.04
-    rough = mix(np.float32(0.28), np.float32(0.16), glaze)
-    rough = mix(rough, np.float32(0.36), spots)
+    """Bright green with many small freckles, not large dark blotches."""
+    base = rgb_of("#4ad85a")
+    freckle = rgb_of("#146828")
+    light = rgb_of("#d8ffb0")
+    pts = _fibonacci(48, 0.7)
+    spot = np.zeros(x.shape, dtype=np.float32)
+    pale = np.zeros(x.shape, dtype=np.float32)
+    for i, point in enumerate(pts):
+        disc = _disc(x, y, z, point, 0.055, 0.016)
+        if i % 5 == 0:
+            pale = np.maximum(pale, disc)
+        else:
+            spot = np.maximum(spot, disc)
+    col = mix(base, freckle, spot)
+    col = mix(col, light, pale * 0.85)
+    height = spot * 0.08 + pale * 0.04
+    rough = mix(np.float32(0.32), np.float32(0.22), np.clip(spot + pale, 0, 1))
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
 def paint_snow(x, y, z):
-    lump = fbm(x * 3.4, y * 3.4, z * 3.4, 5)
-    big = fbm(x * 1.15 + 2.2, y * 1.15, z * 1.15 + 0.7, 3)
-    crevice = smoothstep(0.46, 0.18, lump)
-    peak = smoothstep(0.55, 0.84, lump)
+    """Clean white. Bump stays, blue-gray stains do not."""
+    lump = fbm(x * 2.2, y * 2.2, z * 2.2, 3)
     white = rgb_of("#f7fbff")
-    blue = rgb_of("#6ea4d4")
-    col = mix(white, blue, crevice * 0.75)
-    col = mix(col, white, peak * 0.4)
-    col = mix(col, blue, smoothstep(0.5, 0.22, big) * 0.28)
-    height = wrap_blur(((lump - 0.5) * 0.85 + (big - 0.5) * 0.45).astype(np.float32), 2)
-    rough = mix(np.float32(0.74), np.float32(0.46), peak)
-    rough = mix(rough, np.float32(0.88), crevice)
-    return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
+    shade = rgb_of("#e7eef6")
+    col = mix(white, shade, smoothstep(0.62, 0.82, lump) * 0.18)
+    height = wrap_blur(((lump - 0.5) * 0.35).astype(np.float32), 2)
+    rough = np.full(x.shape, 0.72, dtype=np.float32)
+    return np.clip(col, 0, 1), height.astype(np.float32), rough
 
 
 def paint_basketball(x, y, z):
@@ -231,16 +216,19 @@ def paint_basketball(x, y, z):
 
 
 def paint_beach(x, y, z):
-    """Latitude bands from the canvas map. The collection sheet used gores; the repo keeps stripes."""
-    bands = ["#f7f7f7", "#3ec4ff", "#ffe14a", "#ff5b9a", "#f7f7f7", "#3ec4ff"]
+    """Volleyball gores: colored slices that meet at the poles."""
+    bands = ["#f7f7f7", "#ff5b9a", "#ffe14a", "#f7f7f7", "#3ec4ff", "#ff5b9a"]
     colors = np.stack([rgb_of(h) for h in bands], axis=0)
-    t = np.clip((1.0 - y) * 0.5, 0.0, 0.999)
-    idx = np.floor(t * 6.0).astype(np.int32)
+    lon = np.arctan2(z, x)
+    # Half a gore past the longitude seam so the wrap sits inside one slice.
+    t = np.mod(lon + np.pi + np.pi / 6.0, 2.0 * np.pi) / (2.0 * np.pi)
+    idx = np.floor(t * 6.0).astype(np.int32) % 6
     col = colors[idx]
-    edge = np.abs((t * 6.0) % 1.0 - 0.5)
-    lip = smoothstep(0.48, 0.5, edge)
-    height = lip * 0.08
-    rough = np.full(x.shape, 0.48, dtype=np.float32)
+    edge = np.minimum(t * 6.0 % 1.0, 1.0 - (t * 6.0 % 1.0))
+    seam = smoothstep(0.08, 0.015, edge)
+    col = mix(col, rgb_of("#1a1a1a"), seam * 0.35)
+    height = seam * 0.1
+    rough = np.full(x.shape, 0.42, dtype=np.float32)
     return np.clip(col, 0, 1), height, rough
 
 
@@ -288,11 +276,14 @@ def paint_meteor(x, y, z):
 
 
 def _star(lx, ly, lz, points, outer, inner):
-    ang = np.arctan2(ly, lx)
-    spike = np.abs(np.cos(ang * points / 2.0))
-    limit = inner + (outer - inner) * spike
+    """Sharp star, not rounded petals."""
+    ang = np.arctan2(ly, lx) + np.pi / points
+    sector = (2.0 * np.pi) / points
+    local = np.mod(ang, sector)
+    tri = 1.0 - np.abs(local - sector * 0.5) / (sector * 0.5)
+    bound = inner + (outer - inner) * tri
     radius = np.arccos(np.clip(lz, -1.0, 1.0))
-    return smoothstep(limit, limit * 0.72, radius) * smoothstep(0.0, 0.25, lz)
+    return smoothstep(bound, bound * 0.86, radius) * smoothstep(0.0, 0.2, lz)
 
 
 def paint_toy(x, y, z):
@@ -330,23 +321,16 @@ def paint_mushroom_ball(x, y, z):
 
 
 def paint_coco(x, y, z):
+    """Hairy husk. Fibers run the long way; the three pores stay small."""
     lon = np.arctan2(z, x)
-    fiber = 0.5 + 0.5 * np.sin(lon * 8.0 + y * 5.0 + 0.4 * np.sin(lon * 3.0))
-    fiber = wrap_blur(fiber.astype(np.float32), 1)
-    husk = mix(rgb_of("#4a2810"), rgb_of("#6a3a18"), fiber)
-    husk = mix(husk, rgb_of("#8a5430"), smoothstep(0.62, 0.9, fiber) * 0.45)
-    d, tangent, bitangent = _basis(FRONT)
-    lx, ly, lz = _project(x, y, z, d, tangent, bitangent)
-    pores = [(0.0, 0.05, 0.07), (-0.08, -0.035, 0.06), (0.082, -0.032, 0.058)]
-    height = (fiber - 0.5) * 0.22
-    col = husk
-    for cx, cy, radius in pores:
-        dist = np.sqrt((lx - cx) ** 2 + (ly - cy) ** 2)
-        pit = smoothstep(radius, radius * 0.4, dist) * smoothstep(0.1, 0.4, lz)
-        col = mix(col, rgb_of("#2a1408"), pit)
-        height = height - pit * 0.3
-    rough = np.full(x.shape, 0.78, dtype=np.float32)
-    return np.clip(col, 0, 1), height.astype(np.float32), rough
+    warp = fbm(x * 3.0, y * 3.0, z * 3.0, 2)
+    hair = 0.5 + 0.5 * np.sin(lon * 46.0 + y * 8.0 + warp * 5.0)
+    hair = wrap_blur(hair.astype(np.float32), 1)
+    husk = mix(rgb_of("#3a1c0c"), rgb_of("#8a5428"), smoothstep(0.25, 0.75, hair))
+    husk = mix(husk, rgb_of("#c48a58"), smoothstep(0.72, 0.95, hair) * 0.7)
+    height = (hair - 0.45) * 0.42
+    rough = mix(np.float32(0.92), np.float32(0.7), hair)
+    return np.clip(husk, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
 def paint_alien_ball(x, y, z):
@@ -366,34 +350,21 @@ def paint_alien_ball(x, y, z):
 
 
 def paint_gear(x, y, z):
-    """Cool steel. No yellow, no brass."""
-    d, tangent, bitangent = _basis(FRONT)
-    lx, ly, lz = _project(x, y, z, d, tangent, bitangent)
-    radial = np.sqrt(lx * lx + ly * ly)
-    ang = np.arctan2(ly, lx)
-    facing = smoothstep(0.0, 0.35, lz)
-    tooth_count = 10.0
-    sector = np.mod(ang * tooth_count / (2.0 * np.pi) + 10.0, 1.0)
-    tooth_ang = smoothstep(0.08, 0.22, sector) * smoothstep(0.92, 0.78, sector)
-    inner = smoothstep(0.34, 0.42, radial)
-    outer = smoothstep(0.78, 0.66, radial)
-    tooth = inner * outer * tooth_ang * facing
-    hole = smoothstep(0.16, 0.07, radial) * facing
-    ring = smoothstep(0.2, 0.26, radial) * smoothstep(0.36, 0.3, radial) * facing
-    dark = rgb_of("#5c656e")
-    col = np.empty(x.shape + (3,), dtype=np.float32)
-    col[:] = rgb_of("#d5dde6")
-    col = mix(col, rgb_of("#eef2f6"), tooth)
-    col = mix(col, dark, ring)
-    col = mix(col, rgb_of("#3a4048"), hole)
-    # Kill a warm cast if one ever sneaks in.
+    """Paneled steel sphere. Seams, not a hub and blades."""
+    panels = [rgb_of("#d5dde6"), rgb_of("#b7c2ce"), rgb_of("#eef2f6")]
+    palette = np.stack(panels, axis=0)
+    dominant, iu, iv, edge = _cube_cells(x, y, z, 4)
+    index = (dominant + iu + iv) % len(panels)
+    col = palette[index]
+    gap = smoothstep(0.1, 0.02, edge)
+    col = mix(col, rgb_of("#3a424c"), gap)
+    rivet = smoothstep(0.045, 0.09, edge) * smoothstep(0.16, 0.1, edge)
+    col = mix(col, rgb_of("#f4f7fb"), rivet * 0.7)
     warm = np.clip(col[..., 0] - col[..., 2], 0.0, 1.0)
     col = col.copy()
-    col[..., 0] -= warm * 0.9
-    col[..., 1] -= warm * 0.35
-    height = tooth * 0.18 + ring * 0.06 - hole * 0.28
-    rough = mix(np.float32(0.38), np.float32(0.28), tooth)
-    rough = mix(rough, np.float32(0.5), hole)
+    col[..., 0] -= warm * 0.85
+    height = (1.0 - gap) * 0.16 + rivet * 0.05
+    rough = mix(np.float32(0.34), np.float32(0.55), gap)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
@@ -410,38 +381,28 @@ def paint_golf(x, y, z):
 
 
 def paint_yarn(x, y, z):
-    """Fibers wound on several axes. Creases stay thin so the ball reads as yarn, not a cage."""
+    """Beige thread wound in tight wraps. No pink."""
     axes = (
-        np.array([0.10, 0.98, 0.16], dtype=np.float32),
-        np.array([0.92, 0.12, 0.37], dtype=np.float32),
-        np.array([-0.22, 0.48, 0.85], dtype=np.float32),
-        np.array([0.58, -0.48, 0.66], dtype=np.float32),
+        np.array([0.08, 0.99, 0.08], dtype=np.float32),
+        np.array([0.96, 0.12, 0.24], dtype=np.float32),
     )
-    freqs = (18.0, 13.0, 21.0, 15.0)
-    palette = (
-        rgb_of("#f6d2c4"),
-        rgb_of("#f0a0b8"),
-        rgb_of("#e7a090"),
-        rgb_of("#f3c2b4"),
-    )
-    col = np.broadcast_to(rgb_of("#f0c4b4"), x.shape + (3,)).astype(np.float32).copy()
+    freqs = (34.0, 22.0)
+    palette = (rgb_of("#f3e2c8"), rgb_of("#e4cba6"))
+    col = np.broadcast_to(rgb_of("#d7b48a"), x.shape + (3,)).astype(np.float32).copy()
     height = np.zeros(x.shape, dtype=np.float32)
     cover = np.zeros(x.shape, dtype=np.float32)
     for axis, freq, color in zip(axes, freqs, palette):
         axis = axis / (np.linalg.norm(axis) + 1e-8)
         dot = x * axis[0] + y * axis[1] + z * axis[2]
         wave = np.abs(np.sin(dot * freq))
-        fiber = smoothstep(0.08, 0.7, wave)
-        col = mix(col, color, fiber * 0.62)
-        height = height + fiber * 0.045
+        fiber = smoothstep(0.12, 0.85, wave)
+        col = mix(col, color, fiber * 0.8)
+        height = height + fiber * 0.07
         cover = np.maximum(cover, fiber)
-    fuzz = fbm(x * 8.0, y * 8.0, z * 8.0, 2)
-    crease = smoothstep(0.62, 0.18, cover)
-    col = mix(col, rgb_of("#fff1ea"), cover * fuzz * 0.16)
-    col = mix(col, rgb_of("#c48878"), crease * 0.4)
-    height = wrap_blur((height - crease * 0.04 + (fuzz - 0.5) * 0.04).astype(np.float32), 2)
-    rough = mix(np.float32(0.9), np.float32(0.72), cover)
-    rough = mix(rough, np.float32(0.94), crease * 0.5)
+    crease = smoothstep(0.55, 0.12, cover)
+    col = mix(col, rgb_of("#a8845c"), crease * 0.55)
+    height = wrap_blur((height - crease * 0.06).astype(np.float32), 1)
+    rough = mix(np.float32(0.92), np.float32(0.74), cover)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
@@ -499,15 +460,16 @@ def _cube_cells(x, y, z, n):
 
 
 def paint_disco(x, y, z):
-    tiles = ["#f2f4f8", "#d4dde8", "#8aa0b8", "#f7f1c8", "#c9d4e4", "#e8eef6"]
+    """Fine silver mirror tiles. No gold, no blue panes."""
+    tiles = ["#f7f8fa", "#d5dbe3", "#eef1f5", "#c3ccd6"]
     palette = np.stack([rgb_of(h) for h in tiles], axis=0)
-    dominant, iu, iv, edge = _cube_cells(x, y, z, 3)
+    dominant, iu, iv, edge = _cube_cells(x, y, z, 8)
     index = (dominant * 3 + iu + iv * 2) % len(tiles)
     col = palette[index]
-    gap = smoothstep(0.11, 0.03, edge)
-    col = mix(col, rgb_of("#1a1c28"), gap)
-    height = (1.0 - gap) * 0.18 - gap * 0.08
-    rough = mix(np.float32(0.22), np.float32(0.55), gap)
+    gap = smoothstep(0.08, 0.015, edge)
+    col = mix(col, rgb_of("#2a3038"), gap)
+    height = (1.0 - gap) * 0.14
+    rough = mix(np.float32(0.16), np.float32(0.5), gap)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
@@ -534,14 +496,39 @@ def paint_lucky(x, y, z):
 
 
 def paint_cat(x, y, z):
-    lon = np.arctan2(z, x)
-    streak = 0.5 + 0.5 * np.sin(lon * 3.0 + y * 7.0 + 0.6 * np.sin(y * 4.0 + x))
-    streak = wrap_blur(streak.astype(np.float32), 1)
-    fur = mix(rgb_of("#c9a27a"), rgb_of("#8c6848"), smoothstep(0.45, 0.75, streak))
-    fur = mix(fur, rgb_of("#e6d2b4"), smoothstep(0.2, 0.0, streak) * 0.4)
-    height = (streak - 0.5) * 0.2
-    rough = np.full(x.shape, 0.9, dtype=np.float32)
-    return np.clip(fur, 0, 1), height.astype(np.float32), rough
+    """Fluffy mottled fur, not smooth stripes."""
+    blob = fbm(x * 2.6, y * 2.6, z * 2.6, 4)
+    tuft = fbm(x * 9.0, y * 9.0, z * 9.0, 3)
+    cream = rgb_of("#f3e6d4")
+    tan = rgb_of("#c49a6a")
+    brown = rgb_of("#7a5434")
+    col = mix(cream, tan, smoothstep(0.38, 0.62, blob))
+    col = mix(col, brown, smoothstep(0.62, 0.82, blob))
+    col = col * (0.9 + 0.16 * (tuft - 0.5))[..., None]
+    height = wrap_blur(((tuft - 0.5) * 0.55 + (blob - 0.5) * 0.2).astype(np.float32), 1)
+    rough = np.full(x.shape, 0.94, dtype=np.float32)
+    return np.clip(col, 0, 1), height.astype(np.float32), rough
+
+
+def paint_gummy(x, y, z):
+    """Hot-pink jelly with freckles big enough to read on the board."""
+    base = rgb_of("#ff5a9a")
+    dark = rgb_of("#e02870")
+    light = rgb_of("#ffd0e6")
+    pts = _fibonacci(28, 1.4)
+    spot = np.zeros(x.shape, dtype=np.float32)
+    pale = np.zeros(x.shape, dtype=np.float32)
+    for i, point in enumerate(pts):
+        disc = _disc(x, y, z, point, 0.09, 0.02)
+        if i % 3 == 0:
+            pale = np.maximum(pale, disc)
+        else:
+            spot = np.maximum(spot, disc)
+    col = mix(base, dark, spot * 0.85)
+    col = mix(col, light, pale * 0.9)
+    height = spot * 0.06 + pale * 0.04
+    rough = mix(np.float32(0.28), np.float32(0.18), np.clip(spot + pale, 0, 1))
+    return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
 def paint_pixel(x, y, z):
@@ -766,7 +753,8 @@ BALLS = {
     "ball_meteor": (paint_meteor, 0.75, 82, True),
     "ball_toy": (paint_toy, 0.3, 84, False),
     "ball_mushroom": (paint_mushroom_ball, 0.4, 84, False),
-    "ball_coco": (paint_coco, 0.55, 82, False),
+    "ball_coco": (paint_coco, 0.7, 82, False),
+    "ball_gummy": (paint_gummy, 0.28, 84, False),
     "ball_alien": (paint_alien_ball, 0.28, 82, True),
     "ball_gear": (paint_gear, 0.55, 82, False),
     "ball_golf": (paint_golf, 0.7, 82, False),
