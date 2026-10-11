@@ -1,8 +1,10 @@
-# Rollin' Board — Unity 3D (출시용)
+# Rollin' Board — Unity 3D (일시 중지)
+
+> **2026-10:** 프라이머리 빌드는 **웹** (`/index.html`, `js/game.js`). 이 Unity 프로젝트는 보존만 하며 규칙·레벨은 웹과 동기화되지 않음. 앱 출시는 Capacitor 등 웹 래핑을 우선 검토.
 
 > 예전 작업명 *In the Hole*. 코드·저장 키 일부는 `inthehole_` 접두사 유지.
 
-**목표:** 상위권 퍼즐 앱 — Unity 3D 테이블 + URP + AdMob.
+**과거 목표:** Unity 3D 테이블 + URP + AdMob.
 
 ## 요구 사항
 
