@@ -1,79 +1,90 @@
-# In the Hole — 상위권 출시 로드맵 (Unity 3D + 상업 퀄리티)
+# Rollin' Board — 로드맵 (웹 프라이머리)
 
-목표: 스토어 상위권 퍼즐 게임 수준의 **비주얼·손맛·수익화**를 Unity 3D 한 프로젝트에서 달성.
+**갱신:** 2026-10-11  
+**목표:** GitHub Pages 웹 빌드로 캠페인·메타·상점을 완성한 뒤, 출시 경로(PWA / Capacitor / 스토어)와 수익화를 결정.
 
-## 전략: 2번 + 3번 믹스
+**라이브:** https://hun0823.github.io/Game-Inthehole/ (`main` → [pages.yml](../.github/workflows/pages.yml))
 
-| 축 | 선택 | 이유 |
-|----|------|------|
-| **엔진** | Unity 2022.3 LTS + URP | 모바일 성능, AdMob/Analytics 생태계, 채용·에셋 풍부 |
-| **표현** | **진짜 3D** 테이블 | 기울임·공 굴림·벽 높이를 물리/카메라로 표현 (CSS 착시 X) |
-| **규칙** | 기존 `shared/levels.json` + `GameSimulation` | 웹 프로토타입에서 검증된 로직 재사용 |
+---
 
-## 단계별 마일스톤
+## 현재 상태 (완료)
 
-### Phase 0 — 지금 (1주)
-- [x] 웹 프로토타입으로 규칙 검증
-- [x] Unity `Assets` 골격 + 공유 레벨 JSON
-- [ ] Unity Hub에서 `unity/InTheHole` 열기 → 첫 스테이지 플레이 확인
+- [x] Three.js 플레이 (`index.html` + `js/`), 규칙 단일 소스 `js/game.js`
+- [x] 144 스테이지 — `shared/levels.json` (12 행성 × 12), `tools/validate_levels.py` + `sync_js_levels.py`
+- [x] 행성 맵·진행(행성 클리어 시 다음 해금), KO/EN (`js/i18n.js`)
+- [x] 아케이드 HUD — [`HUD_LAYOUT.md`](HUD_LAYOUT.md)
+- [x] 상점(별): 공 29종 + goal v3 페어, 트레일·배경·클리어 연출 (`js/cosmetics.js`, `js/balls.js`)
+- [x] 행성/공 텍스처 파이프라인 — `tools/bake_sphere_maps.py`, [`TEXTURE_MAPS.md`](TEXTURE_MAPS.md)
+- [x] GitHub Pages 자동 배포
+- [x] Unity (`unity/InTheHole/`) **일시 중지** — 코드 보존, 웹과 규칙·레벨 포맷 불일치
 
-### Phase 1 — 코어 플레이 (2~3주)
+---
 
-> 상세 기획: [`GAME_DESIGN_REFERENCE.md`](GAME_DESIGN_REFERENCE.md) · 난이도: [`DIFFICULTY_FORMULA.md`](DIFFICULTY_FORMULA.md)
-- URP 라이팅 1벌 (방향광 + 환경광)
-- 프로시저럴 보드 → 이후 **Prefab + Material** 교체
-- 공 굴림: 경로 보간 + 벽 충돌 사운드
-- 테이블 `Transform` 기울임 + 관성 느낌 (DOTween 또는 AnimationCurve)
-- 5스테이지 + 스테이지 선택 UI
+## 다음 작업 (우선순위)
 
-### Phase 2 — 상위권 폴리시 (3~5주)
-- **아트**: Low-poly 판 + PBR 타일/벽/구멍 (에셋 스토어 또는 외주 1세트)
-- **VFX**: 먼지, 구멍 입장, 클리어 파티클
-- **UX**: 튜토리얼 손가락, Undo, 별 3개(최소 이동 수)
-- **사운드**: 굴림 루프, 탁, 떨어짐, BGM 1~2곡
-- **메타**: 월드맵, 스테이지 30~50+, 난이도 곡선
+### P0 — 플레이 완성도
 
-### Phase 3 — 출시 (2~3주)
-- Android/iOS 빌드, 스토어 스크린샷·영상
-- **Google AdMob**: 배너 + 전면(스테이지 클리어) + 보상형(힌트/Undo)
-- Firebase Analytics, 크래시리틱스
-- 소프트 런치 → 리텐션·광고 eCPM 보고 밸런스
+| 항목 | 메모 |
+|------|------|
+| **오디오** | BGM + SFX **한 시스템**, 볼륨·뮤트 UI |
+| **첫 30초 튜토리얼** | 손가락 가이드 — 기울이기 → 구멍 |
+| **210LAB 로고 스플래시** | 부팅·브랜딩 |
+| **저장 강화** | localStorage 이상 — 날아감·동기화 대비 (스키마·export 등) |
 
-### Phase 4 — 상위권 유지 (지속)
-- 주간 스테이지 / 시즌 패스
-- ASO 키워드·스크린샷 A/B
-- LiveOps: 이벤트 맵, 리더보드(최소 이동)
+### P1 — 모드·성능·출시 준비
 
-## 퀄리티 기준 (상위권 체크리스트)
+| 항목 | 메모 |
+|------|------|
+| **배틀 모드** | [`GAME_DESIGN_REFERENCE.md` §5](GAME_DESIGN_REFERENCE.md) — **로컬 2P 프로토타입** 먼저 |
+| **iPhone 60fps / 발열** | 실기기 측정, `js/quality.js`·bloom 등 튜닝 |
+| **텍스처·폰트 용량** | WebP/해상도, HUD 폰트 subset |
+| **테스트 해금** | Pages 테스트 hostname 해금; **릴리스에서는 OFF 확인** (`?unlock=` 동작 문서화) |
+| **Undo** | 도입 여부 **결정** (현재 없음) |
 
-- [ ] 60fps (중가 기기) / 배터리 과열 없음
-- [ ] 첫 30초 안에 “기울이기 → 구멍” 학습
-- [ ] 한 판 15~90초, 실패 시 즉시 재도전
-- [ ] 광고는 **자연스러운 쉬는 타이밍**에만 (플레이 중 X)
-- [ ] 스토어 1번째 스크린샷에서 3D 테이블이 한눈에 보임
+### P2 — 상용화
 
-## 기술 스택
+| 항목 | 메모 |
+|------|------|
+| **출시 경로** | 웹 only / PWA / **Capacitor** 래핑 — Unity 대신 후보 |
+| **광고·애널리틱스** | 자연스러운 브레이크 포인트 (§0 Block Blast 레퍼런스) |
+| **스토어 에셋** | 스크린샷·영상·ASO |
+| **일일 챌린지** | [`GAME_DESIGN_REFERENCE.md`](GAME_DESIGN_REFERENCE.md) 메타 |
+
+---
+
+## 퀄리티 체크리스트 (상위권)
+
+- [ ] 중가 iPhone **60fps**, 과열 없음
+- [ ] 첫 30초 안에 코어 루프 학습
+- [ ] 한 판 15~90초, 실패 후 즉시 재도전
+- [ ] 스토어 1스샷에서 보드·공이 한눈에
+
+---
+
+## 기술 스택 (웹)
 
 ```
-Unity 2022.3 LTS
-Universal RP (URP)
-Input System (터치 + 키보드 에디터)
-JSON: shared/levels.json
-AdMob: Google Mobile Ads Unity Plugin (Phase 3)
+HTML / CSS (HUD)
+ES modules + Three.js (js/board3d.js 등)
+규칙: js/game.js
+데이터: shared/levels.json → js/levels.js
+검증: tools/validate_levels.py, tools/tilt_solver.py
+배포: GitHub Actions → Pages
 ```
 
-## 폴더
+## 폴더 (요약)
 
 ```
 Game_Inthehole/
-  shared/levels.json      ← 스테이지 단일 소스 (웹·Unity 공용)
-  web/                    ← (선택) 기존 HTML 프로토타입 이동
-  unity/InTheHole/        ← 출시용 메인 프로젝트
-  docs/PRODUCT_ROADMAP.md ← 이 문서
+  index.html, css/, js/     ← 출시 빌드
+  shared/levels.json
+  tools/
+  assets/
+  docs/PRODUCT_ROADMAP.md   ← 이 문서
+  unity/InTheHole/          ← paused
 ```
 
-## 웹 프로토타입과의 관계
+## Unity와의 관계
 
-- **로직**: Unity `GameSimulation` = 웹 `game.js` 동일 규칙
-- **레벨**: `shared/levels.json` 수정 시 Unity `Resources/Levels/levels.json` 동기화
-- **웹**: 기획·밸런스 테스트용으로 유지 가능 (출시 빌드는 Unity만)
+- 웹이 **규칙·레벨의 진실**; Unity `GameSimulation.cs`는 레거시(기둥 모델).
+- Unity 재개 전에는 `unity/`를 갱신하지 않음. 앱 패키징은 **Capacitor** 등 웹 래핑을 우선 검토.
