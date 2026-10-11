@@ -58,13 +58,15 @@ export function bootPerf(sources) {
   const frames = [];
   let windowStart = performance.now();
   let last = windowStart;
+  let primed = false;
   let calls = 0;
   let triangles = 0;
 
   const loop = (now) => {
     const dt = now - last;
     last = now;
-    if (dt > 0 && dt < 1000) frames.push(dt);
+    if (primed && dt > 0 && dt < 1000) frames.push(dt);
+    primed = true;
     let nextCalls = 0;
     let nextTris = 0;
     for (const source of sources) {
@@ -75,7 +77,7 @@ export function bootPerf(sources) {
     }
     calls = nextCalls;
     triangles = nextTris;
-    if (now - windowStart >= 1000) {
+    if (frames.length && now - windowStart >= 1000) {
       const elapsed = now - windowStart;
       const fps = frames.length * 1000 / elapsed;
       const sorted = frames.slice().sort((a, b) => a - b);
