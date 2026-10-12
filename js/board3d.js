@@ -12,9 +12,10 @@ import { applyBallMaps, loadSphereMaps } from "./sphereMaps.js";
 import { createBloom } from "./bloom.js";
 import {
   beginTricks, tickTricks, trickVariant,
-  makeSand, makeIce, makeJelly, makeSmog, makeMagma, makeTeleport, makeCurrent, makeButton,
+  makeSand, makeIce, makeJelly, makeSmog, makeTeleport, makeCurrent, makeButton,
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
+import { createMagmaLook } from "./magmaLook.js";
 import { beginDeco, tickDeco, decoWanted, createBoardDeco } from "./boardDeco.js";
 
 const STEP = 1.16;
@@ -1148,7 +1149,6 @@ export function createView(canvas) {
   const coins = [];
   const pits = [];
   const shifters = [];
-  const magmas = [];
   let stockHole = null;
   let snowGrow = 1;
   let yarnScale = 1;
@@ -1261,6 +1261,19 @@ export function createView(canvas) {
   const cellXZ = (r, c) => ({
     x: (c - (n - 1) / 2) * STEP,
     z: (r - (n - 1) / 2) * STEP,
+  });
+
+  const magmaLook = createMagmaLook({
+    parent: rig,
+    cellXZ,
+    boardTop: BOARD_TOP,
+    step: STEP,
+    ballR: BALL_R,
+    ballRoot,
+    ballMesh,
+    contact,
+    burst,
+    kick(amount) { shake = Math.max(shake, amount); },
   });
 
   function burst(x, y, z, count, power, palette) {
@@ -1423,6 +1436,7 @@ export function createView(canvas) {
   }
 
   function clearRig() {
+    magmaLook.clear();
     for (const s of shardPool) {
       s.visible = false;
       s.userData.life = 0;
@@ -1444,7 +1458,6 @@ export function createView(canvas) {
     coins.length = 0;
     pits.length = 0;
     shifters.length = 0;
-    magmas.length = 0;
     beginTricks();
     beginDeco();
     stockHole = null;
@@ -2100,12 +2113,7 @@ export function createView(canvas) {
       pits.push(mesh);
       pits.push(crack);
     });
-    for (const vent of level.magma || []) {
-      const { x, z } = cellXZ(vent[0], vent[1]);
-      const group = makeMagma(x, z, vent[2], skin);
-      rig.add(group);
-      magmas.push(group);
-    }
+    magmaLook.mount(level.magma, activeTheme, game);
     for (const pair of level.teleports || []) {
       for (const [r, c] of pair) {
         const { x, z } = cellXZ(r, c);
@@ -2400,6 +2408,10 @@ export function createView(canvas) {
     else if (event.type === "glassShatter") shatterPane(mesh);
   }
 
+  function onMagmaEvent(ev) {
+    magmaLook.event(ev);
+  }
+
   function crosses(a, b, edge) {
     const axis = edge.axis || edge.kind;
     if (!a || !b) return false;
@@ -2480,12 +2492,8 @@ export function createView(canvas) {
         const gone = (game.collapse & pit.userData.bit) !== 0;
         pit.visible = pit.userData.crack ? true : gone;
       }
-      const spent = game.tilts || 0;
-      for (const group of magmas) {
-        const at = group.userData.at;
-        group.userData.phase = spent >= at ? 2 : spent === at - 1 ? 1 : 0;
-      }
     }
+    magmaLook.sync(game);
     for (const mesh of fogWalls) {
       if (mesh.userData.kind === "wall") applyEdgeVisibility(mesh, true);
     }
@@ -3090,6 +3098,8 @@ export function createView(canvas) {
         if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY;
       }
 
+      magmaLook.tick(time, dt);
+
       if (watchRender && renderer.info) {
         renderer.info.autoReset = false;
         renderer.info.reset();
@@ -3173,12 +3183,14 @@ export function createView(canvas) {
 
   if (typeof window !== "undefined") {
     window.RB_GLASS = onGlassEvent;
+    window.RB_MAGMA = onMagmaEvent;
     window.RB_MEASURE = measureGoal;
   }
 
   return {
     resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint, armGateOpen, setBall, setTrail, setCelebration,
     onGlassEvent,
+    onMagmaEvent,
     measureGoal,
     previewReact() {
       reactHold = null;
