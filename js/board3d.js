@@ -880,6 +880,13 @@ export function createView(canvas) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.12;
+  let watchRender = false;
+  let renderSample = { calls: 0, triangles: 0 };
+  function noteRender() {
+    if (!watchRender || !renderer.info || !renderer.info.render) return;
+    const info = renderer.info.render;
+    renderSample = { calls: info.calls | 0, triangles: info.triangles | 0 };
+  }
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 80);
@@ -2916,8 +2923,13 @@ export function createView(canvas) {
         if (!mesh.userData.spent) mesh.position.y = mesh.userData.baseY;
       }
 
+      if (watchRender && renderer.info) {
+        renderer.info.autoReset = false;
+        renderer.info.reset();
+      }
       if (useBloom && bloomFx) bloomFx.render(scene, camera);
       else renderer.render(scene, camera);
+      noteRender();
       if (useBloom && document.visibilityState === "visible") {
         const frameDt = now - bloomLast;
         if (bloomLast && frameDt > 0 && frameDt < 400) {
@@ -2966,6 +2978,8 @@ export function createView(canvas) {
       if (pawMesh) pawT = Math.min(0.999, seconds / 0.6);
     },
     setBloom,
+    renderInfo: () => renderSample,
+    watchRender(on) { watchRender = !!on; },
     bloomSuppressed: () => bloomHeld,
     onBloomSuppressed(fn) { onBloomHeld = fn; },
   };

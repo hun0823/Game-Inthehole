@@ -98,6 +98,13 @@ export function createConstellation(canvas) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.08;
+  let watchRender = false;
+  let renderSample = { calls: 0, triangles: 0 };
+  function noteRender() {
+    if (!watchRender || !renderer.info || !renderer.info.render) return;
+    const info = renderer.info.render;
+    renderSample = { calls: info.calls | 0, triangles: info.triangles | 0 };
+  }
   const scene = new THREE.Scene();
   applyStudio(renderer, scene, 0.42);
   const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 80);
@@ -209,10 +216,15 @@ export function createConstellation(canvas) {
   }
 
   function render() {
+    if (watchRender && renderer.info) {
+      renderer.info.autoReset = false;
+      renderer.info.reset();
+    }
     renderer.setClearColor(0x000000, 0);
     camera.lookAt(look);
     if (useBloom && bloomFx) bloomFx.render(scene, camera);
     else renderer.render(scene, camera);
+    noteRender();
   }
 
   bindHost(renderer, () => {
@@ -305,5 +317,7 @@ export function createConstellation(canvas) {
       useBloom = !!on;
       if (useBloom && !bloomFx) bloomFx = createBloom(renderer);
     },
+    renderInfo: () => renderSample,
+    watchRender(on) { watchRender = !!on; },
   };
 }

@@ -4067,3 +4067,61 @@ html[lang="ko"] .map {
     padding: 0.5rem 0.4rem 0.42rem;
   }
 }
+
+.settings .settings-card {
+  max-height: calc(100dvh - 28px);
+  overflow: auto;
+}
+
+.audio-slider {
+  display: grid;
+  grid-template-columns: 4.8rem 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 0.45rem;
+  color: #fff;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.audio-slider input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: #ff9a3c;
+  height: 1.6rem;
+}
+
+#audio-mute {
+  width: 100%;
+  margin: 0.15rem 0 0.75rem;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 0.55rem 0.4rem;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #fff;
+  cursor: pointer;
+  background: #3a2a88;
+  box-shadow: 0 4px 0 var(--ink);
+}
+
+#audio-mute.is-on {
+  background: linear-gradient(180deg, #ff9a3c, #ff6a00);
+}
+
+#perf-overlay {
+  position: fixed;
+  z-index: 80;
+  top: calc(var(--hud-bottom, 72px) + 6px);
+  right: max(8px, env(safe-area-inset-right));
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(8, 10, 20, 0.78);
+  color: #d8ffe8;
+  font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre;
+  text-align: right;
+  pointer-events: none;
+  user-select: none;
+}

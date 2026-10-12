@@ -29,6 +29,30 @@ python3 -m http.server 8080
 
 → http://localhost:8080
 
+## 오디오
+
+BGM과 효과음은 `js/audio.js` 한 그래프입니다. 마스터 게인 아래에 음악 버스와 효과음 버스가 있고, 일시정지 메뉴와 행성 지도의 **설정**에서 각각 슬라이더와 음소거를 바꿉니다. 값은 `localStorage` 키 `inthehole_audio`에 남고, 문구는 `js/i18n.js`의 KO/EN입니다.
+
+첫 `pointerup` / `touchend` / `keydown`에서 `AudioContext`를 만들고 재개합니다. 탭이 숨으면 BGM만 멈추고, 돌아오면 이어서 재생합니다. 효과음은 미리 디코드해 두고, 짧은 음정·음량 흔들림과 동시에 8목소리 한도로 재생하며 프레임 루프를 기다리지 않습니다.
+
+**BGM 넣기.** 곡 파일은 아직 없습니다. `assets/audio/manifest.json`의 `bgm.menu`(행성 맵)와 `bgm.game`(스테이지) `sources`가 비어 있으면 그 화면은 무음입니다. 루프를 `assets/audio/bgm/`에 두고 매니페스트 기준 상대 경로로 적습니다. 먼저 디코드되는 파일이 재생되고, 화면이 바뀌면 약 0.7초 크로스페이드합니다.
+
+```json
+"menu": { "loop": true, "sources": ["bgm/menu.m4a", "bgm/menu.ogg"] }
+```
+
+**효과음 다시 굽기.** 파라미터는 `tools/sfx/params.json`(jsfxr)입니다. 합성기는 `tools/sfx/vendor/`(public domain)이고, 굽힌 m4a+ogg는 `assets/audio/sfx/`에 있습니다.
+
+```bash
+node tools/sfx/bake.mjs
+```
+
+스크립트가 `manifest.json`의 `sfx`만 갱신하고 `bgm`은 그대로 둡니다. 합계는 150KB 아래를 유지합니다.
+
+**iOS.** 무음 스위치는 페이지 오디오 세션을 따릅니다. 기본값은 ambient라 스위치가 켜지면(무음) 웹 오디오도 꺼집니다. Safari 17+의 `navigator.audioSession`이 있으면 `playback`을 요청합니다. 거절되면 스위치를 해제해야 들립니다. `navigator.vibrate`는 iOS 사파리에 없습니다. 진동은 효과음이 켜져 있고 브라우저가 지원할 때만 납니다.
+
+**프레임 오버레이.** `?fps=1`은 HUD 아래 오른쪽에 1초 평균 FPS, 프레임 시간 p50/p95, `renderer.info`의 드로우 콜·삼각형을 띄우고 `inthehole_fps`에 기억합니다. `?fps=0`은 끄고 기억합니다. 꺼져 있으면 DOM도 프레임 콜백도 만들지 않습니다.
+
 ## 레벨 편집·검증
 
 1. `shared/levels.json` 수정 (또는 `python3 tools/generate_edge_levels.py` 등 생성기 사용)

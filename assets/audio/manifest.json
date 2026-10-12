@@ -1,0 +1,87 @@
+{
+  "notes": "Paths are relative to this file. BGM sources stay empty until a track is chosen. Drop a loop in assets/audio/bgm/ and list it, for example [\"bgm/menu.m4a\", \"bgm/menu.ogg\"]. The first source that decodes is used. Empty or missing files stay silent. SFX entries are rewritten by tools/sfx/bake.mjs.",
+  "bgm": {
+    "menu": {
+      "loop": true,
+      "sources": []
+    },
+    "game": {
+      "loop": true,
+      "sources": []
+    }
+  },
+  "sfx": {
+    "roll": [
+      "sfx/roll.m4a",
+      "sfx/roll.ogg"
+    ],
+    "bump": [
+      "sfx/bump.m4a",
+      "sfx/bump.ogg"
+    ],
+    "stop": [
+      "sfx/stop.m4a",
+      "sfx/stop.ogg"
+    ],
+    "goal": [
+      "sfx/goal.m4a",
+      "sfx/goal.ogg"
+    ],
+    "clear": [
+      "sfx/clear.m4a",
+      "sfx/clear.ogg"
+    ],
+    "star": [
+      "sfx/star.m4a",
+      "sfx/star.ogg"
+    ],
+    "switch": [
+      "sfx/switch.m4a",
+      "sfx/switch.ogg"
+    ],
+    "gate": [
+      "sfx/gate.m4a",
+      "sfx/gate.ogg"
+    ],
+    "glass": [
+      "sfx/glass.m4a",
+      "sfx/glass.ogg"
+    ],
+    "ice": [
+      "sfx/ice.m4a",
+      "sfx/ice.ogg"
+    ],
+    "sand": [
+      "sfx/sand.m4a",
+      "sfx/sand.ogg"
+    ],
+    "teleport": [
+      "sfx/teleport.m4a",
+      "sfx/teleport.ogg"
+    ],
+    "jelly": [
+      "sfx/jelly.m4a",
+      "sfx/jelly.ogg"
+    ],
+    "magma-warn": [
+      "sfx/magma-warn.m4a",
+      "sfx/magma-warn.ogg"
+    ],
+    "magma": [
+      "sfx/magma.m4a",
+      "sfx/magma.ogg"
+    ],
+    "ui": [
+      "sfx/ui.m4a",
+      "sfx/ui.ogg"
+    ],
+    "buy": [
+      "sfx/buy.m4a",
+      "sfx/buy.ogg"
+    ],
+    "denied": [
+      "sfx/denied.m4a",
+      "sfx/denied.ogg"
+    ]
+  }
+}

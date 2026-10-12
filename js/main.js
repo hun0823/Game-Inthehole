@@ -10,6 +10,8 @@ import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, tra
 import { detectLang, t, planetName, ballCopy, cosmeticCopy, lessonCopy } from "./i18n.js";
 import { bloomPreference, bloomWanted, setBloomPreference } from "./quality.js";
 import { PLANET_ORDER, PLANET_BALL, themeById } from "./themes.js";
+import { createAudio } from "./audio.js";
+import { bootPerf } from "./perf.js";
 
 const STORAGE_KEY = "inthehole_cleared";
 const STORAGE_STARS_PREFIX = "inthehole_stars_";
@@ -83,6 +85,7 @@ const settingsEl = document.getElementById("settings");
 
 const view = createView(playfieldEl);
 const mapView = createConstellation(document.getElementById("constellation"));
+const audio = createAudio();
 
 let lang = detectLang();
 let stageIndex = 0;
@@ -704,11 +707,13 @@ function handleAfterMove(won) {
     showGameOver();
     return;
   }
+  const starsBefore = getStars(level.id);
   markCleared(level.id);
   saveStars(level.id, award.stars);
   const reward = maybeGrantPlanet(level);
   updateHud();
   showWin(award.stars, award.coinBonus, reward);
+  audio.playClear(Math.max(0, award.stars - starsBefore));
 }
 
 function showHint() {
@@ -716,11 +721,13 @@ function showHint() {
   clearHintUi();
   const route = game.hintRoute();
   if (!route) {
+    audio.play("denied");
     document.getElementById("btn-reset").classList.add("is-hint");
     hintNote.hidden = false;
     hintNote.textContent = t(lang, "no-path");
     return;
   }
+  audio.play("ui");
   const move = route.action;
   if (move === "press") {
     view.showHint("press", game.ball[0], game.ball[1], route);
@@ -758,7 +765,11 @@ async function handleButtonPress(row, col) {
   if (uiBlocked() || animating || game.won || gameOver) return;
   if (game.ball[0] !== row || game.ball[1] !== col) return;
   clearHintUi();
-  if (!game.pressButton()) return;
+  if (!game.pressButton()) {
+    audio.playPress(game, false);
+    return;
+  }
+  audio.playPress(game, true);
   animating = true;
   view.dipButton(row, col);
   view.sync(game, { ready: false, animateGates: true });
@@ -772,8 +783,11 @@ async function handleTilt(dir) {
   if (uiBlocked() || animating || game.won || gameOver) return;
   clearHintUi();
   const glassBefore = snapshotGlass(game);
+  const tiltsBefore = game.tilts;
+  const phaseBefore = game.phase;
   const { path, moved, won, glassBroken } = game.simulateTilt(dir);
   const cracked = cracksSince(glassBefore, game);
+  audio.playTilt(game, { path, moved, won, glassBroken, dir, tilts: tiltsBefore, phase: phaseBefore });
   view.nudge(dir);
   if (!moved) {
     view.bump(0.45);
@@ -827,6 +841,7 @@ function loadStage(index) {
   renderBoard();
   paintSky();
   maybeAutoLesson();
+  audio.setScene("game");
 }
 
 function nextStage() {
@@ -1315,9 +1330,11 @@ function confirmBuy() {
   if (!pending) return;
   const item = catalogItem(pending.tab, pending.id);
   if (!item || item.id !== pending.id || ownedFor(pending.tab).has(item.id) || purse() < item.price) {
+    audio.play("denied");
     renderStore();
     return;
   }
+  audio.play("buy");
   localStorage.setItem(STORAGE_SPENT, String(spentTotal() + item.price));
   const owned = ownedFor(pending.tab);
   owned.add(item.id);
@@ -1600,6 +1617,18 @@ function buildPlanetNode(id, p, node, focus) {
     card.append(noteEl);
   }
   btn.append(card);
+  if (!open) {
+    let downX = 0;
+    let downY = 0;
+    btn.addEventListener("pointerdown", (e) => {
+      downX = e.clientX;
+      downY = e.clientY;
+    });
+    btn.addEventListener("pointerup", (e) => {
+      if ((e.clientX - downX) ** 2 + (e.clientY - downY) ** 2 > 18 * 18) return;
+      audio.play("denied");
+    });
+  }
   const activate = () => openFromMap(p);
   hit.addEventListener("click", activate);
   card.addEventListener("click", activate);
@@ -1704,12 +1733,27 @@ function showMap() {
   mapView.start();
   requestAnimationFrame(() => positionMap());
   paintSky();
+  audio.setScene("menu");
 }
 
 function applyBloom() {
   const on = bloomWanted() && !view.bloomSuppressed();
   view.setBloom(on);
   mapView.setBloom(on);
+}
+
+function syncAudioControls() {
+  const mix = audio.settings();
+  const bgm = document.getElementById("bgm-volume");
+  const sfx = document.getElementById("sfx-volume");
+  const mute = document.getElementById("audio-mute");
+  bgm.value = String(Math.round(mix.bgm * 100));
+  sfx.value = String(Math.round(mix.sfx * 100));
+  bgm.setAttribute("aria-valuenow", bgm.value);
+  sfx.setAttribute("aria-valuenow", sfx.value);
+  mute.classList.toggle("is-on", mix.mute);
+  mute.setAttribute("aria-pressed", mix.mute ? "true" : "false");
+  mute.textContent = t(lang, mix.mute ? "unmute" : "mute");
 }
 
 function openSettings() {
@@ -1724,6 +1768,7 @@ function openSettings() {
   });
   const held = view.bloomSuppressed();
   document.getElementById("glow-note").textContent = held ? t(lang, "glow-held") : t(lang, "glow-note");
+  syncAudioControls();
 }
 
 function closeSettings() {
@@ -1763,7 +1808,13 @@ function applyLang() {
   document.getElementById("settings-title").textContent = t(lang, "settings");
   document.getElementById("lang-label").textContent = t(lang, "language");
   document.getElementById("glow-label").textContent = t(lang, "glow");
+  document.getElementById("audio-label").textContent = t(lang, "audio");
+  document.getElementById("bgm-name").textContent = t(lang, "music");
+  document.getElementById("sfx-name").textContent = t(lang, "effects");
+  document.getElementById("bgm-volume").setAttribute("aria-label", t(lang, "music"));
+  document.getElementById("sfx-volume").setAttribute("aria-label", t(lang, "effects"));
   document.getElementById("settings-close").textContent = t(lang, "close");
+  syncAudioControls();
   document.querySelector(".dpad-up .face-caption").textContent = t(lang, "up");
   document.querySelector(".dpad-down .face-caption").textContent = t(lang, "down");
   document.querySelector(".dpad-left .face-caption").textContent = t(lang, "left");
@@ -1810,6 +1861,33 @@ mapScroll.addEventListener("scroll", () => {
   mapView.sync(mapScroll.scrollTop, mapScroll.clientWidth, mapScroll.clientHeight);
 }, { passive: true });
 document.getElementById("settings-close").addEventListener("click", () => closeSettings());
+document.getElementById("bgm-volume").addEventListener("input", (e) => {
+  audio.setBgm(Number(e.target.value) / 100);
+  e.target.setAttribute("aria-valuenow", e.target.value);
+});
+document.getElementById("sfx-volume").addEventListener("input", (e) => {
+  audio.setSfx(Number(e.target.value) / 100);
+  e.target.setAttribute("aria-valuenow", e.target.value);
+});
+document.getElementById("sfx-volume").addEventListener("change", () => audio.play("ui"));
+document.getElementById("audio-mute").addEventListener("click", () => {
+  const next = !audio.settings().mute;
+  audio.setMute(next);
+  syncAudioControls();
+  if (!next) audio.play("ui");
+});
+document.addEventListener("pointerup", (e) => {
+  const btn = e.target.closest("button");
+  if (!btn || btn.disabled) return;
+  if (btn.dataset.dir || btn.id === "btn-hint" || btn.id === "store-spend" || btn.id === "audio-mute") return;
+  audio.play("ui");
+}, true);
+storeList.addEventListener("pointerup", (e) => {
+  const btn = e.target.closest("button");
+  if (btn && !btn.disabled) return;
+  const row = e.target.closest(".store-row");
+  if (row && row.querySelector("button:disabled")) audio.play("denied");
+});
 document.querySelectorAll(".lang-row button[data-lang]").forEach((btn) => {
   btn.addEventListener("click", () => setLang(btn.dataset.lang));
 });
@@ -1835,6 +1913,16 @@ stageDialog.addEventListener("close", () => {
   }
 });
 
+bootPerf([
+  { watch: () => view.watchRender(true), read: () => view.renderInfo() },
+  { watch: () => mapView.watchRender(true), read: () => (mapEl.hidden ? null : mapView.renderInfo()) },
+]);
+window.RB_AUDIO = {
+  played: () => audio.played(),
+  settings: () => audio.settings(),
+  whenReady: () => audio.whenReady(),
+  scene: () => audio.sceneState(),
+};
 applyLang();
 applyBloom();
 view.setBall(equippedId());
