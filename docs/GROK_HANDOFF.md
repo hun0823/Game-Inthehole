@@ -47,7 +47,7 @@
 |------|------|
 | `hWalls[]` | `{row, col}` — `row` 행과 `row+1` 행 사이, `col` 열 (`0 ≤ row < size-1`) |
 | `vWalls[]` | `{row, col}` — `col` 열과 `col+1` 열 사이, `row` 행 (`0 ≤ col < size-1`) |
-| `glassH` / `glassV` | 같은 좌표. 1타: 금 가고 정지. 2타: 파괴 후 통과 |
+| `glassH` / `glassV` | 같은 좌표. hp 2 그대로, 1타 hp 1(금, 여전히 벽), 2타 hp 0(파쇄 후 통과). 인터페이스는 [`GLASS.md`](GLASS.md) |
 | `coloredH` / `coloredV` | `{row, col, color}`. 해당 색 버튼을 밟거나 누르기 전에는 통과 불가 |
 | `buttons[]` | `{row, col, color}` |
 | `ball`, `hole`, `par` | 시작·구멍·최적 기울임 수 |

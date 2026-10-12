@@ -740,25 +740,21 @@ function showHint() {
   if (btn) btn.classList.add("is-hint");
 }
 
-function snapshotGlass(state) {
-  return {
-    hs: state.hGlassStressed.map((row) => row.slice()),
-    vs: state.vGlassStressed.map((row) => row.slice()),
-  };
-}
-
-function cracksSince(before, state) {
-  const out = [];
-  const scan = (axis, prev, stress, alive) => {
-    for (let r = 0; r < stress.length; r++) {
-      for (let c = 0; c < stress[r].length; c++) {
-        if (stress[r][c] && !(prev[r] && prev[r][c]) && alive[r][c]) out.push({ axis, r, c });
-      }
+// Map rule events onto the roll fx the current renderer already plays.
+// events stay on the object so a glass visual can read them directly.
+// edge is { axis, r, c }. board3d glassMesh also accepts kind as that axis.
+function glassRollFx(events) {
+  const cracked = [];
+  const broken = [];
+  for (const ev of events || []) {
+    const edge = ev.edge;
+    if (!edge) continue;
+    if (ev.type === "glassCrack") cracked.push(edge);
+    else if (ev.type === "glassShatter") {
+      broken.push({ axis: edge.axis, kind: edge.axis, r: edge.r, c: edge.c });
     }
-  };
-  scan("h", before.hs, state.hGlassStressed, state.hGlass);
-  scan("v", before.vs, state.vGlassStressed, state.vGlass);
-  return out;
+  }
+  return { cracked, broken, events: events || [] };
 }
 
 async function handleButtonPress(row, col) {
@@ -782,12 +778,11 @@ async function handleButtonPress(row, col) {
 async function handleTilt(dir) {
   if (uiBlocked() || animating || game.won || gameOver) return;
   clearHintUi();
-  const glassBefore = snapshotGlass(game);
   const tiltsBefore = game.tilts;
   const phaseBefore = game.phase;
-  const { path, moved, won, glassBroken } = game.simulateTilt(dir);
-  const cracked = cracksSince(glassBefore, game);
-  audio.playTilt(game, { path, moved, won, glassBroken, dir, tilts: tiltsBefore, phase: phaseBefore });
+  const { path, moved, won, events } = game.simulateTilt(dir);
+  const glassFx = glassRollFx(events);
+  audio.playTilt(game, { path, moved, won, events, dir, tilts: tiltsBefore, phase: phaseBefore });
   view.nudge(dir);
   if (!moved) {
     view.bump(0.45);
@@ -800,7 +795,7 @@ async function handleTilt(dir) {
   view.sync(game, { ready: false, skipGlass: true, skipGates: true, adoptReveal: false, skipShift: true });
   view.armGateOpen(game);
   updateHud();
-  await view.roll(path, dir, won, { cracked, broken: glassBroken });
+  await view.roll(path, dir, won, glassFx);
   if (!won) view.bump(path.length > 1 ? 0.16 : 0.32);
   view.nudge(null);
   if (won) {

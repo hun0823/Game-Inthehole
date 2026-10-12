@@ -54,7 +54,14 @@ function hitsHard(game, r, c, dir, phase, act) {
 export function planTilt(game, detail) {
   const path = detail.path || [];
   if (!detail.moved) return [{ id: "bump", delay: 0 }];
-  if (path.length < 2) return [{ id: "bump", delay: 0 }, { id: "stop", delay: 0.05 }];
+  if (path.length < 2) {
+    const cues = [{ id: "bump", delay: 0 }, { id: "stop", delay: 0.05 }];
+    for (const ev of detail.events || []) {
+      if (ev.type === "glassCrack") cues.push({ id: "glassCrack", delay: 0 });
+      else if (ev.type === "glassShatter") cues.push({ id: "glass", delay: 0.04 });
+    }
+    return cues;
+  }
 
   const board = game.board;
   const { times, dur } = cellTimes(path);
@@ -97,12 +104,16 @@ export function planTilt(game, detail) {
     }
   }
 
-  if (detail.glassBroken && detail.glassBroken.length) {
-    cues.push({ id: "glass", delay: Math.max(0.06, Math.min(dur * 0.42, dur - 0.05)) });
+  const endT = times[times.length - 1] || dur;
+  for (const ev of detail.events || []) {
+    if (ev.type === "glassCrack") {
+      cues.push({ id: "glassCrack", delay: path.length < 2 ? 0 : endT });
+    } else if (ev.type === "glassShatter") {
+      cues.push({ id: "glass", delay: Math.max(0.06, Math.min(dur * 0.42, Math.max(0.06, dur - 0.05))) });
+    }
   }
 
   const end = path[path.length - 1];
-  const endT = times[times.length - 1] || dur;
   if (detail.won) {
     cues.push({ id: "goal", delay: endT });
   } else if (board.sand.has(`${end[0]},${end[1]}`)) {

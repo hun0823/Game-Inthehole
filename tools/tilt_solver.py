@@ -3,8 +3,12 @@
 Walls, glass, and colored gates are edges between adjacent cells:
   h edge (r, c) sits between row r and r+1 in column c   (r < size-1, c < size)
   v edge (r, c) sits between col c and c+1 in row r      (r < size, c < size-1)
-A tilt slides until a border, a solid wall, a closed colored gate, or an
-intact glass pane (first hit cracks and stops; second hit breaks and continues).
+Glass hp is part of the BFS state. Each pane is one base-3 digit, digit = 2 - hp:
+  hp 2 intact (digit 0), hp 1 cracked (digit 1), hp 0 gone (digit 2).
+A hit is the ball sliding into that edge. The first hit cracks and stops
+(hp 2→1); the second shatters and the ball continues (hp 1→0). On ice the
+first hit still cracks but does not stop the ball. A jelly jump does not hit
+the skipped pane.
 Standing on a button and spending a move opens that color. A tilt that starts
 on a button opens it before the slide, so one move can open and then pass a gate.
 """
@@ -146,6 +150,7 @@ def _wall_at(board, edge):
 
 
 def _glass_digit(state, index):
+    """Packed digit for one pane. hp = 2 - digit (2 intact, 1 cracked, 0 gone)."""
     return (state // (3**index)) % 3
 
 
