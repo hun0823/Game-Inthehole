@@ -17,7 +17,7 @@
 - [x] 행성/공 텍스처 파이프라인 — `tools/bake_sphere_maps.py`, [`TEXTURE_MAPS.md`](TEXTURE_MAPS.md)
 - [x] GitHub Pages 자동 배포
 - [x] Unity (`unity/InTheHole/`) **일시 중지** — 코드 보존, 웹과 규칙·레벨 포맷 불일치
-- [x] 오디오 기반 — `js/audio.js` 버스, 설정 볼륨·뮤트, jsfxr로 구운 SFX. **BGM 파일은 아직 없음** (`assets/audio/manifest.json`에 넣기 전까지 무음)
+- [x] 오디오 기반 — `js/audio.js` 버스, 설정 볼륨·뮤트, jsfxr로 구운 SFX. BGM은 Flowerbed Fields [Loop] (Zane Little Music, CC0) — 메뉴·스테이지가 한 곡을 이어서 재생
 
 ---
 
@@ -27,7 +27,7 @@
 
 | 항목 | 메모 |
 |------|------|
-| **BGM 선곡** | 시스템·SFX·설정은 있음. 메뉴/인게임 루프를 `assets/audio/manifest.json`에 추가 (디자이너 후보 → 오너 선택). README 「오디오」 |
+| **BGM 선곡** | Flowerbed Fields [Loop]를 `bgm.menu`와 `bgm.game`에 넣음. 패딩을 잘라 루프하고, 맵↔스테이지에서 재시작하지 않음 |
 | **첫 30초 튜토리얼** | 손가락 가이드 — 기울이기 → 구멍 |
 | **210LAB 로고 스플래시** | 부팅·브랜딩 |
 | **저장 강화** | localStorage 이상 — 날아감·동기화 대비 (스키마·export 등) |

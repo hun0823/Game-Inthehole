@@ -15,6 +15,12 @@
  * The AudioContext is created and resumed on the first pointerup, touchend,
  * or keydown. Missing BGM files are silent. Playback never awaits on the
  * frame loop; buffers are decoded ahead of time.
+ *
+ * AAC and MP3 add encoder padding, so a loop is not the whole decoded
+ * buffer. Leading padding is detected, then AudioBufferSourceNode loops
+ * from that start for the track's real length (loopEnd = loopStart +
+ * loopDuration). Menu and game entries that share one file keep the same
+ * source playing, so a scene change does not restart the song.
  */
 import { planClear, planMagma, planPress, planTilt } from "./sfxCues.js";
 
@@ -57,6 +63,113 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, number));
 }
 
+const PAD_SECONDS = 0.12;
+const PAD_SILENCE = 0.0001;
+const ENCODER_DELAYS = [528, 576, 1024, 1105, 1152, 1600, 2048, 2112, 3136];
+const loopCache = new WeakMap();
+
+function channelPeak(buffer, index) {
+  let peak = 0;
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const value = buffer.getChannelData(c)[index];
+    const abs = value < 0 ? -value : value;
+    if (abs > peak) peak = abs;
+  }
+  return peak;
+}
+
+function rmsRange(buffer, start, end) {
+  const frames = end - start;
+  if (frames <= 0) return 0;
+  const channels = buffer.numberOfChannels;
+  let sum = 0;
+  for (let c = 0; c < channels; c++) {
+    const data = buffer.getChannelData(c);
+    for (let i = start; i < end; i++) {
+      const value = data[i];
+      sum += value * value;
+    }
+  }
+  return Math.sqrt(sum / (frames * channels));
+}
+
+function leadingSilence(buffer) {
+  const limit = Math.min(buffer.length, Math.floor(buffer.sampleRate * PAD_SECONDS));
+  let quiet = 0;
+  for (let i = 0; i < limit; i++) {
+    if (channelPeak(buffer, i) >= PAD_SILENCE) break;
+    quiet += 1;
+  }
+  return quiet >= 32 ? quiet : 0;
+}
+
+function encoderDelay(buffer) {
+  const frames = buffer.length;
+  const rate = buffer.sampleRate;
+  if (frames < 2048 || !(rate > 0)) return 0;
+  const refStart = Math.floor(frames / 2);
+  const ref = rmsRange(buffer, refStart, Math.min(frames, refStart + rate));
+  if (ref < PAD_SILENCE) return 0;
+  const win = Math.min(2048, Math.floor(frames / 8));
+  if (rmsRange(buffer, 0, Math.min(64, frames)) >= ref * 0.35) return 0;
+  let best = 0;
+  let bestScore = -1;
+  for (const off of ENCODER_DELAYS) {
+    if (off <= 0 || off >= frames - win) continue;
+    const before = rmsRange(buffer, Math.max(0, off - win), off);
+    const after = rmsRange(buffer, off, off + win);
+    if (after < ref * 0.6 || before > ref * 0.45) continue;
+    const score = after - before;
+    if (score > bestScore) {
+      bestScore = score;
+      best = off;
+    }
+  }
+  if (best <= 0) return 0;
+  const narrow = 64;
+  const lo = Math.max(narrow, best - 160);
+  const hi = Math.min(frames - narrow - 1, best + 160);
+  let refined = best;
+  let refinedScore = -1;
+  for (let off = lo; off <= hi; off++) {
+    const before = rmsRange(buffer, off - narrow, off);
+    const after = rmsRange(buffer, off, off + narrow);
+    if (after < ref * 0.55 || before > ref * 0.5) continue;
+    const score = after - before;
+    if (score > refinedScore) {
+      refinedScore = score;
+      refined = off;
+    }
+  }
+  return refined;
+}
+
+/** Loop region for a decoded BGM buffer. musicSeconds is the unpadded length. */
+export function loopPoints(buffer, musicSeconds) {
+  const music = Number(musicSeconds);
+  const cached = loopCache.get(buffer);
+  if (cached && cached.music === music) return cached.region;
+  const region = computeLoopPoints(buffer, music);
+  loopCache.set(buffer, { music, region });
+  return region;
+}
+
+function computeLoopPoints(buffer, music) {
+  const rate = buffer.sampleRate;
+  const frames = buffer.length;
+  const duration = frames / rate;
+  if (!(rate > 0) || frames <= 0) return { loopStart: 0, loopEnd: 0 };
+  if (!Number.isFinite(music) || music <= 0) return { loopStart: 0, loopEnd: duration };
+  const silent = leadingSilence(buffer);
+  const delayed = silent > 0 ? 0 : encoderDelay(buffer);
+  const pad = silent > 0 ? silent : delayed;
+  const loopStart = pad / rate;
+  let loopEnd = loopStart + music;
+  if (loopEnd > duration) loopEnd = duration;
+  if (!(loopEnd > loopStart + 0.05)) return { loopStart: 0, loopEnd: duration };
+  return { loopStart, loopEnd };
+}
+
 function loadSettings() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "");
@@ -97,7 +210,9 @@ export function createAudio() {
   let playing = false;
   let missing = true;
   let preloaded = false;
+  let playToken = 0;
   const voices = [];
+  const bgmPending = new Map();
 
   function save() {
     try {
@@ -298,9 +413,13 @@ export function createAudio() {
     if (!entry || !entry.buffer) return 0;
     if (!entry.source || !ctx) return entry.offset || 0;
     const elapsed = Math.max(0, ctx.currentTime - entry.startedAt);
-    const duration = entry.buffer.duration || 0;
-    if (duration <= 0) return 0;
-    return (entry.offset + elapsed) % duration;
+    const start = entry.loopStart || 0;
+    const end = entry.loopEnd || entry.buffer.duration || 0;
+    const span = end - start;
+    if (span <= 0) return start;
+    const pos = (entry.offset || 0) + elapsed;
+    if (!entry.loop || pos < end) return Math.min(pos, end);
+    return start + ((pos - end) % span);
   }
 
   function stopSource(entry, fade) {
@@ -324,16 +443,39 @@ export function createAudio() {
     }
   }
 
+  function bgmSpec(id) {
+    return manifest && manifest.bgm && manifest.bgm[id];
+  }
+
+  function sourceKey(id) {
+    const sources = (bgmSpec(id) && bgmSpec(id).sources) || [];
+    return sources.join("\0");
+  }
+
   async function ensureBgm(id) {
-    if (bgmBuffers.has(id)) return bgmBuffers.get(id);
     await readyPromise;
-    const spec = manifest && manifest.bgm && manifest.bgm[id];
-    const sources = (spec && spec.sources) || [];
-    if (!sources.length) {
+    const key = sourceKey(id);
+    if (!key) {
       bgmBuffers.set(id, null);
       return null;
     }
-    const buffer = await decodeFirst(sources);
+    if (bgmBuffers.has(key)) {
+      const cached = bgmBuffers.get(key);
+      bgmBuffers.set(id, cached);
+      return cached;
+    }
+    if (bgmPending.has(key)) {
+      const pending = await bgmPending.get(key);
+      bgmBuffers.set(id, pending);
+      return pending;
+    }
+    const decode = decodeFirst((bgmSpec(id) && bgmSpec(id).sources) || []).then((buffer) => {
+      bgmBuffers.set(key, buffer);
+      bgmPending.delete(key);
+      return buffer;
+    });
+    bgmPending.set(key, decode);
+    const buffer = await decode;
     bgmBuffers.set(id, buffer);
     return buffer;
   }
@@ -344,22 +486,30 @@ export function createAudio() {
     if (!bgmAudible()) return;
     ensureBgm(wanted).then((buffer) => {
       if (token !== generation || !bgmAudible()) return;
-      const same = current && current.id === wanted && current.source && current.buffer === buffer;
-      if (same) return;
+      const spec = bgmSpec(wanted);
+      const loop = !spec || spec.loop !== false;
+      const region = buffer ? loopPoints(buffer, spec && spec.loopDuration) : null;
+      const sameBuffer = current && current.source && buffer && current.buffer === buffer;
+      const sameRegion = sameBuffer && region
+        && Math.abs(current.loopStart - region.loopStart) < 1e-4
+        && Math.abs(current.loopEnd - region.loopEnd) < 1e-4;
+      if (sameRegion) {
+        current.id = wanted;
+        return;
+      }
       if (!buffer) {
         missing = true;
         playing = false;
         if (current) {
           current.offset = captureOffset(current);
           stopSource(current, FADE);
-          current = current.id === wanted ? current : null;
+          current = sourceKey(current.id) === sourceKey(wanted) ? current : null;
         }
         return;
       }
       missing = false;
-      const spec = manifest && manifest.bgm && manifest.bgm[wanted];
-      const loop = !spec || spec.loop !== false;
-      const offset = current && current.id === wanted ? (current.offset || 0) : 0;
+      const carry = current && current.buffer === buffer;
+      const offset = carry ? (current.offset || 0) : (region ? region.loopStart : 0);
       const now = ctx.currentTime;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0, now);
@@ -367,8 +517,27 @@ export function createAudio() {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.loop = loop;
+      const loopStart = region ? region.loopStart : 0;
+      const loopEnd = region ? region.loopEnd : buffer.duration;
+      if (loop) {
+        source.loopStart = loopStart;
+        source.loopEnd = loopEnd;
+      }
       source.connect(gain);
-      const startAt = buffer.duration > 0 ? offset % buffer.duration : 0;
+      const span = Math.max(0, loopEnd - loopStart);
+      let startAt = offset;
+      if (loop && span > 0) {
+        if (startAt < loopStart || startAt >= loopEnd) {
+          startAt = startAt < loopStart
+            ? loopStart
+            : loopStart + ((startAt - loopStart) % span);
+        }
+      } else if (buffer.duration > 0) {
+        startAt = startAt % buffer.duration;
+      } else {
+        startAt = 0;
+      }
+      if (buffer.duration > 0 && startAt >= buffer.duration) startAt = loopStart;
       try {
         source.start(now, startAt);
       } catch {
@@ -378,6 +547,7 @@ export function createAudio() {
       }
       gain.gain.linearRampToValueAtTime(1, now + FADE);
       if (current && current.source) stopSource(current, FADE);
+      playToken += 1;
       current = {
         id: wanted,
         buffer,
@@ -385,6 +555,10 @@ export function createAudio() {
         gain,
         offset: startAt,
         startedAt: now,
+        loop: loop,
+        loopStart,
+        loopEnd,
+        token: playToken,
       };
       playing = true;
     }).catch(() => {
@@ -474,8 +648,14 @@ export function createAudio() {
     },
     setScene(scene) {
       const next = scene === "game" ? "game" : "menu";
-      if (next === wanted && current && current.source) return;
+      if (next === wanted) return;
+      const prev = wanted;
       wanted = next;
+      const shared = current && current.source && sourceKey(prev) && sourceKey(prev) === sourceKey(next);
+      if (shared) {
+        current.id = next;
+        return;
+      }
       if (bgmAudible()) startBgm(next);
     },
     play(id, opts) {
@@ -504,11 +684,18 @@ export function createAudio() {
       return played.slice();
     },
     sceneState() {
-      const spec = manifest && manifest.bgm && manifest.bgm[wanted];
+      const spec = bgmSpec(wanted);
       const sources = (spec && spec.sources) || [];
       const decoded = bgmBuffers.has(wanted) ? bgmBuffers.get(wanted) : undefined;
-      const missing = sources.length === 0 || decoded === null;
-      return { scene: wanted, playing, missing };
+      const fileMissing = sources.length === 0 || decoded === null;
+      return {
+        scene: wanted,
+        playing,
+        missing: fileMissing,
+        token: current && current.token || 0,
+        loopStart: current ? current.loopStart : null,
+        loopEnd: current ? current.loopEnd : null,
+      };
     },
   };
 }
