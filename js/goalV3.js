@@ -76,7 +76,7 @@ const G = {
 
 const SOCKET = {
   knot: {},
-  oasis: { lip: 0xd08a3a, lipRough: 0.84, mouth: 0x1a8f86, carpet: 0xc9843a, carpetR: 0.52 },
+  oasis: { lip: 0xd08a3a, lipRough: 0.84, mouth: 0x1a120c, carpet: 0xe0b15a, carpetR: 0.52 },
   crystal: { lip: 0xd8e4ff, lipRough: 0.28, mouth: 0x141820 },
   net: { mouth: 0x14301c },
   rim: { lip: 0x2a2a2a, lipRough: 0.92, mouth: 0x141416 },
@@ -85,7 +85,7 @@ const SOCKET = {
   hoop: {},
   bucket: { lip: 0xe6c27a, lipRough: 0.8, mouth: 0xc9a060, carpet: 0xd7b06a, carpetR: 0.5 },
   pins: {},
-  crater: { lip: 0x3a2018, lipRough: 0.9, mouth: 0x140c0a },
+  crater: { lip: 0x3a2018, lipRough: 0.9, mouth: 0xff6a18 },
   pedestal: {},
   stump: { lip: 0x6a3c1c, lipRough: 0.86 },
   dish: {},
@@ -201,9 +201,9 @@ const lineFlash = new THREE.MeshStandardMaterial({
   envMapIntensity: 0.04,
 });
 const beamMat = new THREE.MeshBasicMaterial({
-  color: 0xc8ffb4,
+  color: 0xb6ff8a,
   transparent: true,
-  opacity: 0.22,
+  opacity: 0.72,
   depthWrite: false,
   side: THREE.DoubleSide,
 });
@@ -217,12 +217,31 @@ const emberMat = new THREE.MeshBasicMaterial({
   transparent: true,
   opacity: 0.35,
 });
+const lavaMat = new THREE.MeshStandardMaterial({
+  color: 0xffb020,
+  emissive: 0xff4a10,
+  emissiveIntensity: 0.9,
+  roughness: 0.32,
+});
 const smokeMat = new THREE.MeshStandardMaterial({
   color: 0x6a645e,
   transparent: true,
   opacity: 0,
   roughness: 0.95,
   depthWrite: false,
+});
+const steamMat = new THREE.MeshStandardMaterial({
+  color: 0xe7eef3,
+  transparent: true,
+  opacity: 0.88,
+  roughness: 0.9,
+  depthWrite: false,
+});
+const plumeMat = new THREE.MeshStandardMaterial({
+  color: 0xd2b0ff,
+  emissive: 0xa060ff,
+  emissiveIntensity: 0.85,
+  roughness: 0.45,
 });
 
 function acorn(parent, api, x, z, delay) {
@@ -259,42 +278,32 @@ function cactus(parent, api, x, z) {
 }
 
 function oasisGoal(group, api) {
-  cactus(group, api, -0.4, -0.2);
-  for (let i = 0; i < 3; i++) {
-    const a = -0.4 + i * 0.55;
-    mesh(group, G.box, shade(0x3bc94a, 0.65), Math.sin(a) * 0.4, Y0 + 0.02, Math.cos(a) * 0.16, {
-      rot: [0.4, a, 0.6],
-      s: [0.1, 0.02, 0.05],
-      ink: 1.16,
-    });
-  }
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2;
-    const drop = mesh(group, G.sph, shade(0x8ff0e0, 0.22), Math.cos(a) * 0.22, Y0 + 0.04, Math.sin(a) * 0.22, { s: 0.035, ink: 1.2 });
-    api.act(drop, (b, env, wob, k) => {
-      const pop = Math.sin(Math.min(1, Math.max(0, k * 1.2 - i * 0.08)) * Math.PI);
-      b.node.position.y = b.y + pop * api.hh(0.16);
-      b.node.scale.setScalar(0.035 * (0.4 + pop));
-    });
-  }
+  cactus(group, api, -0.42, -0.16);
+  cactus(group, api, 0.4, -0.22);
+  const ring = mesh(group, G.thinTorus, shade(0x3bc94a, 0.55), 0, Y0 + 0.03, 0, {
+    rot: [Math.PI / 2, 0, 0],
+    s: 0.4,
+    ink: 1.08,
+  });
+  api.act(ring, (b, env) => {
+    const s = 0.4 * (1 + env * 0.08);
+    b.node.scale.set(s, s, s);
+  });
 }
 
 function crystalGoal(group, api) {
-  mesh(group, G.thinTorus, shade(0xf4f7fb, 0.4), 0, Y0 + 0.02, 0, { rot: [Math.PI / 2, 0, 0], s: 0.46 });
-  const cols = [0xe23b3b, 0x3a6cff, 0x7adf5a];
+  const cols = [0x9ad4ff, 0xc9b6ff, 0x7ee0ff];
   cols.forEach((hex, i) => {
-    const a = -Math.PI / 2 + (i - 1) * 0.7;
-    const marble = mesh(group, G.sph, shade(hex, 0.22, 0.08), Math.cos(a) * 0.46, Y0 + 0.08, Math.sin(a) * 0.46, {
-      s: 0.1,
-      ink: 1.12,
-      shadow: true,
-    });
+    const a = -Math.PI / 2 + (i - 1) * 0.85;
+    const eye = grp(group, Math.cos(a) * 0.46, Y0 + 0.08, Math.sin(a) * 0.46);
+    mesh(eye, G.sph, shade(0xf4fbff, 0.18, 0.04), 0, 0, 0, { s: [0.11, 0.09, 0.1], ink: 1.1, shadow: true });
+    mesh(eye, G.sph, shade(hex, 0.2, 0.05), 0, 0.01, 0.05, { s: 0.055, ink: 1.08 });
+    mesh(eye, G.sph, shade(0x141820, 0.4), 0, 0.012, 0.08, { s: 0.028 });
     api.shadow(group, Math.cos(a) * 0.46, Math.sin(a) * 0.46, 0.16, 0.12);
-    api.act(marble, (b, env, wob, k) => {
-      const pop = Math.sin(Math.min(1, Math.max(0, k * 1.4 - i * 0.12)) * Math.PI);
-      b.node.position.x = b.x + Math.cos(a) * pop * 0.08;
-      b.node.position.z = b.z + Math.sin(a) * pop * 0.08;
-      b.node.position.y = b.y + pop * 0.05;
+    api.act(eye, (b, env, wob, k) => {
+      const blink = Math.sin(Math.min(1, Math.max(0, k * 1.4 - i * 0.12)) * Math.PI);
+      b.node.scale.y = 1 - blink * 0.72;
+      b.node.position.y = b.y + blink * 0.03;
     });
   });
 }
@@ -359,22 +368,30 @@ function rimGoal(group, api) {
 
 function puddleGoal(group, api) {
   const goo = shade(0x2fbf3e, 0.28);
+  const face = grp(group, 0, Y0 + 0.045, 0.02);
+  mesh(face, G.sph, shade(0x141414, 0.5), -0.1, 0.02, 0.02, { s: [0.045, 0.05, 0.03], ink: 1.1 });
+  mesh(face, G.sph, shade(0x141414, 0.5), 0.1, 0.02, 0.02, { s: [0.045, 0.05, 0.03], ink: 1.1 });
+  mesh(face, G.sph, shade(0xf4fff0, 0.3), -0.088, 0.03, 0.04, { s: 0.016 });
+  mesh(face, G.sph, shade(0xf4fff0, 0.3), 0.112, 0.03, 0.04, { s: 0.016 });
+  for (let i = 0; i < 5; i++) {
+    const a = -0.5 + i * 0.25;
+    mesh(face, G.sph, shade(0x141414, 0.5), Math.sin(a) * 0.1, -0.02, 0.03, { s: [0.02, 0.016, 0.016] });
+  }
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    const blob = mesh(group, G.sph, goo, Math.cos(a) * 0.36, Y0 + 0.03, Math.sin(a) * 0.28, {
-      s: [0.08, 0.045, 0.07],
+    const blob = mesh(group, G.sph, goo, Math.cos(a) * 0.38, Y0 + 0.03, Math.sin(a) * 0.3, {
+      s: [0.07, 0.04, 0.06],
       ink: 1.14,
     });
     api.act(blob, (b, env, wob, k) => {
       const pop = Math.sin(Math.min(1, Math.max(0, k * 1.15 - i * 0.06)) * Math.PI);
       b.node.position.y = b.y + pop * 0.18;
-      b.node.scale.set(0.08, 0.045 + pop * 0.06, 0.07);
+      b.node.scale.set(0.07, 0.04 + pop * 0.05, 0.06);
     });
   }
-  const crown = mesh(group, G.sph, shade(0xb6ff9a, 0.2), 0, Y0 + 0.05, 0, { s: 0.05 });
-  api.act(crown, (b, env) => {
-    b.node.position.y = b.y + env * 0.2;
-    b.node.scale.setScalar(0.05 * (1 + env));
+  api.act(face, (b, env) => {
+    b.node.position.y = b.y + env * 0.06;
+    b.node.scale.setScalar(1 + env * 0.12);
   });
 }
 
@@ -504,9 +521,12 @@ function pinsGoal(group, api, kit, pins) {
 
 function craterGoal(group, api) {
   const rock = shade(0x4a2018, 0.86);
+  mesh(group, G.thinTorus, rock, 0, Y0 + 0.04, 0, { rot: [Math.PI / 2, 0, 0], s: 0.42, ink: 1.08 });
+  const lava = mesh(group, G.cyl, lavaMat, 0, Y0 + 0.03, 0, { s: [0.22, 0.02, 0.22] });
+  lava.renderOrder = 6;
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2 + 0.3;
-    const chip = mesh(group, G.sph, rock, Math.cos(a) * 0.4, Y0 + 0.04, Math.sin(a) * 0.32, {
+    const chip = mesh(group, G.sph, rock, Math.cos(a) * 0.46, Y0 + 0.05, Math.sin(a) * 0.36, {
       s: [0.07, 0.045, 0.06],
       ink: 1.12,
       shadow: true,
@@ -518,36 +538,42 @@ function craterGoal(group, api) {
       b.node.position.y = b.y + pop * 0.1;
     });
   }
-  const ember = mesh(group, G.shadow, emberMat, 0, Y0 + 0.03, 0, { rot: [-Math.PI / 2, 0, 0], s: 0.16 });
-  ember.renderOrder = 6;
-  const smoke = mesh(group, G.sph, smokeMat, 0.08, Y0 + 0.08, api.zb(-0.2), { s: 0.06 });
+  const smoke = mesh(group, G.sph, smokeMat, 0.08, Y0 + 0.1, api.zb(-0.2), { s: 0.06 });
   api.act(smoke, (b, env) => {
     b.node.position.y = b.y + env * 0.22;
-    b.node.material.opacity = env * 0.55;
+    b.node.material.opacity = 0.15 + env * 0.55;
     b.node.scale.setScalar(0.06 + env * 0.1);
   });
-  api.act(ember, (b, env) => {
-    emberMat.opacity = 0.2 + env * 0.65;
-    b.node.scale.setScalar(0.16 + env * 0.08);
+  api.act(lava, (b, env) => {
+    lavaMat.emissiveIntensity = 0.85 + env * 0.7;
+    const s = 0.22 + env * 0.04;
+    b.node.scale.set(s, 0.02, s);
   });
 }
 
+function starBadge(parent, y, size) {
+  const star = grp(parent, 0, y, 0);
+  const yellow = shade(0xffe14a, 0.4);
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + (i / 5) * Math.PI * 2;
+    const arm = grp(star, 0, 0.045, 0);
+    arm.rotation.y = -a;
+    mesh(arm, G.box, yellow, 0, 0, size * 0.22, { s: [size * 0.05, 0.05, size * 0.5], ink: 1.14 });
+  }
+  return star;
+}
+
 function pedestalGoal(group, api) {
-  const z = api.zb(-0.48);
-  const box = grp(group, 0, Y0, z);
-  const h = api.hh(0.32);
-  mesh(box, G.box, shade(0xe23b3b, 0.5), 0, h * 0.42, 0, { s: [0.44, h * 0.84, 0.32], ink: 1.06, shadow: true });
-  const lid = grp(box, 0, h * 0.84, 0.14);
-  mesh(lid, G.box, shade(0xffc21a, 0.45), 0, 0.025, -0.14, { s: [0.46, 0.05, 0.34], ink: 1.06 });
-  const doll = grp(box, 0, h * 0.55, 0);
-  mesh(doll, G.cyl, shade(0xff7a6a, 0.5), 0, 0.06, 0, { s: [0.07, 0.12, 0.07], ink: 1.1 });
-  mesh(doll, G.sph, shade(0xffe14a, 0.45), 0, 0.16, 0, { s: 0.065, ink: 1.12 });
-  api.shadow(group, 0, z, 0.4, 0.24);
-  api.act(lid, (b, env) => {
-    b.node.rotation.x = -env * 1.35;
-  });
-  api.act(doll, (b, env) => {
-    b.node.position.y = b.y + env * api.hh(0.16);
+  const z = api.zb(-0.42);
+  const stand = grp(group, 0, Y0, z);
+  const h = api.hh(0.22);
+  mesh(stand, G.cyl, shade(0xe23b3b, 0.5), 0, h * 0.35, 0, { s: [0.22, h * 0.7, 0.22], ink: 1.08, shadow: true });
+  mesh(stand, G.cyl, shade(0xffc21a, 0.45), 0, h * 0.72, 0, { s: [0.28, 0.04, 0.28], ink: 1.08 });
+  const star = starBadge(stand, h * 0.95, 0.92);
+  api.shadow(group, 0, z, 0.36, 0.22);
+  api.act(star, (b, env) => {
+    b.node.position.y = b.y + env * api.hh(0.14);
+    b.node.rotation.y = env * 0.8;
   });
 }
 
@@ -570,11 +596,18 @@ function stumpGoal(group, api) {
 function dishGoal(group, api) {
   const z = api.zb(-0.46);
   const jar = grp(group, 0, Y0, z);
-  const h = api.hh(0.36);
-  mesh(jar, G.cyl, shade(0xcdefff, 0.18, 0.02), 0, h * 0.5, 0, { s: [0.16, h, 0.16], ink: 1.08, shadow: true });
-  const lid = mesh(jar, G.cyl, shade(0xff5a9a, 0.4), 0, h + 0.03, 0, { s: [0.18, 0.06, 0.18], ink: 1.08 });
-  const gums = [0xff5a9a, 0x7adf5a, 0xffe14a].map((hex, i) => {
-    return mesh(jar, G.sph, shade(hex, 0.35), (i - 1) * 0.07, h * 0.45, 0, { s: 0.05 });
+  const h = api.hh(0.28);
+  mesh(jar, G.cyl, shade(0xcdefff, 0.18, 0.02), 0, h * 0.45, 0, { s: [0.2, h * 0.9, 0.2], ink: 1.08, shadow: true });
+  const lid = grp(jar, 0, h * 0.92, -0.02);
+  lid.rotation.x = -0.7;
+  mesh(lid, G.cyl, shade(0xff5a9a, 0.4), 0, 0.02, 0, { s: [0.2, 0.04, 0.2], ink: 1.08 });
+  const gums = [0xff5a9a, 0x7adf5a, 0xffe14a, 0x4ec8ff].map((hex, i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    return mesh(jar, G.sph, shade(hex, 0.35), (col - 0.5) * 0.08, h * 0.78, 0.06 - row * 0.05, {
+      s: 0.05,
+      ink: 1.12,
+    });
   });
   api.shadow(group, 0, z, 0.32, 0.22);
   api.act(lid, (b, env) => {
@@ -590,9 +623,12 @@ function dishGoal(group, api) {
 }
 
 function nestGoal(group, api) {
-  const z = api.zb(-0.42);
-  const tree = grp(group, api.tuck ? 0.16 : 0.28, Y0, z);
-  const h = api.hh(0.46);
+  const vine = shade(0x3d7a3a, 0.7);
+  mesh(group, G.torus, vine, 0, Y0 + 0.04, 0, { rot: [Math.PI / 2, 0, 0], s: [0.4, 0.4, 0.22], ink: 1.08 });
+  mesh(group, G.torus, shade(0x2f6a32, 0.75), 0, Y0 + 0.07, 0, { rot: [Math.PI / 2, 0.4, 0], s: [0.34, 0.34, 0.16], ink: 1.06 });
+  const z = api.zb(-0.24);
+  const tree = grp(group, api.tuck ? 0.06 : 0.16, Y0, z);
+  const h = api.hh(0.34);
   mesh(tree, G.cyl, shade(0x8a5a32, 0.84), 0, h * 0.42, 0, { s: [0.07, h * 0.9, 0.07], ink: 1.1, shadow: true });
   const leaves = [];
   for (let i = 0; i < 5; i++) {
@@ -624,16 +660,16 @@ function glowGoal(group, api) {
   mesh(ship, G.sph, shade(0xc5ced8, 0.35, 0.45), 0, 0, 0, { s: [0.32, 0.09, 0.32], ink: 1.08, shadow: true });
   mesh(ship, G.sph, shade(0x9af0c8, 0.2, 0.05), 0, 0.08, 0, { s: [0.13, 0.1, 0.13], ink: 1.1 });
   mesh(ship, G.sph, shade(0x6adf5a, 0.4), 0, 0.1, 0.04, { s: 0.045 });
-  const beamH = api.hh(0.32);
-  const beam = mesh(group, G.cone, beamMat, 0, Y0 + beamH * 0.45, z * 0.4, { s: [0.2, beamH, 0.2] });
+  const beamH = api.hh(0.48);
+  const beam = mesh(group, G.cone, beamMat, 0, Y0 + beamH * 0.42, z * 0.35, { s: [0.26, beamH, 0.26] });
   beam.renderOrder = 7;
   api.shadow(group, 0, z, 0.36, 0.18);
   api.act(ship, (b, env) => {
     b.node.position.y = b.y - env * 0.06;
   });
   api.act(beam, (b, env) => {
-    beamMat.opacity = 0.18 + env * 0.55;
-    b.node.scale.set(0.2 + env * 0.06, beamH * (1 + env * 0.2), 0.2 + env * 0.06);
+    beamMat.opacity = 0.7 + env * 0.25;
+    b.node.scale.set(0.26 + env * 0.04, beamH * (1 + env * 0.12), 0.26 + env * 0.04);
   });
 }
 
@@ -736,61 +772,73 @@ function flagGoal(group, api, kit) {
 }
 
 function spoolGoal(group, api) {
-  const steel = shade(0xe8eef4, 0.28, 0.35);
-  const hi = shade(0xffffff, 0.25, 0.15);
-  mesh(group, G.box, steel, 0.32, Y0 + 0.04, 0.02, { s: [0.5, 0.055, 0.09], ink: 1.08, shadow: true });
-  mesh(group, G.cone, steel, 0.58, Y0 + 0.04, 0.02, { rot: [0, 0, -Math.PI / 2], s: [0.045, 0.14, 0.045] });
-  mesh(group, G.thinTorus, hi, 0, Y0 + 0.045, 0, { rot: [Math.PI / 2, 0, 0], s: 0.36 });
-  const thread = grp(group, -0.28, Y0 + 0.045, 0);
-  const yarn = shade(0xff8ab0, 0.55);
-  for (let i = 0; i < 7; i++) {
-    mesh(thread, G.sph, yarn, -i * 0.07, 0.01, Math.sin(i) * 0.02, { s: 0.04, ink: 1.12 });
+  const z = api.zb(-0.28);
+  const bowl = grp(group, 0, Y0, z);
+  const yarn = shade(0xe7d3b0, 0.72);
+  const deep = shade(0x8a6240, 0.7);
+  const h = api.hh(0.26);
+  mesh(bowl, G.cyl, yarn, 0, h * 0.45, 0, { s: [0.3, h, 0.3], ink: 1.06, shadow: true });
+  mesh(bowl, G.cyl, deep, 0, h * 0.95, 0, { s: [0.2, 0.035, 0.2], ink: 1.04 });
+  for (let i = 0; i < 3; i++) {
+    mesh(bowl, G.thinTorus, i % 2 ? deep : yarn, 0, 0.04 + i * 0.045, 0, {
+      rot: [Math.PI / 2, i * 0.4, 0],
+      s: 0.26 - i * 0.02,
+      ink: 1.04,
+    });
   }
-  mesh(thread, G.sph, shade(0xff5a9a, 0.5), -0.5, 0.02, 0, { s: 0.065, ink: 1.1 });
-  api.shadow(group, 0.15, 0, 0.7, 0.18);
-  api.act(thread, (b, env, wob, k) => {
+  const strand = mesh(group, G.box, yarn, -0.28, Y0 + 0.05, z, { s: [0.22, 0.02, 0.02], ink: 1.1 });
+  api.shadow(group, 0, z, 0.4, 0.28);
+  api.act(strand, (b, env, wob, k) => {
     const pull = Math.sin(Math.min(1, k) * Math.PI);
-    b.node.position.x = b.x + pull * 0.46;
-    b.node.scale.set(1 + pull * 0.45, 1 + pull * 0.2, 1);
+    b.node.position.x = b.x - pull * 0.16;
+    b.node.scale.x = 1 + pull * 0.8;
+  });
+  api.act(bowl, (b, env) => {
+    b.node.position.y = b.y + env * 0.04;
   });
 }
 
 function mugGoal(group, api) {
-  const z = api.zb(-0.4);
+  const z = api.zb(-0.28);
   const cup = grp(group, 0, Y0, z);
-  const h = api.hh(0.3);
-  mesh(cup, G.cyl, shade(0xf4f7fb, 0.35), 0, h * 0.5, 0, { s: [0.16, h, 0.16], ink: 1.08, shadow: true });
-  mesh(cup, G.torus, shade(0xf4f7fb, 0.35), 0.16, h * 0.5, 0, { rot: [0, Math.PI / 2, 0], s: [0.07, 0.07, 0.045], ink: 1.1 });
-  const coffee = mesh(cup, G.cyl, shade(0x6a3a1a, 0.4), 0, h * 0.92, 0, { s: [0.12, 0.025, 0.12] });
-  const heart = mesh(cup, G.sph, shade(0xe8c9a0, 0.45), 0, h + 0.08, 0, { s: [0.045, 0.04, 0.03] });
-  api.shadow(group, 0, z, 0.24, 0.16);
+  const h = api.hh(0.22);
+  mesh(cup, G.cyl, shade(0xf4f7fb, 0.35), 0, h * 0.5, 0, { s: [0.18, h, 0.18], ink: 1.08, shadow: true });
+  mesh(cup, G.torus, shade(0xf4f7fb, 0.35), 0.18, h * 0.5, 0, { rot: [0, Math.PI / 2, 0], s: [0.08, 0.08, 0.045], ink: 1.1 });
+  const coffee = mesh(cup, G.cyl, shade(0x4a2410, 0.35), 0, h * 0.96, 0, { s: [0.14, 0.02, 0.14] });
+  const steams = [0, 1, 2].map((i) => {
+    return mesh(cup, G.sph, steamMat, (i - 1) * 0.05, h + 0.06 + i * 0.07, 0.02, { s: [0.055, 0.07, 0.055] });
+  });
+  api.shadow(group, 0, z, 0.28, 0.18);
   api.act(coffee, (b, env, wob) => {
     b.node.rotation.z = wob * 0.25;
   });
-  api.act(heart, (b, env) => {
-    b.node.position.y = b.y + env * 0.12;
-    b.node.scale.setScalar(0.045 * (1 + env));
+  steams.forEach((puff, i) => {
+    api.act(puff, (b, env) => {
+      b.node.position.y = b.y + env * (0.1 + i * 0.04);
+      b.node.material.opacity = 0.45 + env * 0.4;
+      b.node.scale.setScalar((0.7 + i * 0.15) * (1 + env * 0.4));
+    });
   });
 }
 
 function rindGoal(group, api) {
-  const knife = grp(group, api.tuck ? 0.22 : 0.34, Y0 + 0.02, api.zb(-0.08));
+  const knife = grp(group, api.tuck ? 0.22 : 0.38, Y0 + 0.02, api.zb(-0.08));
   mesh(knife, G.box, shade(0xd7e2ea, 0.28, 0.55), 0, 0.01, 0, { rot: [0, 0.4, 0], s: [0.22, 0.012, 0.05], ink: 1.16 });
   mesh(knife, G.box, shade(0x141414, 0.6), -0.1, 0.015, -0.04, { s: [0.06, 0.02, 0.03], ink: 1.1 });
-  const left = mesh(group, G.sph, shade(0xe8384a, 0.48), -0.22, Y0 + 0.04, 0.16, { s: [0.1, 0.05, 0.08], ink: 1.12 });
-  const right = mesh(group, G.sph, shade(0xff6a70, 0.48), 0.16, Y0 + 0.04, 0.2, { s: [0.09, 0.045, 0.07], ink: 1.12 });
-  mesh(group, G.sph, shade(0x141414, 0.8), -0.2, Y0 + 0.07, 0.18, { s: 0.015 });
-  mesh(group, G.sph, shade(0x141414, 0.8), 0.18, Y0 + 0.065, 0.22, { s: 0.012 });
+  const slice = grp(group, -0.08, Y0 + 0.04, 0.12);
+  mesh(slice, G.cyl, shade(0xe8384a, 0.48), 0, 0.02, 0, { s: [0.2, 0.04, 0.2], ink: 1.08 });
+  mesh(slice, G.torus, shade(0x127338, 0.55), 0, 0.03, 0, { rot: [Math.PI / 2, 0, 0], s: [0.18, 0.18, 0.28], ink: 1.06 });
+  mesh(slice, G.sph, shade(0x141414, 0.8), -0.05, 0.05, 0.02, { s: 0.018 });
+  mesh(slice, G.sph, shade(0x141414, 0.8), 0.04, 0.05, -0.03, { s: 0.016 });
+  mesh(slice, G.sph, shade(0x141414, 0.8), 0.01, 0.05, 0.05, { s: 0.014 });
   api.shadow(group, 0.2, api.zb(-0.08), 0.24, 0.12);
   api.act(knife, (b, env) => {
     b.node.rotation.z = -env * 0.7;
     b.node.position.y = b.y + env * 0.04;
   });
-  api.act(left, (b, env) => {
-    b.node.position.x = b.x - env * 0.08;
-  });
-  api.act(right, (b, env) => {
-    b.node.position.x = b.x + env * 0.08;
+  api.act(slice, (b, env) => {
+    b.node.position.y = b.y + env * 0.04;
+    b.node.rotation.z = env * 0.2;
   });
 }
 
@@ -879,8 +927,15 @@ function pawGoal(group, api, kit) {
   mesh(box, G.box, shade(0xd7a15a, 0.75), -0.24, h * 0.72, 0, { s: [0.03, h * 0.5, 0.34] });
   mesh(box, G.box, shade(0xd7a15a, 0.75), 0.24, h * 0.72, 0, { s: [0.03, h * 0.5, 0.34] });
   mesh(box, G.box, shade(0xd7a15a, 0.75), 0, h * 0.72, -0.16, { s: [0.48, h * 0.5, 0.03] });
-  mesh(box, G.cone, shade(0xe8c9a0, 0.6), -0.08, h * 0.95, -0.02, { s: [0.05, 0.08, 0.05] });
-  mesh(box, G.cone, shade(0xe8c9a0, 0.6), 0.08, h * 0.95, -0.02, { s: [0.05, 0.08, 0.05] });
+  const head = grp(box, 0, h * 0.55, -0.02);
+  mesh(head, G.sph, shade(0xf2e2cc, 0.6), 0, 0, 0, { s: [0.16, 0.1, 0.13], ink: 1.08 });
+  mesh(head, G.cone, shade(0xe8c9a0, 0.6), -0.07, 0.08, -0.02, { s: [0.05, 0.1, 0.04], ink: 1.08 });
+  mesh(head, G.cone, shade(0xe8c9a0, 0.6), 0.07, 0.08, -0.02, { s: [0.05, 0.1, 0.04], ink: 1.08 });
+  mesh(head, G.sph, shade(0x141414, 0.35), -0.045, 0.1, 0.02, { s: 0.032 });
+  mesh(head, G.sph, shade(0x141414, 0.35), 0.045, 0.1, 0.02, { s: 0.032 });
+  mesh(head, G.sph, shade(0xffffff, 0.2), -0.034, 0.118, 0.028, { s: 0.012 });
+  mesh(head, G.sph, shade(0xffffff, 0.2), 0.056, 0.118, 0.028, { s: 0.012 });
+  mesh(head, G.sph, shade(0xe23b4a, 0.4), 0, 0.095, 0.05, { s: [0.028, 0.014, 0.016] });
   const paw = grp(group, 0, Y0 + h * 0.62, z + 0.12);
   paw.rotation.x = -0.55;
   const padMat = shade(0xf2c9a0, 0.62);
@@ -894,12 +949,12 @@ function pawGoal(group, api, kit) {
 
 function pixelsGoal(group, api, kit) {
   const cols = kit.pixelBlockMats;
-  const z = api.zb(-0.32);
-  const s = api.tuck ? 0.12 : 0.15;
+  const z = api.zb(-0.18);
+  const s = api.tuck ? 0.1 : 0.12;
   const layout = [
-    [-0.16, 0, -0.02], [0.16, 0, 0.02],
-    [-0.16, 1, 0.04], [0.16, 1, -0.02],
-    [-0.16, 2, 0], [0, 2, 0.02], [0.16, 2, -0.04],
+    [-0.18, 0, 0], [0.18, 0, 0],
+    [-0.18, 1, 0], [0.18, 1, 0],
+    [-0.18, 2, 0], [-0.06, 2, 0], [0.06, 2, 0], [0.18, 2, 0],
   ];
   const blocks = layout.map(([x, row, jitter], i) => {
     const block = mesh(group, G.box, cols[i % 3], x, Y0 + s * 0.5 + row * s, z + jitter, {
@@ -924,11 +979,12 @@ function pixelsGoal(group, api, kit) {
 }
 
 function rocketGoal(group, api) {
-  const land = shade(0x7fb86a, 0.75);
-  mesh(group, G.sph, land, -0.22, Y0 + 0.02, -0.08, { s: [0.16, 0.02, 0.1] });
-  mesh(group, G.sph, land, 0.18, Y0 + 0.02, 0.16, { s: [0.14, 0.02, 0.09] });
-  mesh(group, G.sph, shade(0x3ec4ff, 0.4), 0.28, Y0 + 0.02, -0.18, { s: [0.1, 0.015, 0.07] });
-  const pin = grp(group, 0.04, Y0, api.zb(-0.28));
+  const map = grp(group, 0, Y0 + 0.02, api.zb(-0.08));
+  mesh(map, G.cyl, shade(0x2f78d0, 0.45), 0, 0.01, 0, { s: [0.36, 0.02, 0.28], ink: 1.06, shadow: true });
+  mesh(map, G.sph, shade(0x3d9a4a, 0.6), -0.08, 0.025, 0.02, { s: [0.12, 0.015, 0.08] });
+  mesh(map, G.sph, shade(0x7fb86a, 0.6), 0.1, 0.025, -0.02, { s: [0.1, 0.015, 0.07] });
+  mesh(map, G.sph, shade(0xe6d09a, 0.6), 0.02, 0.028, 0.06, { s: [0.05, 0.012, 0.04] });
+  const pin = grp(group, 0.04, Y0, api.zb(-0.16));
   mesh(pin, G.cone, shade(0xe23b3b, 0.5), 0, 0.14, 0, { s: [0.06, 0.18, 0.06], ink: 1.1, shadow: true });
   mesh(pin, G.sph, shade(0xe23b3b, 0.5), 0, 0.24, 0, { s: 0.05, ink: 1.1 });
   const dots = [];
@@ -947,23 +1003,34 @@ function rocketGoal(group, api) {
 }
 
 function cauldronGoal(group, api) {
-  const z = api.zb(-0.46);
+  const z = api.zb(-0.3);
   const pot = grp(group, 0, Y0, z);
   mesh(pot, G.sph, shade(0x3a2458, 0.48, 0.25), 0, api.hh(0.12), 0, { s: [0.24, api.hh(0.16), 0.24], ink: 1.06, shadow: true });
   mesh(pot, G.torus, shade(0x2a1838, 0.5, 0.3), 0, api.hh(0.2), 0, { rot: [Math.PI / 2, 0, 0], s: [0.2, 0.2, 0.08], ink: 1.06 });
+  const plumes = [
+    [0.12, -0.05, 0.09],
+    [0.22, 0.05, 0.08],
+    [0.32, -0.02, 0.075],
+    [0.4, 0.02, 0.065],
+  ].map(([rise, x, s]) => mesh(pot, G.sph, plumeMat, x, api.hh(0.12) + rise, 0, { s, ink: 1.08 }));
   const bubbles = [0, 1, 2].map((i) => {
-    return mesh(pot, G.sph, shade(0xc89aff, 0.25), (i - 1) * 0.06, api.hh(0.22), 0, { s: 0.04 });
+    return mesh(pot, G.sph, shade(0xc89aff, 0.25), (i - 1) * 0.06, api.hh(0.22), 0.02, { s: 0.028 });
   });
-  const skull = grp(pot, 0, api.hh(0.26), 0);
-  mesh(skull, G.sph, shade(0xefe8dc, 0.6), 0, 0, 0, { s: 0.06, ink: 1.12 });
-  mesh(skull, G.sph, shade(0x2a1838, 0.5), -0.018, 0.01, 0.04, { s: 0.014 });
-  mesh(skull, G.sph, shade(0x2a1838, 0.5), 0.018, 0.01, 0.04, { s: 0.014 });
+  const skull = grp(pot, 0, api.hh(0.12) + 0.2, 0.14);
+  mesh(skull, G.sph, shade(0xefe8dc, 0.55), 0, 0, 0, { s: 0.08, ink: 1.14 });
+  mesh(skull, G.sph, shade(0x2a1838, 0.4), -0.024, 0.03, 0.05, { s: 0.02 });
+  mesh(skull, G.sph, shade(0x2a1838, 0.4), 0.024, 0.03, 0.05, { s: 0.02 });
   api.shadow(group, 0, z, 0.36, 0.24);
   bubbles.forEach((bubble, i) => {
     api.act(bubble, (b, env, wob, k) => {
       const pop = Math.sin(Math.min(1, Math.max(0, k * 1.4 - i * 0.12)) * Math.PI);
       b.node.position.y = b.y + pop * 0.1;
       b.node.scale.setScalar(0.04 * (1 + pop));
+    });
+  });
+  plumes.forEach((puff, i) => {
+    api.act(puff, (b, env) => {
+      b.node.position.y = b.y + env * (0.1 + i * 0.06);
     });
   });
   api.act(skull, (b, env) => {

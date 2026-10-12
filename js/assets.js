@@ -166,8 +166,7 @@ function restCards() {
     const card = document.createElement("article");
     card.className = "compare-card";
     const title = document.createElement("h3");
-    const note = id === "gummy" ? " · 맵 없음" : "";
-    title.textContent = `${ko} · ${en}${note}`;
+    title.textContent = `${ko} · ${en}`;
     const pair = document.createElement("div");
     pair.className = "compare-pair pair-2";
     for (const [label, caption] of [["main", "Before · 전"], ["arcade", "After · 후"]]) {
