@@ -36,6 +36,14 @@ agent-tools/
 # Large local logs
 unity/**/Library/Bee/
 
+# Node (capture scripts only)
+node_modules/
+package-lock.json
+package.json
+
+# Local Blender install
+.tools/
+
 # Python
 __pycache__/
 *.pyc

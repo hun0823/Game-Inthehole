@@ -533,6 +533,7 @@ function craterGoal(group, api) {
 }
 
 function pedestalGoal(group, api) {
+  if (api.glbToyStar && api.glbToyStar(group, api)) return;
   const z = api.zb(-0.48);
   const box = grp(group, 0, Y0, z);
   const h = api.hh(0.32);
@@ -1018,6 +1019,7 @@ export function mountGoalV3(group, kind, kit, opts = {}) {
   if (edge === "right") root.position.x = -0.18;
   group.add(root);
   const api = makeApi(tuck, actors);
+  api.glbToyStar = opts.glbToyStar || null;
   const build = BUILD[kind] || BUILD.knot;
   const extra = build(root, api, kit, pins) || {};
   group.userData.play = (env, wob, k) => {

@@ -15,6 +15,18 @@ import {
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
 import { beginDeco, tickDeco, decoWanted, createBoardDeco } from "./boardDeco.js";
+import {
+  glbToyWanted,
+  loadToyGlb,
+  toyGlbReady,
+  mountToyFloor,
+  mountToyFrame,
+  mountToyWall,
+  mountToyGate,
+  mountToyButton,
+  mountToyDeco,
+  mountToyStarGoal,
+} from "./glbToyKit.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -340,6 +352,8 @@ function paintTex(size, draw) {
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
+
+if (glbToyWanted()) loadToyGlb().catch((err) => console.warn("[glb] toy kit load failed", err));
 
 export function makeBallMaterials() {
   const std = (opts) => new THREE.MeshStandardMaterial(opts);
@@ -1703,7 +1717,14 @@ export function createView(canvas) {
     goalGroup.position.set(spot.x, 0, spot.z);
     const tuck = holeCell[0] === 0;
     const edge = holeCell[1] === 0 ? "left" : holeCell[1] === n - 1 ? "right" : "";
-    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme, tuck, edge, zoom: tuck ? 1 : 1.32 });
+    const toyGlb = glbToyWanted() && activeTheme.id === "toy" && toyGlbReady();
+    const built = mountGoal(goalGroup, equipped.goal, goalKit, {
+      theme: activeTheme,
+      tuck,
+      edge,
+      zoom: tuck ? 1 : 1.32,
+      glbToyStar: toyGlb && equipped.goal === "pedestal" ? mountToyStarGoal : null,
+    });
     pins.push(...built.pins);
     pawMesh = built.paw;
   }
@@ -1834,6 +1855,7 @@ export function createView(canvas) {
     clearRig();
     clearFx();
     const span = n * STEP;
+    const toyGlb = glbToyWanted() && (level.planet || activeTheme.id) === "toy" && toyGlbReady();
     const inner = span / 2 - 0.01;
     // Thickness tracks board size so 3×3 through 8×8 keep about the same
     // outline weight: a charcoal stroke and one theme-color band.
@@ -1856,23 +1878,33 @@ export function createView(canvas) {
       mesh.receiveShadow = mat !== frameInkMat;
       rig.add(mesh);
     };
-    addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
-    addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9);
-    addRing(holeW + line * 2.1, holeW + 0.006 * unit, Math.max(0.05, innerR * 0.85), Math.max(0.04, innerR * 0.35), frameH * 0.1, frameLowMat, 0.025 + frameH * 0.86);
-    addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.7, Math.max(0.05, outerR * 0.92), Math.max(0.04, frameH * 0.16), frameInkMat, 0.02 + frameH * 0.9);
-    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
+    const framed = toyGlb && mountToyFrame(rig, n);
+    if (!framed) {
+      addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
+      addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9);
+      addRing(holeW + line * 2.1, holeW + 0.006 * unit, Math.max(0.05, innerR * 0.85), Math.max(0.04, innerR * 0.35), frameH * 0.1, frameLowMat, 0.025 + frameH * 0.86);
+      addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.7, Math.max(0.05, outerR * 0.92), Math.max(0.04, frameH * 0.16), frameInkMat, 0.02 + frameH * 0.9);
+    }
+    if (decoWanted()) {
+      if (toyGlb) mountToyDeco(rig, span, frameT);
+      else rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
+    }
 
     const boardH = 0.26;
-    const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
-    board.position.y = BOARD_TOP - boardH / 2;
-    board.receiveShadow = true;
-    rig.add(board);
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.02, span - 0.02), floorTopMaterial(n));
-    top.rotation.x = -Math.PI / 2;
-    top.position.y = BOARD_TOP + 0.004;
-    top.receiveShadow = true;
-    top.userData.ownGeo = true;
-    rig.add(top);
+    if (toyGlb) {
+      mountToyFloor(rig, n, STEP, BOARD_TOP, cellXZ);
+    } else {
+      const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
+      board.position.y = BOARD_TOP - boardH / 2;
+      board.receiveShadow = true;
+      rig.add(board);
+      const top = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.02, span - 0.02), floorTopMaterial(n));
+      top.rotation.x = -Math.PI / 2;
+      top.position.y = BOARD_TOP + 0.004;
+      top.receiveShadow = true;
+      top.userData.ownGeo = true;
+      rig.add(top);
+    }
 
     const placeEdge = (axis, r, c) => {
       const x = axis === "h"
@@ -1895,6 +1927,50 @@ export function createView(canvas) {
       const group = new THREE.Group();
       group.position.set(x, WALL_Y, z);
       let mesh;
+      if (toyGlb && kind === "wall") {
+        const group = new THREE.Group();
+        group.position.set(x, WALL_Y, z);
+        mountToyWall(group, 0, 0, color, axis);
+        if (!group.children.length) { /* fall through to code wall */ }
+        else {
+        let mesh = group;
+        group.traverse((o) => { if (o.isMesh && o.material?.name?.startsWith("toon_wall_")) mesh = o; });
+        mesh.userData = {
+          kind,
+          axis,
+          r,
+          c,
+          color: color || null,
+          fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
+          ruleVisible: true,
+        };
+        rig.add(group);
+        fogWalls.push(mesh);
+        return mesh;
+        }
+      }
+      if (toyGlb && kind === "color") {
+        const group = new THREE.Group();
+        group.position.set(x, WALL_Y, z);
+        mountToyGate(group, 0, 0);
+        if (!group.children.length) { /* fall through */ }
+        else {
+        const mesh = group;
+        mesh.userData = {
+          kind,
+          axis,
+          r,
+          c,
+          color: color || null,
+          fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
+          ruleVisible: true,
+        };
+        rig.add(group);
+        fogWalls.push(mesh);
+        colored.push(mesh);
+        return mesh;
+        }
+      }
       if (kind === "wall") {
         const longX = w >= d;
         const len = longX ? w : d;
@@ -2011,8 +2087,15 @@ export function createView(canvas) {
     for (const btn of level.buttons || []) {
       const { x, z } = cellXZ(btn.row, btn.col);
       const color = GEM_HEX[btn.color] ? btn.color : "red";
-      const mesh = makeButton(x, z, color, btn.row, btn.col, activeTheme.id);
-      rig.add(mesh);
+      let mesh;
+      if (toyGlb) {
+        mesh = mountToyButton(x, z, color, btn.row, btn.col);
+        if (mesh) rig.add(mesh);
+      }
+      if (!mesh) {
+        mesh = makeButton(x, z, color, btn.row, btn.col, activeTheme.id);
+        rig.add(mesh);
+      }
       buttons.push(mesh);
     }
 
@@ -2976,5 +3059,12 @@ export function createView(canvas) {
     setBloom,
     bloomSuppressed: () => bloomHeld,
     onBloomSuppressed(fn) { onBloomHeld = fn; },
+    perfInfo() {
+      const r = renderer.info.render;
+      return { calls: r.calls, triangles: r.triangles };
+    },
+    getRenderer() {
+      return renderer;
+    },
   };
 }

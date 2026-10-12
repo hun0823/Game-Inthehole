@@ -2,6 +2,7 @@ import { LEVELS } from "./levels.js";
 import { Game } from "./game.js";
 import { drawSky } from "./playfield.js";
 import { createView } from "./board3d.js";
+import { glbToyWanted, whenToyGlbReady } from "./glbToyKit.js";
 import { createConstellation, mapLayout } from "./constellation.js";
 import { beginShots, endShots, shotBall, shotGoal, shotGoalBadge } from "./showcase.js";
 import { resolveTestUnlock } from "./testUnlock.js";
@@ -82,6 +83,11 @@ const rewardName = document.getElementById("reward-name");
 const settingsEl = document.getElementById("settings");
 
 const view = createView(playfieldEl);
+if (glbToyWanted()) {
+  whenToyGlbReady().then(() => {
+    if (LEVELS[stageIndex]?.planet === "toy") renderBoard();
+  });
+}
 const mapView = createConstellation(document.getElementById("constellation"));
 
 let lang = detectLang();
