@@ -415,67 +415,162 @@ export function makeSmog(x, z, row, col, variant) {
 }
 
 const MAGMA = {
-  home: { calm: 0x5a2818, hot: 0xff4a18, rock: 0x3a1812 },
-  alien: { calm: 0x4a2880, hot: 0xc07aff, rock: 0x2a1848 },
-  machine: { calm: 0x3a4048, hot: 0xff6a18, rock: 0x5c646e },
+  home: { rock: 0x3a1812, crust: 0x6a2c18, ember: 0xff5a16, warn: 0xffd24a, hot: 0xff2a08 },
+  alien: { rock: 0x2a1848, crust: 0x4a2880, ember: 0xc07aff, warn: 0xedd4ff, hot: 0x9a46ff },
+  machine: { rock: 0x3a4048, crust: 0x5c646e, ember: 0xff6a18, warn: 0xffd24a, hot: 0xff3a08 },
 };
 
-function crackFan(material) {
-  const group = new THREE.Group();
-  const geo = new THREE.BoxGeometry(0.42, 0.02, 0.045);
-  for (let i = 0; i < 5; i++) {
-    const arm = new THREE.Mesh(geo, material);
-    arm.rotation.y = (i / 5) * Math.PI;
-    arm.position.y = BOARD_TOP + 0.03;
-    group.add(arm);
+const magmaGeo = {};
+function magmaGeometry(key, build) {
+  if (!magmaGeo[key]) magmaGeo[key] = build();
+  return magmaGeo[key];
+}
+
+const magmaMats = new Map();
+function magmaToon(hex) {
+  const key = `t${hex}`;
+  let mat = magmaMats.get(key);
+  if (!mat) {
+    mat = createToon(hex);
+    magmaMats.set(key, mat);
   }
-  return group;
+  return mat;
+}
+function magmaGlow(hex) {
+  const key = `g${hex}`;
+  let mat = magmaMats.get(key);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({ color: hex, toneMapped: false });
+    magmaMats.set(key, mat);
+  }
+  return mat;
+}
+
+function magmaMesh(geo, material, y) {
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.position.y = y;
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
+  mesh.frustumCulled = false;
+  return mesh;
+}
+
+function localCracks(material, y) {
+  const fan = new THREE.Group();
+  const geo = magmaGeometry("crack", () => new THREE.BoxGeometry(0.52, 0.05, 0.08));
+  for (let i = 0; i < 4; i++) {
+    const arm = magmaMesh(geo, material, y);
+    arm.rotation.y = (i / 4) * Math.PI;
+    fan.add(arm);
+  }
+  return fan;
+}
+
+function showScaled(obj, w, pulse) {
+  obj.visible = w > 0.28;
+  if (!obj.visible) return;
+  const grow = Math.min(1, (w - 0.28) / 0.72);
+  obj.scale.setScalar((0.8 + 0.2 * grow) * pulse);
 }
 
 export function makeMagma(x, z, at, variant) {
   const pal = MAGMA[variant] || MAGMA.home;
   const group = cellGroup(x, z);
-  const calmMat = std(pal.calm, { roughness: 0.8, emissive: pal.calm, emissiveIntensity: 0.25 });
-  const warnMat = std(pal.hot, { roughness: 0.35, emissive: pal.hot, emissiveIntensity: 0.85 });
-  const calm = crackFan(calmMat);
-  const calmPool = new THREE.Mesh(
-    new THREE.CircleGeometry(0.4, 20),
-    std(pal.hot, { roughness: 0.35, emissive: pal.hot, emissiveIntensity: 0.55 })
+  group.frustumCulled = false;
+
+  // Raised solid tile. A flat circle 0.03 above the floor loses the depth
+  // test on iPhone Safari, so the vent has to have real thickness.
+  const plate = magmaMesh(
+    magmaGeometry("plate", () => new THREE.CylinderGeometry(0.44, 0.46, 0.08, 24)),
+    magmaToon(pal.rock),
+    BOARD_TOP + 0.08
   );
-  calmPool.rotation.x = -Math.PI / 2;
-  calmPool.position.y = BOARD_TOP + 0.03;
-  calm.add(calmPool);
-  const warn = crackFan(warnMat);
+  group.add(plate);
+  addScreenOutline(plate);
+
+  const calm = new THREE.Group();
+  calm.position.y = BOARD_TOP + 0.13;
+  calm.frustumCulled = false;
+  calm.add(magmaMesh(
+    magmaGeometry("pool", () => new THREE.CylinderGeometry(0.36, 0.37, 0.07, 22)),
+    magmaGlow(pal.ember),
+    0.03
+  ));
+  calm.add(localCracks(magmaToon(pal.rock), 0.07));
+
+  const warn = new THREE.Group();
+  warn.position.y = BOARD_TOP + 0.13;
+  warn.frustumCulled = false;
+  warn.visible = false;
+  warn.add(magmaMesh(
+    magmaGeometry("pool", () => new THREE.CylinderGeometry(0.36, 0.37, 0.07, 22)),
+    magmaGlow(pal.warn),
+    0.04
+  ));
+  const ring = magmaMesh(
+    magmaGeometry("ring", () => new THREE.TorusGeometry(0.4, 0.045, 8, 24)),
+    magmaGlow(pal.warn),
+    0.01
+  );
+  ring.rotation.x = Math.PI / 2;
+  warn.add(ring);
+  warn.add(localCracks(magmaToon(pal.rock), 0.09));
+
   const hot = new THREE.Group();
-  const rockGeo = new THREE.ConeGeometry(0.16, 0.42, 5);
-  for (let i = 0; i < 5; i++) {
-    const rock = new THREE.Mesh(rockGeo, std(pal.rock, { roughness: 0.86 }));
-    const a = (i / 5) * Math.PI * 2;
-    rock.position.set(Math.cos(a) * 0.16, BOARD_TOP + 0.24, Math.sin(a) * 0.16);
-    rock.rotation.z = Math.cos(a) * 0.25;
-    rock.rotation.x = Math.sin(a) * 0.2;
+  hot.position.y = BOARD_TOP + 0.13;
+  hot.frustumCulled = false;
+  hot.visible = false;
+  const rockGeo = magmaGeometry("rock", () => new THREE.CylinderGeometry(0.09, 0.11, 0.1, 6));
+  const rockMat = magmaToon(pal.rock);
+  for (let i = 0; i < 6; i++) {
+    const rock = magmaMesh(rockGeo, rockMat, 0.08);
+    const a = (i / 6) * Math.PI * 2 + 0.2;
+    rock.position.x = Math.cos(a) * 0.3;
+    rock.position.z = Math.sin(a) * 0.3;
     hot.add(rock);
+    addScreenOutline(rock);
   }
-  const pool = new THREE.Mesh(
-    new THREE.CircleGeometry(0.2, 12),
-    std(pal.hot, { roughness: 0.3, emissive: pal.hot, emissiveIntensity: 0.7 })
+  const cap = magmaMesh(
+    magmaGeometry("cap", () => new THREE.CylinderGeometry(0.24, 0.26, 0.08, 18)),
+    magmaGlow(pal.hot),
+    0.05
   );
-  pool.rotation.x = -Math.PI / 2;
-  pool.position.y = BOARD_TOP + 0.42;
-  hot.add(pool);
+  hot.add(cap);
+  hot.add(localCracks(magmaToon(pal.rock), 0.1));
+  hot.userData.cap = cap;
+
   group.add(calm, warn, hot);
   if (variant === "machine") {
-    const grate = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.04, 0.08), std(0x2a3038, { metal: 0.5, roughness: 0.4 }));
-    grate.position.y = BOARD_TOP + 0.08;
-    const grate2 = grate.clone();
+    const barGeo = magmaGeometry("grate", () => new THREE.BoxGeometry(0.62, 0.04, 0.07));
+    const grateMat = magmaToon(0x2a3038);
+    const grate = magmaMesh(barGeo, grateMat, BOARD_TOP + 0.14);
+    const grate2 = magmaMesh(barGeo, grateMat, BOARD_TOP + 0.14);
     grate2.rotation.y = Math.PI / 2;
     group.add(grate, grate2);
   }
-  group.userData = { at, calm, warn, hot };
-  actors.push((time) => {
-    calmMat.emissiveIntensity = 0.15 + Math.sin(time * 2) * 0.08;
-    warnMat.emissiveIntensity = 0.85 + Math.sin(time * 8) * 0.25;
-    if (hot.visible) pool.position.y = BOARD_TOP + 0.4 + Math.sin(time * 6) * 0.03;
+  group.userData = { at, calm, warn, hot, phase: 0, blend: 0 };
+  actors.push((time, dt) => {
+    const target = group.userData.phase || 0;
+    let blend = group.userData.blend || 0;
+    if (!(dt > 0)) blend = target;
+    else {
+      blend += (target - blend) * Math.min(1, dt * 9);
+      if (Math.abs(target - blend) < 0.012) blend = target;
+    }
+    group.userData.blend = blend;
+    const calmW = Math.max(0, 1 - Math.abs(blend - 0));
+    const warnW = Math.max(0, 1 - Math.abs(blend - 1));
+    const hotW = Math.max(0, 1 - Math.abs(blend - 2));
+    const moving = dt > 0;
+    showScaled(calm, calmW, moving && calmW > 0.92 ? 1 + Math.sin(time * 2.2) * 0.03 : 1);
+    showScaled(warn, warnW, moving && warnW > 0.92 ? 1 + Math.sin(time * 8) * 0.05 : 1);
+    hot.visible = hotW > 0.18;
+    if (hot.visible) {
+      const rise = Math.min(1, (hotW - 0.18) / 0.82);
+      const s = 0.62 + 0.38 * rise;
+      hot.scale.set(s, 1, s);
+      if (moving) cap.position.y = 0.05 + Math.sin(time * 6) * 0.008;
+    }
   });
   return group;
 }
