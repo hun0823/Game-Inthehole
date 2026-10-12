@@ -4,6 +4,8 @@
  */
 import * as THREE from "./vendor/three.module.js";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
+import { createToon, toonMaterial } from "./toonPalette.js";
+import { addScreenOutline } from "./outline.js";
 
 const BOARD_TOP = 0.5;
 const WALL_H = 0.46;
@@ -48,18 +50,13 @@ export function tickTricks(time, dt) {
 }
 
 function std(hex, extra = {}) {
-  const key = `${hex}|${extra.roughness ?? ""}|${extra.emissive ?? ""}|${extra.opacity ?? ""}|${extra.metal ?? ""}`;
+  const key = `${hex}|${extra.roughness ?? ""}|${extra.emissive ?? ""}|${extra.opacity ?? ""}|${extra.metal ?? ""}|${extra.offset ?? ""}`;
   let mat = stds.get(key);
   if (!mat) {
-    mat = new THREE.MeshStandardMaterial({
-      color: hex,
-      roughness: extra.roughness ?? 0.72,
-      metalness: extra.metal ?? 0,
+    mat = toonMaterial(hex, {
       emissive: extra.emissive ?? 0x000000,
       emissiveIntensity: extra.emissiveIntensity ?? (extra.emissive ? 0.35 : 0),
-      transparent: (extra.opacity ?? 1) < 1,
       opacity: extra.opacity ?? 1,
-      depthWrite: (extra.opacity ?? 1) >= 0.95,
       polygonOffset: true,
       polygonOffsetFactor: extra.offset ?? -1,
       polygonOffsetUnits: extra.offset ?? -1,
@@ -236,10 +233,8 @@ function mapped(map, roughness) {
   const key = `${map.uuid}|${roughness}`;
   let mat = mappedCache.get(key);
   if (!mat) {
-    mat = new THREE.MeshStandardMaterial({
+    mat = createToon(0xffffff, {
       map,
-      color: 0xffffff,
-      roughness,
       polygonOffset: true,
       polygonOffsetFactor: -3,
       polygonOffsetUnits: -3,
@@ -588,30 +583,24 @@ function muteRay(mesh) {
 export function makeButton(x, z, color, row, col, planet) {
   const key = GEM[color] ? color : "red";
   const gem = GEM[key];
-  const plateMat = new THREE.MeshStandardMaterial({
-    color: PLATE[planet] || PLATE.wood,
-    roughness: 0.62,
-  });
+  const plateMat = toonMaterial(PLATE[planet] || PLATE.wood);
   const mesh = new THREE.Mesh(plateGeo, plateMat);
   mesh.position.set(x, BOARD_TOP + 0.055, z);
   mesh.castShadow = true;
+  addScreenOutline(mesh);
   const rim = muteRay(new THREE.Mesh(rimGeo, std(INK, { roughness: 0.7 })));
   rim.position.y = -0.012;
-  const sideMat = new THREE.MeshStandardMaterial({ color: shadeHex(gem, 0.38), roughness: 0.5 });
+  const sideMat = toonMaterial(shadeHex(gem, 0.38));
   const side = muteRay(new THREE.Mesh(domeGeo, sideMat));
   side.scale.set(1.05, 0.58, 1.05);
   side.position.y = 0.055;
   side.castShadow = true;
-  const domeMat = new THREE.MeshStandardMaterial({
-    color: gem,
-    emissive: gem,
-    emissiveIntensity: 0.06,
-    roughness: 0.38,
-  });
+  const domeMat = createToon(gem, { emissive: gem, emissiveIntensity: 0.06 });
   const dome = muteRay(new THREE.Mesh(domeGeo, domeMat));
   dome.scale.set(0.92, 0.62, 0.92);
   dome.position.y = 0.1;
   dome.castShadow = true;
+  addScreenOutline(dome);
   const outline = muteRay(new THREE.Mesh(outlineGeo, std(INK, { roughness: 0.55 })));
   outline.rotation.x = Math.PI / 2;
   outline.position.y = 0.07;
@@ -658,35 +647,13 @@ const glassMats = {};
 function glassMaterial(variant) {
   if (!glassMats[variant]) {
     const pal = GLASS[variant] || GLASS.home;
-    glassMats[variant] = new THREE.MeshPhysicalMaterial({
-      color: pal.face,
-      roughness: 0.08,
-      metalness: 0,
+    glassMats[variant] = createToon(pal.face, {
       transparent: true,
       opacity: variant === "machine" ? 0.55 : 0.72,
-      clearcoat: 1,
-      clearcoatRoughness: 0.05,
       depthWrite: false,
     });
   }
   return glassMats[variant];
-}
-
-let zigTex = null;
-function zigzag() {
-  if (zigTex) return zigTex;
-  zigTex = canvasTex((g, s) => {
-    g.clearRect(0, 0, s, s);
-    g.strokeStyle = "#ffffff";
-    g.lineWidth = 6;
-    g.beginPath();
-    g.moveTo(8, s * 0.7);
-    for (let i = 0; i < 6; i++) {
-      g.lineTo(16 + i * 18, i % 2 ? s * 0.35 : s * 0.7);
-    }
-    g.stroke();
-  }, 128);
-  return zigTex;
 }
 
 export function dressGlass(group, mesh, w, d, variant) {
@@ -722,23 +689,12 @@ export function dressGlass(group, mesh, w, d, variant) {
       group.add(rail);
     });
   }
-  if (mesh.userData.cracks) {
-    const crack = new THREE.Mesh(new THREE.PlaneGeometry(Math.max(w, d) * 0.8, WALL_H * 0.7), basic(zigzag()));
-    if (alongX) crack.position.z = d * 0.55;
-    else {
-      crack.rotation.y = Math.PI / 2;
-      crack.position.x = w * 0.55;
-    }
-    mesh.userData.cracks.add(crack);
-  }
 }
 
 export function dressGate(group, mesh, w, d, color, variant) {
   const key = GEM[color] ? color : "red";
   if (variant === "alien") {
-    mesh.material = new THREE.MeshPhysicalMaterial({
-      color: GEM[key],
-      roughness: 0.15,
+    mesh.material = createToon(GEM[key], {
       transparent: true,
       opacity: 0.62,
       emissive: GEM[key],

@@ -1,6 +1,6 @@
 /**
- * Opt-in frame overlay. Off unless ?fps=1 (remembered) or a previous
- * visit left inthehole_fps=1. ?fps=0 turns it off and remembers that.
+ * Opt-in frame overlay. Off unless ?fps=1 or ?perf=1 (remembered) or a
+ * previous visit left inthehole_fps=1. ?fps=0 or ?perf=0 turns it off.
  * When off, this module does not build DOM and does not schedule a frame.
  */
 
@@ -13,8 +13,9 @@ function remember(search, storage) {
   } catch {
     params = new URLSearchParams();
   }
-  if (params.has("fps")) {
-    const on = params.get("fps") !== "0";
+  if (params.has("fps") || params.has("perf")) {
+    const raw = params.has("perf") ? params.get("perf") : params.get("fps");
+    const on = raw !== "0";
     try {
       storage.setItem(KEY, on ? "1" : "0");
     } catch {

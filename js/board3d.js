@@ -2,7 +2,8 @@ import * as THREE from "./vendor/three.module.js";
 import { RoundedBoxGeometry } from "./vendor/RoundedBoxGeometry.js";
 import { ballById } from "./balls.js";
 import { addFloorSocket, createGoalKit, mountGoal } from "./goalMesh.js";
-import { inkOutlineMaterial } from "./sphereMaps.js";
+import { PLANET_TOON, createToon } from "./toonPalette.js";
+import { addScreenOutline } from "./outline.js";
 import { addSportMarks } from "./ballDress.js";
 import { celebrationById, trailById } from "./cosmetics.js";
 import { themeById } from "./themes.js";
@@ -23,25 +24,13 @@ const BALL_R = 0.36;
 const BOARD_TOP = 0.5;
 const BALL_Y = BOARD_TOP + BALL_R;
 const REST_X = 0.045;
-const WALL_T = 0.52;
+const WALL_T = 0.52 / 3;
 const WALL_H = 0.4;
 const WALL_Y = BOARD_TOP + WALL_H * 0.42;
 const FRAME_T = 0.4;
 const FRAME_H = 0.3;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
-
-function mixHex(a, b, t) {
-  return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
-}
-
-function framePalette(theme) {
-  return {
-    mid: theme.frame,
-    hi: mixHex(theme.frame, 0xffffff, 0.58),
-    low: mixHex(theme.frame, 0x141414, 0.5),
-  };
-}
 
 const geos = new Map();
 function traceRoundRect(path, w, h, r, clockwise) {
@@ -873,10 +862,14 @@ export function createView(canvas) {
     alpha: true,
     powerPreference: "high-performance",
   });
-  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, 2);
+  let ratioCap = Math.min(window.devicePixelRatio || 1, 2);
+  const pixelRatio = () => ratioCap;
   renderer.setPixelRatio(pixelRatio());
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.shadowMap.needsUpdate = true;
+  let slowFrames = 0;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.toneMappingExposure = 1.12;
@@ -911,9 +904,9 @@ export function createView(canvas) {
 
   applyStudio(renderer, scene, 0.4);
 
-  const frameLowMat = new THREE.MeshStandardMaterial({ color: 0x1c6e28, roughness: 0.55, metalness: 0.02 });
-  const frameMidMat = new THREE.MeshStandardMaterial({ color: 0x3fb83a, roughness: 0.4, metalness: 0.04 });
-  const frameHiMat = new THREE.MeshStandardMaterial({ color: 0xb6f59a, roughness: 0.28, metalness: 0.04 });
+  const frameLowMat = createToon(0x1c6e28);
+  const frameMidMat = createToon(0x3fb83a);
+  const frameHiMat = createToon(0xb6f59a);
   const frameGlossMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     transparent: true,
@@ -923,18 +916,14 @@ export function createView(canvas) {
   });
   const frameInkMat = new THREE.MeshBasicMaterial({ color: 0x141414, toneMapped: false });
   const edgeMap = woodCanvas("#c88840", "#6a3a16", "#f2c48a", 18);
-  const floorEdgeMat = new THREE.MeshStandardMaterial({ map: edgeMap, roughness: 0.78, metalness: 0.02 });
+  const floorEdgeMat = createToon(0xffffff, { map: edgeMap });
   let activeTheme = themeById("wood");
   const boardMats = new Map();
   function floorTopMaterial(n) {
     const key = `${activeTheme.id}:${n}`;
     let mat = boardMats.get(key);
     if (!mat) {
-      mat = new THREE.MeshStandardMaterial({
-        map: makeBoardTexture(n, activeTheme),
-        roughness: 0.74,
-        metalness: 0.02,
-      });
+      mat = createToon(0xffffff, { map: makeBoardTexture(n, activeTheme) });
       boardMats.set(key, mat);
     }
     return mat;
@@ -985,10 +974,10 @@ export function createView(canvas) {
   layoutMotes(0);
   function applyTheme(id) {
     activeTheme = themeById(id);
-    const pal = framePalette(activeTheme);
-    frameLowMat.color.setHex(pal.low);
+    const pal = PLANET_TOON[activeTheme.id] || PLANET_TOON.wood;
+    frameLowMat.color.setHex(pal.shadow);
     frameMidMat.color.setHex(pal.mid);
-    frameHiMat.color.setHex(pal.hi);
+    frameHiMat.color.setHex(pal.light);
     floorEdgeMat.color.setHex(activeTheme.edge);
     moteMat.color.set(activeTheme.mote);
     storm = !!activeTheme.storm;
@@ -997,25 +986,12 @@ export function createView(canvas) {
 
   const ballMaterials = makeBallMaterials();
   let equipped = ballById("oak");
-  const glassMat = new THREE.MeshPhysicalMaterial({
-    color: 0x7af4ff,
-    roughness: 0.08,
-    metalness: 0.0,
-    transparent: true,
-    opacity: 0.72,
-    clearcoat: 1,
-    clearcoatRoughness: 0.05,
-    depthWrite: false,
-  });
-  const crackMat = new THREE.MeshBasicMaterial({ color: 0xf7ffff, toneMapped: false });
+  const glassMat = createToon(0x7af4ff, { transparent: true, opacity: 0.72, depthWrite: false });
+  const crackHi = new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
+  const crackInk = new THREE.MeshBasicMaterial({ color: 0x141414, toneMapped: false });
   const crackGeo = new THREE.BoxGeometry(1, 1, 1);
   const flashGeo = new THREE.BoxGeometry(1, 1, 1);
-  const inlayMat = new THREE.MeshStandardMaterial({
-    color: 0xfff4c8,
-    roughness: 0.42,
-    metalness: 0.0,
-    side: THREE.DoubleSide,
-  });
+  const inlayMat = createToon(0xfff4c8, { side: THREE.DoubleSide });
   const inlayGeo = new THREE.BoxGeometry(1, 1, 1);
   const dotGeo = new THREE.SphereGeometry(1, 14, 10);
   const starGeo = makeStarShape();
@@ -1023,11 +999,7 @@ export function createView(canvas) {
   function wallMaterial(name) {
     const key = GEM_HEX[name] ? name : "red";
     if (!wallMats[key]) {
-      wallMats[key] = new THREE.MeshStandardMaterial({
-        color: GEM_HEX[key],
-        roughness: 0.38,
-        metalness: 0.04,
-      });
+      wallMats[key] = createToon(GEM_HEX[key]);
     }
     return wallMats[key];
   }
@@ -1036,21 +1008,17 @@ export function createView(canvas) {
   }
   const wallLitMats = {};
   const wallDimMats = {};
-  function wallTone(store, table, rough) {
+  function wallTone(store, table) {
     return (name) => {
       const key = GEM_HEX[name] ? name : "red";
       if (!store[key]) {
-        store[key] = new THREE.MeshStandardMaterial({
-          color: table[key],
-          roughness: rough,
-          metalness: 0.04,
-        });
+        store[key] = createToon(table[key]);
       }
       return store[key];
     };
   }
-  const wallLit = wallTone(wallLitMats, GEM_LIT, 0.22);
-  const wallDim = wallTone(wallDimMats, GEM_DIM, 0.55);
+  const wallLit = wallTone(wallLitMats, GEM_LIT);
+  const wallDim = wallTone(wallDimMats, GEM_DIM);
 
   const blob = new THREE.Mesh(
     new THREE.CircleGeometry(1, 40),
@@ -1063,11 +1031,8 @@ export function createView(canvas) {
   const ballRoot = new THREE.Group();
   const ballSpin = new THREE.Group();
   const ballMesh = new THREE.Mesh(new THREE.SphereGeometry(BALL_R, 48, 32), ballMaterials.oak);
-  const ballInk = new THREE.Mesh(ballMesh.geometry, inkOutlineMaterial());
-  ballInk.scale.setScalar(1.07);
-  ballInk.raycast = () => {};
-  ballMesh.add(ballInk);
-  ballMesh.castShadow = true;
+  addScreenOutline(ballMesh);
+  ballMesh.castShadow = false;
   ballSpin.add(ballMesh);
   const sportMarks = addSportMarks(ballSpin);
   ballRoot.add(ballSpin);
@@ -1259,10 +1224,46 @@ export function createView(canvas) {
   }
   const shiftMap = new THREE.CanvasTexture(shiftCanvas);
   shiftMap.colorSpace = THREE.SRGBColorSpace;
-  const shiftMat = new THREE.MeshStandardMaterial({ map: shiftMap, color: 0xffffff, roughness: 0.45, metalness: 0.04 });
+  const shiftMat = createToon(0xffffff, { map: shiftMap });
   const flashes = [];
-  const liveShards = [];
-  const shardGeo = new THREE.BoxGeometry(0.14, 0.09, 0.045);
+  const shardShape = new THREE.Shape();
+  shardShape.moveTo(0, 0.09);
+  shardShape.lineTo(-0.072, -0.05);
+  shardShape.lineTo(0.078, -0.042);
+  shardShape.closePath();
+  const shardGeo = new THREE.ShapeGeometry(shardShape);
+  const SHARD_POOL = 16;
+  const shardPool = Array.from({ length: SHARD_POOL }, () => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xdffbff,
+      toneMapped: false,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const inkMat = new THREE.MeshBasicMaterial({
+      color: 0x141414,
+      toneMapped: false,
+      transparent: true,
+      opacity: 1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const mesh = new THREE.Mesh(shardGeo, mat);
+    const ink = new THREE.Mesh(shardGeo, inkMat);
+    ink.scale.setScalar(1.28);
+    ink.position.z = -0.001;
+    ink.raycast = () => {};
+    mesh.add(ink);
+    mesh.userData.ink = ink;
+    mesh.userData.life = 0;
+    mesh.visible = false;
+    mesh.frustumCulled = false;
+    mesh.raycast = () => {};
+    fxGroup.add(mesh);
+    return mesh;
+  });
   const spring = { x: 0, z: 0, vx: 0, vz: 0, tx: 0, tz: 0 };
   let shake = 0;
   let squash = 1;
@@ -1446,8 +1447,10 @@ export function createView(canvas) {
   }
 
   function clearRig() {
-    for (const s of liveShards) s.material.dispose();
-    liveShards.length = 0;
+    for (const s of shardPool) {
+      s.visible = false;
+      s.userData.life = 0;
+    }
     flashes.length = 0;
     for (let i = rig.children.length - 1; i >= 0; i--) {
       const child = rig.children[i];
@@ -1702,7 +1705,7 @@ export function createView(canvas) {
     goalGroup.position.set(spot.x, 0, spot.z);
     const tuck = holeCell[0] === 0;
     const edge = holeCell[1] === 0 ? "left" : holeCell[1] === n - 1 ? "right" : "";
-    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme, tuck, edge, zoom: tuck ? 1 : 1.32 });
+    const built = mountGoal(goalGroup, equipped.goal, goalKit, { theme: activeTheme, tuck, edge, zoom: 1 });
     pins.push(...built.pins);
     pawMesh = built.paw;
   }
@@ -1777,29 +1780,51 @@ export function createView(canvas) {
     }
   }
 
-  function addCracks(group, w, h, d, seed) {
+  function addCracks(group, w, h, d) {
     const cracks = new THREE.Group();
     cracks.visible = false;
-    let s = (seed % 9000) + 13;
-    const rand = () => {
-      s = (s * 16807 + 11) % 2147483647;
-      return (s % 1000) / 1000;
-    };
-    for (let i = 0; i < 6; i++) {
-      const ang = rand() * Math.PI;
-      const len = (0.28 + rand() * 0.55) * Math.max(w, h, d);
-      const line = new THREE.Mesh(crackGeo, crackMat);
-      line.scale.set(Math.max(0.08, len), 0.016, 0.016);
-      line.rotation.y = ang;
-      line.rotation.z = (rand() - 0.5) * 0.8;
-      line.position.set((rand() - 0.5) * w * 0.45, h * 0.18 + (rand() - 0.5) * h * 0.45, d * 0.52);
+    cracks.userData.spread = 0;
+    cracks.position.y = h * 0.5 + 0.04;
+    const long = Math.max(w, d);
+    const span = Math.min(w, d);
+    const frostMat = new THREE.MeshBasicMaterial({
+      color: 0xf7fbff,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const frost = new THREE.Mesh(new THREE.PlaneGeometry(long * 0.96, Math.max(span * 1.8, 0.28)), frostMat);
+    frost.rotation.x = -Math.PI / 2;
+    frost.position.y = 0.004;
+    frost.raycast = () => {};
+    frost.userData.ownMat = true;
+    frost.userData.ownGeo = true;
+    cracks.add(frost);
+    const bar = (mat, len, thick, rot, x, z, lift) => {
+      const line = new THREE.Mesh(crackGeo, mat);
+      line.scale.set(len, 0.04, thick);
+      line.rotation.y = rot;
+      line.position.set(x, lift, z);
+      line.raycast = () => {};
       cracks.add(line);
-      const top = new THREE.Mesh(crackGeo, crackMat);
-      top.scale.set(Math.max(0.08, len * 0.85), 0.018, 0.016);
-      top.rotation.y = ang + 0.4;
-      top.position.set((rand() - 0.5) * w * 0.55, h / 2 + 0.02, (rand() - 0.5) * d * 0.35);
-      cracks.add(top);
-    }
+    };
+    const ang = 0.38;
+    const diag = (long * 0.94) / Math.cos(ang);
+    bar(crackInk, diag, 0.26, ang, 0, 0, 0);
+    bar(crackInk, diag, 0.26, -ang, 0, 0, 0);
+    bar(crackHi, diag * 0.96, 0.14, ang, 0, 0, 0.03);
+    bar(crackHi, diag * 0.96, 0.14, -ang, 0, 0, 0.03);
+    const branches = [0.55, -0.55, 1.35, -1.35];
+    branches.forEach((extra, i) => {
+      const a = (i < 2 ? ang : -ang) + extra * 0.35;
+      const bl = long * (0.22 + (i % 2) * 0.06);
+      const ox = Math.sin(a) * long * 0.04;
+      const oz = Math.cos(a) * long * 0.02;
+      bar(crackInk, bl, 0.12, a, ox, oz, 0.01);
+      bar(crackHi, bl * 0.88, 0.06, a, ox, oz, 0.036);
+    });
+    cracks.scale.setScalar(0.12);
     group.add(cracks);
     const flashMat = new THREE.MeshBasicMaterial({
       color: 0xf4ffff,
@@ -1847,16 +1872,17 @@ export function createView(canvas) {
     const holeW = inner * 2;
     const outerR = Math.min(0.62 * unit, outer * 0.2);
     const innerR = Math.min(0.26 * unit, inner * 0.1);
-    const addRing = (ow, iw, oR, iR, height, mat, y) => {
+    const addRing = (ow, iw, oR, iR, height, mat, y, outline) => {
       const mesh = new THREE.Mesh(frameRingGeo(ow, iw, oR, iR, height), mat);
       mesh.position.y = y;
       mesh.userData.ownGeo = true;
       mesh.castShadow = false;
       mesh.receiveShadow = mat !== frameInkMat;
+      if (outline) addScreenOutline(mesh);
       rig.add(mesh);
     };
-    addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02);
-    addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9);
+    addRing(outerW, holeW, outerR, innerR, frameH, frameMidMat, 0.02, true);
+    addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9, true);
     addRing(holeW + line * 2.1, holeW + 0.006 * unit, Math.max(0.05, innerR * 0.85), Math.max(0.04, innerR * 0.35), frameH * 0.1, frameLowMat, 0.025 + frameH * 0.86);
     addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.7, Math.max(0.05, outerR * 0.92), Math.max(0.04, frameH * 0.16), frameInkMat, 0.02 + frameH * 0.9);
     if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
@@ -1866,7 +1892,8 @@ export function createView(canvas) {
     board.position.y = BOARD_TOP - boardH / 2;
     board.receiveShadow = true;
     rig.add(board);
-    const top = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.02, span - 0.02), floorTopMaterial(n));
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(span, span), floorTopMaterial(n));
+    top.userData.noInk = true;
     top.rotation.x = -Math.PI / 2;
     top.position.y = BOARD_TOP + 0.004;
     top.receiveShadow = true;
@@ -1905,10 +1932,7 @@ export function createView(canvas) {
         body.position.y = 0.03;
         body.castShadow = true;
         body.receiveShadow = true;
-        const ink = new THREE.Mesh(body.geometry, inkOutlineMaterial());
-        ink.scale.setScalar(1.16);
-        ink.raycast = () => {};
-        body.add(ink);
+        addScreenOutline(body);
         const base = new THREE.Mesh(roundGeo(bw * 1.02, WALL_H * 0.34, bd * 1.04, 1, rad * 0.8), wallDim(color));
         base.position.y = -WALL_H * 0.22;
         const cap = new THREE.Mesh(roundGeo(bw * 0.9, WALL_H * 0.22, bd * 0.72, 1, rad * 0.55), wallLit(color));
@@ -1920,10 +1944,11 @@ export function createView(canvas) {
         group.add(body, base, cap, shine, rim);
         mesh = body;
       } else {
-        mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, 0.07), mat);
+        mesh = new THREE.Mesh(roundGeo(w, WALL_H, d, 2, Math.min(0.07, WALL_T * 0.42)), mat);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         group.add(mesh);
+        if (kind !== "glass") addScreenOutline(mesh);
       }
       mesh.userData = {
         kind,
@@ -1983,8 +2008,19 @@ export function createView(canvas) {
         }
       }
     };
-    paintGlass(game.hGlass, "h");
-    paintGlass(game.vGlass, "v");
+    // hp 2 intact, hp 1 cracked in place, hp 0 omitted. snapshot().glass is
+    // the rules copy, so reset, restart, and any later undo rebuild match it.
+    const panes = glassPanes(game);
+    if (panes) {
+      for (const edge of panes) {
+        if (!edge || edge.hp <= 0) continue;
+        const mesh = addEdge(edge.axis, edge.r, edge.c, "glass");
+        if (edge.hp === 1) restCrack(mesh);
+      }
+    } else {
+      paintGlass(game.hGlass, "h");
+      paintGlass(game.vGlass, "v");
+    }
 
     const { x: hx, z: hz } = cellXZ(level.hole[0], level.hole[1]);
     stockHole = new THREE.Group();
@@ -2123,6 +2159,7 @@ export function createView(canvas) {
         ruleVisible: slot === 0,
       };
       group.add(mesh);
+      addScreenOutline(mesh);
       dressVine(group, mesh, w, d, skin);
       group.visible = slot === 0;
       rig.add(group);
@@ -2145,6 +2182,7 @@ export function createView(canvas) {
     dressGoal();
     sync(game, { ready: true });
     frameCamera();
+    renderer.shadowMap.needsUpdate = true;
   }
 
   function edgeAlive(grid, r, c) {
@@ -2259,10 +2297,76 @@ export function createView(canvas) {
   }
 
   function showCrack(mesh, flash) {
-    if (!mesh) return;
-    if (mesh.userData.cracks) mesh.userData.cracks.visible = true;
+    if (!mesh || mesh.userData.cracked) {
+      if (flash) pulseFlash(mesh);
+      return;
+    }
+    const cracks = mesh.userData.cracks;
+    const parent = mesh.parent;
+    if (parent && parent.userData.shattered) return;
     mesh.userData.cracked = true;
+    if (cracks) {
+      cracks.visible = true;
+      cracks.userData.spread = 0.01;
+      cracks.scale.setScalar(0.12);
+    }
+    if (parent && !parent.userData.rest) parent.userData.rest = parent.position.clone();
     if (flash) pulseFlash(mesh);
+  }
+
+  // Settled crack for a rebuild (hp 1). The live hit still spreads via showCrack.
+  function restCrack(mesh) {
+    if (!mesh) return;
+    const parent = mesh.parent;
+    if (parent && parent.userData.shattered) return;
+    mesh.userData.cracked = true;
+    const cracks = mesh.userData.cracks;
+    if (cracks) {
+      cracks.visible = true;
+      cracks.userData.spread = 1;
+      cracks.scale.setScalar(1);
+    }
+    if (parent && parent.userData.rest) {
+      parent.position.x = parent.userData.rest.x;
+      parent.position.z = parent.userData.rest.z;
+    }
+  }
+
+  function clearCrack(mesh) {
+    if (!mesh) return;
+    mesh.userData.cracked = false;
+    const cracks = mesh.userData.cracks;
+    if (cracks) {
+      cracks.visible = false;
+      cracks.userData.spread = 0;
+      cracks.scale.setScalar(0.12);
+    }
+  }
+
+  function hideGlassMesh(mesh) {
+    const parent = mesh && mesh.parent;
+    if (!parent) return;
+    parent.userData.shattered = true;
+    mesh.userData.ruleVisible = false;
+    parent.visible = false;
+  }
+
+  function revealGlassMesh(mesh) {
+    const parent = mesh && mesh.parent;
+    if (!parent) return;
+    parent.userData.shattered = false;
+    mesh.userData.ruleVisible = true;
+    parent.visible = true;
+  }
+
+  function glassPanes(game) {
+    if (!game) return null;
+    if (typeof game.snapshot === "function") {
+      const snap = game.snapshot();
+      if (snap && Array.isArray(snap.glass)) return snap.glass;
+    }
+    if (Array.isArray(game.glass)) return game.glass;
+    return null;
   }
 
   function shatterPane(mesh) {
@@ -2271,38 +2375,53 @@ export function createView(canvas) {
     parent.userData.shattered = true;
     // hp 0. refreshFog reapplies ruleVisible while the ball is still rolling.
     if (mesh) mesh.userData.ruleVisible = false;
+    parent.visible = false;
     const base = parent.position;
-    for (let i = 0; i < 8; i++) {
-      const mat = new THREE.MeshStandardMaterial({
-        color: (mesh && mesh.userData.shardColor) || 0xdffbff,
-        roughness: 0.18,
-        transparent: true,
-        opacity: 1,
-      });
-      const shard = new THREE.Mesh(shardGeo, mat);
-      const ang = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
-      const speed = 0.9 + Math.random() * 1.5;
-      shard.position.set(base.x, base.y, base.z);
-      shard.scale.set(0.65 + Math.random() * 0.9, 0.45 + Math.random() * 0.8, 0.4 + Math.random() * 0.6);
+    const color = (mesh && mesh.userData.shardColor) || 0xdffbff;
+    const count = 8 + Math.floor(Math.random() * 7);
+    let spawned = 0;
+    for (const shard of shardPool) {
+      if (shard.visible) continue;
+      if (spawned >= count) break;
+      const ang = (spawned / count) * Math.PI * 2 + Math.random() * 0.35;
+      const speed = 1.15 + Math.random() * 1.55;
+      shard.visible = true;
+      shard.material.color.setHex(color);
+      shard.material.opacity = 1;
+      shard.userData.ink.material.opacity = 1;
+      shard.position.set(
+        base.x + Math.cos(ang) * 0.04,
+        base.y + 0.06,
+        base.z + Math.sin(ang) * 0.04,
+      );
+      shard.rotation.set(-Math.PI / 2 + (Math.random() - 0.5) * 0.5, Math.random() * Math.PI, (Math.random() - 0.5) * 0.4);
+      shard.scale.setScalar(2.5 + Math.random() * 1.3);
       shard.userData.v = {
         x: Math.cos(ang) * speed,
-        y: 1.4 + Math.random() * 1.8,
+        y: 1.15 + Math.random() * 1.35,
         z: Math.sin(ang) * speed,
       };
-      shard.userData.spin = { x: Math.random() * 7, y: Math.random() * 7 };
-      shard.userData.life = 0.55 + Math.random() * 0.28;
+      shard.userData.spin = (Math.random() - 0.5) * 9;
+      shard.userData.life = 0.4 + Math.random() * 0.2;
       shard.userData.max = shard.userData.life;
-      rig.add(shard);
-      liveShards.push(shard);
+      spawned += 1;
     }
-    parent.visible = false;
+    burst(base.x, base.y + 0.2, base.z, 10, 1.7, [[1, 1, 1], [0.72, 0.96, 1], [0.85, 0.95, 1]]);
+    renderer.shadowMap.needsUpdate = true;
   }
 
-  function playCracks(list) {
-    for (const edge of list || []) {
-      const mesh = glassMesh(edge);
-      if (mesh) showCrack(mesh, true);
-    }
+  /**
+   * Glass visuals only. The rules PR owns hp.
+   * view.onGlassEvent({ type: "glassCrack" | "glassShatter", edge })
+   * edge is { axis: "h" | "v", r, c }. axis may be sent as kind.
+   * Unknown events and missing panes are ignored.
+   */
+  function onGlassEvent(event) {
+    if (!event || !event.edge || !event.type) return;
+    const mesh = glassMesh(event.edge);
+    if (!mesh) return;
+    if (event.type === "glassCrack") showCrack(mesh, true);
+    else if (event.type === "glassShatter") shatterPane(mesh);
   }
 
   function crosses(a, b, edge) {
@@ -2348,20 +2467,34 @@ export function createView(canvas) {
       }
     }
     if (!skipGlass) {
+      const panes = glassPanes(game);
+      const hpOf = new Map();
+      if (panes) {
+        for (const edge of panes) hpOf.set(`${edge.axis}:${edge.r}:${edge.c}`, edge.hp);
+      }
       for (const mesh of glasses) {
         const data = mesh.userData;
-        const grid = data.axis === "h" ? game.hGlass : game.vGlass;
-        const stress = data.axis === "h" ? game.hGlassStressed : game.vGlassStressed;
-        const alive = edgeAlive(grid, data.r, data.c);
-        // hp 0: shatter sets parent.userData.shattered. refreshFog reapplies
-        // ruleVisible, so clear it or the pane pops back.
-        if (mesh.parent.userData.shattered) {
-          mesh.userData.ruleVisible = false;
-          mesh.parent.visible = false;
+        const key = `${data.axis}:${data.r}:${data.c}`;
+        let hp = hpOf.has(key) ? hpOf.get(key) : null;
+        if (hp == null) {
+          const grid = data.axis === "h" ? game.hGlass : game.vGlass;
+          const stress = data.axis === "h" ? game.hGlassStressed : game.vGlassStressed;
+          hp = edgeAlive(grid, data.r, data.c) ? (edgeAlive(stress, data.r, data.c) ? 1 : 2) : 0;
+        }
+        // hp 0: no pane. A live shatter already hid it; a rebuild omits the mesh.
+        if (hp <= 0) {
+          hideGlassMesh(mesh);
           continue;
         }
-        applyEdgeVisibility(mesh, alive && !mesh.parent.userData.shattered);
-        if (alive && edgeAlive(stress, data.r, data.c)) showCrack(mesh, false);
+        if (mesh.parent && mesh.parent.userData.shattered) revealGlassMesh(mesh);
+        applyEdgeVisibility(mesh, true);
+        if (hp === 1) {
+          const cracks = mesh.userData.cracks;
+          const spreading = mesh.userData.cracked && cracks && (cracks.userData.spread || 0) < 1;
+          if (!spreading) restCrack(mesh);
+        } else if (mesh.userData.cracked) {
+          clearCrack(mesh);
+        }
       }
     }
     if (!skipShift) {
@@ -2490,6 +2623,41 @@ export function createView(canvas) {
     return { row: data.row, col: data.col };
   }
 
+  function glassEventsOf(fx) {
+    if (fx && Array.isArray(fx.events)) {
+      return fx.events.filter((ev) => ev && ev.edge && (ev.type === "glassCrack" || ev.type === "glassShatter"));
+    }
+    const out = [];
+    for (const edge of (fx && fx.cracked) || []) out.push({ type: "glassCrack", edge });
+    for (const edge of (fx && fx.broken) || []) out.push({ type: "glassShatter", edge });
+    return out;
+  }
+
+  // Distance along the roll where the ball reaches the pane. A crossing
+  // (shatter, or a crack the ball slides through on ice) is the segment
+  // midpoint. A blocking crack has no crossing: null means "when the roll ends".
+  function hitDistance(path, cum, hop, edge) {
+    for (let s = 1; s < path.length; s++) {
+      if (hop[s]) continue;
+      if (!crosses(path[s - 1], path[s], edge)) continue;
+      return (cum[s - 1] + cum[s]) * 0.5;
+    }
+    return null;
+  }
+
+  function fireDueGlass(job, dist, finished) {
+    const events = job.glassEvents || [];
+    for (let i = 0; i < events.length; i++) {
+      if (job.glassFired[i]) continue;
+      const at = job.glassAt[i];
+      if (at == null) {
+        if (!finished) continue;
+      } else if (dist + 1e-4 < at) continue;
+      job.glassFired[i] = true;
+      onGlassEvent(events[i]);
+    }
+  }
+
   function roll(path, dir, intoHole, fx = {}) {
     const my = ++token;
     if (rollJob) rollJob.resolve();
@@ -2503,10 +2671,12 @@ export function createView(canvas) {
       cum.push(cum[i - 1] + (far ? STEP * 0.18 : len));
     }
     const total = cum[cum.length - 1] || 0;
+    const events = glassEventsOf(fx);
     return new Promise((resolve) => {
       const finishStill = () => {
         triggerCell(path, 0);
-        playCracks(fx.cracked || []);
+        // The ball is already against the pane. There is no travel to wait for.
+        for (const ev of events) onGlassEvent(ev);
         if (intoHole) sink(path[path.length - 1], my).then(resolve);
         else resolve();
       };
@@ -2517,7 +2687,10 @@ export function createView(canvas) {
       const dur = Math.max(0.28, Math.min(0.8, 0.16 + total * 0.092));
       rollJob = {
         path, pts, cum, hop, total, dur, t: 0, prevDist: 0, dir, intoHole,
-        resolve, token: my, fx, triggered: [true], segHit: [],
+        resolve, token: my, fx, triggered: [true],
+        glassEvents: events,
+        glassFired: events.map(() => false),
+        glassAt: events.map((ev) => hitDistance(path, cum, hop, ev.edge)),
       };
       triggerCell(path, 0);
     });
@@ -2601,18 +2774,6 @@ export function createView(canvas) {
         triggerCell(job.path, k);
       }
     }
-    const broken = job.fx.broken || [];
-    for (let s = 1; s < job.cum.length; s++) {
-      if (job.segHit[s]) continue;
-      const mid = (job.cum[s - 1] + job.cum[s]) * 0.5;
-      if (dist < mid) continue;
-      job.segHit[s] = true;
-      const edge = broken.find((g) => crosses(job.path[s - 1], job.path[s], g));
-      if (edge) {
-        const mesh = glassMesh(edge);
-        if (mesh) shatterPane(mesh);
-      }
-    }
     let seg = 1;
     while (seg < job.cum.length - 1 && job.cum[seg] < dist) seg++;
     const span = job.cum[seg] - job.cum[seg - 1] || 1;
@@ -2632,8 +2793,8 @@ export function createView(canvas) {
       if (equipped.motion === "grow") snowGrow = Math.min(1.18, snowGrow + traveled * 0.04);
       if (equipped.motion === "yarn") yarnScale = Math.max(0.72, yarnScale - traveled * 0.045);
     }
+    fireDueGlass(job, dist, t >= 1);
     if (t >= 1) {
-      playCracks(job.fx.cracked || []);
       const done = job;
       rollJob = null;
       squash = 0.9;
@@ -2799,6 +2960,7 @@ export function createView(canvas) {
           mesh.parent.visible = false;
           mesh.parent.scale.y = 1;
           mesh.userData.opening = null;
+          renderer.shadowMap.needsUpdate = true;
         }
       }
 
@@ -2812,22 +2974,44 @@ export function createView(canvas) {
         }
       }
 
-      for (let i = liveShards.length - 1; i >= 0; i--) {
-        const s = liveShards[i];
+      for (const mesh of glasses) {
+        const cracks = mesh.userData.cracks;
+        const parent = mesh.parent;
+        if (!cracks || !cracks.visible || !parent) continue;
+        let spread = cracks.userData.spread || 0;
+        if (spread >= 1) {
+          if (parent.userData.rest) {
+            parent.position.x = parent.userData.rest.x;
+            parent.position.z = parent.userData.rest.z;
+          }
+          continue;
+        }
+        spread = Math.min(1, spread + dt * 5.5);
+        cracks.userData.spread = spread;
+        const ease = 1 - (1 - spread) ** 3;
+        cracks.scale.setScalar(0.12 + 0.88 * ease);
+        const rest = parent.userData.rest;
+        if (rest) {
+          const mag = (1 - spread) * 0.02;
+          parent.position.x = rest.x + Math.sin(spread * 48) * mag;
+          parent.position.z = rest.z + Math.cos(spread * 46) * mag;
+        }
+      }
+
+      for (const s of shardPool) {
+        if (!s.visible) continue;
         const v = s.userData.v;
-        v.y -= 9 * dt;
+        v.y -= 9.2 * dt;
         s.position.x += v.x * dt;
         s.position.y += v.y * dt;
         s.position.z += v.z * dt;
-        s.rotation.x += s.userData.spin.x * dt;
-        s.rotation.y += s.userData.spin.y * dt;
+        s.rotation.z += s.userData.spin * dt;
+        s.rotation.x += s.userData.spin * 0.35 * dt;
         s.userData.life -= dt;
-        s.material.opacity = Math.max(0, s.userData.life / s.userData.max);
-        if (s.userData.life <= 0) {
-          rig.remove(s);
-          s.material.dispose();
-          liveShards.splice(i, 1);
-        }
+        const fade = Math.max(0, s.userData.life / s.userData.max);
+        s.material.opacity = fade;
+        s.userData.ink.material.opacity = fade;
+        if (s.userData.life <= 0) s.visible = false;
       }
 
       for (let i = 0; i < pool.length; i++) {
@@ -2954,6 +3138,13 @@ export function createView(canvas) {
               bloomHeld = true;
               if (onBloomHeld) onBloomHeld();
             }
+            if (avg > 22 && ratioCap > 1) slowFrames += 1;
+            else slowFrames = 0;
+            if (slowFrames >= 2 && ratioCap > 1) {
+              ratioCap = Math.max(1, Math.round(ratioCap * 0.8 * 100) / 100);
+              slowFrames = 0;
+              resize();
+            }
           }
         }
       }
@@ -2974,8 +3165,49 @@ export function createView(canvas) {
     if (useBloom && !bloomFx) bloomFx = createBloom(renderer);
   }
 
+  function measureGoal() {
+    if (!holeCell || !n) return null;
+    const rect = canvas.getBoundingClientRect();
+    const project = (vec) => {
+      const v = vec.clone();
+      v.project(camera);
+      return {
+        x: (v.x * 0.5 + 0.5) * rect.width,
+        y: (-v.y * 0.5 + 0.5) * rect.height,
+      };
+    };
+    const spot = cellXZ(holeCell[0], holeCell[1]);
+    const logical = rig.localToWorld(new THREE.Vector3(spot.x, BOARD_TOP, spot.z));
+    const lp = project(logical);
+    const delta = (node) => {
+      if (!node) return null;
+      const local = rig.worldToLocal(node.getWorldPosition(new THREE.Vector3()));
+      const aligned = rig.localToWorld(new THREE.Vector3(local.x, BOARD_TOP, local.z));
+      const sp = project(aligned);
+      return {
+        dx: Math.round((sp.x - lp.x) * 100) / 100,
+        dy: Math.round((sp.y - lp.y) * 100) / 100,
+      };
+    };
+    const mouth = goalGroup.getObjectByName("hole-mouth") || (stockHole && stockHole.getObjectByName("hole-mouth"));
+    const props = goalGroup.getObjectByName("goal-props");
+    return {
+      n,
+      hole: [holeCell[0], holeCell[1]],
+      mouth: delta(mouth),
+      props: delta(props),
+    };
+  }
+
+  if (typeof window !== "undefined") {
+    window.RB_GLASS = onGlassEvent;
+    window.RB_MEASURE = measureGoal;
+  }
+
   return {
     resize, setStage, sync, roll, nudge, bump, dipButton, pick, celebrate, placeBall, showHint, clearHint, armGateOpen, setBall, setTrail, setCelebration,
+    onGlassEvent,
+    measureGoal,
     previewReact() {
       reactHold = null;
       propT = 0.001;
