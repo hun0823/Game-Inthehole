@@ -275,27 +275,68 @@ def paint_meteor(x, y, z):
     return np.clip(col, 0, 1), height.astype(np.float32), np.clip(rough, 0.2, 1.0), np.clip(emissive, 0, 1)
 
 
-def _star(lx, ly, lz, points, outer, inner):
-    """Sharp star, not rounded petals."""
-    ang = np.arctan2(ly, lx) + np.pi / points
-    sector = (2.0 * np.pi) / points
-    local = np.mod(ang, sector)
-    tri = 1.0 - np.abs(local - sector * 0.5) / (sector * 0.5)
-    bound = inner + (outer - inner) * tri
-    radius = np.arccos(np.clip(lz, -1.0, 1.0))
-    return smoothstep(bound, bound * 0.86, radius) * smoothstep(0.0, 0.2, lz)
+def _basis_up(direction, up):
+    d = np.asarray(direction, dtype=np.float32)
+    d = d / (np.linalg.norm(d) + 1e-8)
+    up = np.asarray(up, dtype=np.float32)
+    up = up / (np.linalg.norm(up) + 1e-8)
+    bitangent = up - d * float(np.dot(up, d))
+    if float(np.linalg.norm(bitangent)) < 0.25:
+        bitangent = np.cross(d, np.array([1.0, 0.0, 0.0], dtype=np.float32))
+    bitangent = bitangent / (np.linalg.norm(bitangent) + 1e-8)
+    tangent = np.cross(bitangent, d)
+    tangent = tangent / (np.linalg.norm(tangent) + 1e-8)
+    return d, tangent.astype(np.float32), bitangent.astype(np.float32)
+
+
+def _star_masks(x, y, z, center, up, points, outer, root, ink_pad):
+    """Five skinny triangular arms. Pink cuts in between them, so it is a star."""
+    d, tangent, bitangent = _basis_up(center, up)
+    lx, ly, lz = _project(x, y, z, d, tangent, bitangent)
+    facing = smoothstep(0.0, 0.08, lz)
+    ink = np.zeros(x.shape, dtype=np.float32)
+    core = np.zeros(x.shape, dtype=np.float32)
+    reach = np.sin(np.float32(outer))
+    reach_ink = np.sin(np.float32(outer + ink_pad))
+    for i in range(points):
+        a = -np.pi / 2.0 + (i / points) * np.pi * 2.0
+        ca = np.cos(a)
+        sa = np.sin(a)
+        along = lx * ca + ly * sa
+        across = -lx * sa + ly * ca
+        ink_w = (root + ink_pad) * (1.0 - np.clip(along / reach_ink, 0.0, 1.0))
+        core_w = root * (1.0 - np.clip(along / reach, 0.0, 1.0))
+        arm_ink = smoothstep(0.0, 0.012, along) * smoothstep(reach_ink, reach_ink - 0.02, along)
+        arm_ink = arm_ink * smoothstep(ink_w + 0.01, ink_w - 0.008, np.abs(across))
+        arm = smoothstep(0.012, 0.03, along) * smoothstep(reach, reach - 0.015, along)
+        arm = arm * smoothstep(core_w + 0.008, core_w - 0.006, np.abs(across))
+        ink = np.maximum(ink, arm_ink * facing)
+        core = np.maximum(core, arm * facing)
+    return ink, core
 
 
 def paint_toy(x, y, z):
-    pink = rgb_of("#ff4d88")
-    band = smoothstep(0.11, 0.07, np.abs(y))
-    col = mix(pink, rgb_of("#fff7f2"), band)
-    d, tangent, bitangent = _basis(FRONT)
-    lx, ly, lz = _project(x, y, z, d, tangent, bitangent)
-    star = _star(lx, ly, lz, 5, 0.34, 0.14)
-    col = mix(col, rgb_of("#ffe14a"), star)
-    height = band * 0.06 + star * 0.16
-    rough = mix(np.float32(0.42), np.float32(0.32), np.clip(band + star, 0, 1))
+    """Several large yellow stars. Thick charcoal rims, deep gaps, not petals."""
+    col = np.broadcast_to(rgb_of("#ff4d88"), x.shape + (3,)).copy()
+    yellow = rgb_of("#ffe14a")
+    ink_col = rgb_of("#141414")
+    cover = np.zeros(x.shape, dtype=np.float32)
+    centers = [
+        FRONT,
+        np.array([0.02, 0.96, 0.28], dtype=np.float32),
+        np.array([0.9, -0.12, 0.42], dtype=np.float32),
+        np.array([-0.78, -0.08, -0.62], dtype=np.float32),
+        np.array([0.48, -0.72, -0.5], dtype=np.float32),
+    ]
+    up = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+    for center in centers:
+        center = center / (np.linalg.norm(center) + 1e-8)
+        ink, core = _star_masks(x, y, z, center, up, 5, 0.62, 0.11, 0.055)
+        col = mix(col, ink_col, ink)
+        col = mix(col, yellow, core)
+        cover = np.maximum(cover, np.maximum(ink, core))
+    height = cover * 0.02
+    rough = mix(np.float32(0.4), np.float32(0.48), cover)
     return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
@@ -321,16 +362,32 @@ def paint_mushroom_ball(x, y, z):
 
 
 def paint_coco(x, y, z):
-    """Hairy husk. Fibers run the long way; the three pores stay small."""
-    lon = np.arctan2(z, x)
-    warp = fbm(x * 3.0, y * 3.0, z * 3.0, 2)
-    hair = 0.5 + 0.5 * np.sin(lon * 46.0 + y * 8.0 + warp * 5.0)
-    hair = wrap_blur(hair.astype(np.float32), 1)
-    husk = mix(rgb_of("#3a1c0c"), rgb_of("#8a5428"), smoothstep(0.25, 0.75, hair))
-    husk = mix(husk, rgb_of("#c48a58"), smoothstep(0.72, 0.95, hair) * 0.7)
-    height = (hair - 0.45) * 0.42
-    rough = mix(np.float32(0.92), np.float32(0.7), hair)
-    return np.clip(husk, 0, 1), height.astype(np.float32), rough.astype(np.float32)
+    """Short husk hairs. Each strand is its own dash, not a longitude stripe."""
+    grain = fbm(x * 5.0, y * 5.0, z * 5.0, 3)
+    col = mix(rgb_of("#4a2812"), rgb_of("#a56a32"), grain)
+    height = (grain - 0.5) * 0.04
+    hairs = np.zeros(x.shape, dtype=np.float32)
+    rng = np.random.default_rng(11)
+    centers = _fibonacci(720, 1.7)
+    palette = [rgb_of("#2a1208"), rgb_of("#7a3e16"), rgb_of("#e4b15a")]
+    for i, center in enumerate(centers):
+        seed = rng.normal(size=3).astype(np.float32)
+        axis = seed - center * float(np.dot(seed, center))
+        axis = axis / (np.linalg.norm(axis) + 1e-8)
+        side = np.cross(center, axis)
+        side = side / (np.linalg.norm(side) + 1e-8)
+        half = np.float32(0.045 + (i % 5) * 0.012)
+        width = np.float32(0.016 + (i % 3) * 0.007)
+        along = x * axis[0] + y * axis[1] + z * axis[2]
+        across = x * side[0] + y * side[1] + z * side[2]
+        facing = x * center[0] + y * center[1] + z * center[2]
+        q = (along / half) ** 2 + (across / width) ** 2
+        strand = smoothstep(1.02, 0.88, q) * smoothstep(0.62, 0.84, facing)
+        col = mix(col, palette[i % 3], strand)
+        hairs = np.maximum(hairs, strand)
+        height = height + strand * 0.08
+    rough = mix(np.float32(0.9), np.float32(0.72), hairs)
+    return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
 
 
 def paint_alien_ball(x, y, z):
@@ -751,9 +808,9 @@ BALLS = {
     "ball_beach": (paint_beach, 0.18, 86, False),
     "ball_bowling": (paint_bowling, 0.4, 82, False),
     "ball_meteor": (paint_meteor, 0.75, 82, True),
-    "ball_toy": (paint_toy, 0.3, 84, False),
+    "ball_toy": (paint_toy, 0.12, 86, False),
     "ball_mushroom": (paint_mushroom_ball, 0.4, 84, False),
-    "ball_coco": (paint_coco, 0.7, 82, False),
+    "ball_coco": (paint_coco, 0.38, 82, False),
     "ball_gummy": (paint_gummy, 0.28, 84, False),
     "ball_alien": (paint_alien_ball, 0.28, 82, True),
     "ball_gear": (paint_gear, 0.55, 82, False),
