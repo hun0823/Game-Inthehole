@@ -129,20 +129,6 @@ function attachInk(mesh) {
   mesh.add(ink);
 }
 
-function scaledGeometry(geo, scale) {
-  const g = geo.clone();
-  g.applyMatrix4(new THREE.Matrix4().makeScale(scale, scale, scale));
-  return g;
-}
-
-function addInkInstanced(parent, geo, count) {
-  const inkGeo = scaledGeometry(geo, 1.06);
-  const ink = new THREE.InstancedMesh(inkGeo, inkOutlineMaterial(), count);
-  ink.raycast = () => {};
-  parent.add(ink);
-  return ink;
-}
-
 function collectTemplate(scene, rootName) {
   const node = scene.getObjectByName(rootName);
   if (node && (node.children.length || node.isMesh)) return node;
@@ -202,6 +188,11 @@ function processedGroupFromTemplate(tpl, colorOverride = null) {
   return root;
 }
 
+function stripVertexColors(geo) {
+  if (geo?.getAttribute("color")) geo.deleteAttribute("color");
+  return geo;
+}
+
 function mergedGeometryFromTemplate(tpl) {
   const geos = [];
   const toDrop = [];
@@ -217,7 +208,7 @@ function mergedGeometryFromTemplate(tpl) {
     geos.push(g);
   });
   if (!geos.length) return null;
-  return mergeGeometries(geos, false);
+  return stripVertexColors(mergeGeometries(geos, false));
 }
 
 function buildLibrary(gltf) {
@@ -295,7 +286,7 @@ export function mountToyFloor(rig, n, step, cellXZ) {
       const k = used[r][c];
       const pick = k % 2 === 0 ? "proto_floor_a" : "proto_floor_b";
       const { x, z } = cellXZ(r, c);
-      floorQueue.push({ pick, x, z, y: BOARD_TOP + 0.004, color: rgbToHex(BRICKS[k]) });
+      floorQueue.push({ pick, x, z, color: rgbToHex(BRICKS[k]) });
     }
   }
 }
@@ -374,57 +365,31 @@ export function mountToyStarGoal(goalGroup, api) {
 export function flushToyMeshes(rig) {
   if (!library) return;
 
-  const floorMat = toToonMaterial({ name: "toon_floor_a", color: new THREE.Color(0xffffff) }, 0xffffff);
-  floorMat.vertexColors = true;
   const geoA = library.merged.get("proto_floor_a");
   const geoB = library.merged.get("proto_floor_b");
   if (geoA && geoB && floorQueue.length) {
-    const meshA = new THREE.InstancedMesh(geoA, floorMat, floorQueue.length);
-    meshA.castShadow = true;
-    meshA.receiveShadow = true;
-    const meshB = new THREE.InstancedMesh(geoB, floorMat.clone(), floorQueue.length);
-    meshB.castShadow = true;
-    meshB.receiveShadow = true;
-    const m4 = new THREE.Matrix4();
-    const cA = new THREE.Color();
-    const cB = new THREE.Color();
-    let ia = 0;
-    let ib = 0;
+    const buckets = new Map();
     for (const q of floorQueue) {
-      m4.makeTranslation(q.x, q.y ?? BOARD_TOP + 0.004, q.z);
-      if (q.pick === "proto_floor_a") {
-        meshA.setMatrixAt(ia, m4);
-        cA.setHex(q.color);
-        meshA.setColorAt(ia, cA);
-        ia += 1;
-      } else {
-        meshB.setMatrixAt(ib, m4);
-        cB.setHex(q.color);
-        meshB.setColorAt(ib, cB);
-        ib += 1;
-      }
+      const key = `${q.pick}:${q.color}`;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(q);
     }
-    meshA.count = ia;
-    meshB.count = ib;
-    meshA.instanceMatrix.needsUpdate = true;
-    if (meshA.instanceColor) meshA.instanceColor.needsUpdate = true;
-    meshB.instanceMatrix.needsUpdate = true;
-    if (meshB.instanceColor) meshB.instanceColor.needsUpdate = true;
-    const inkA = addInkInstanced(rig, geoA, ia);
-    const inkB = addInkInstanced(rig, geoB, ib);
-    for (let i = 0; i < ia; i += 1) {
-      meshA.getMatrixAt(i, m4);
-      inkA.setMatrixAt(i, m4);
+    const m4 = new THREE.Matrix4();
+    for (const [key, items] of buckets) {
+      const [pick, hexStr] = key.split(":");
+      const geo = pick === "proto_floor_a" ? geoA : geoB;
+      const hex = Number(hexStr);
+      const mat = toToonMaterial({ name: "toon_floor", color: new THREE.Color(hex) }, hex);
+      const inst = new THREE.InstancedMesh(geo, mat, items.length);
+      inst.castShadow = true;
+      inst.receiveShadow = true;
+      items.forEach((q, i) => {
+        m4.makeTranslation(q.x, 0, q.z);
+        inst.setMatrixAt(i, m4);
+      });
+      inst.instanceMatrix.needsUpdate = true;
+      rig.add(inst);
     }
-    for (let i = 0; i < ib; i += 1) {
-      meshB.getMatrixAt(i, m4);
-      inkB.setMatrixAt(i, m4);
-    }
-    inkA.count = ia;
-    inkB.count = ib;
-    inkA.instanceMatrix.needsUpdate = true;
-    inkB.instanceMatrix.needsUpdate = true;
-    rig.add(meshA, meshB);
   }
 
   const wallBuckets = new Map();
@@ -433,34 +398,34 @@ export function flushToyMeshes(rig) {
     if (!wallBuckets.has(protoKey)) wallBuckets.set(protoKey, []);
     wallBuckets.get(protoKey).push(q.group);
   }
+  rig.updateMatrixWorld(true);
+  const rigInv = new THREE.Matrix4().copy(rig.matrixWorld).invert();
+  const m4 = new THREE.Matrix4();
   for (const [protoKey, groups] of wallBuckets) {
     const tpl = library.templates.get(protoKey);
     const geo = tpl ? mergedGeometryFromTemplate(tpl) : null;
     if (!geo) {
       for (const g of groups) {
         const wall = cloneProto(protoKey);
-        if (wall) g.add(...wall.children);
+        if (wall) g.add(wall);
       }
       continue;
     }
-    const sample = tpl.children.find((c) => c.isMesh && !isInkMesh(c));
-    const mat = toToonMaterial(sample?.material || { name: `toon_wall_${protoKey.split("_")[2]}` });
+    const colorKey = protoKey.replace(/^proto_wall_/, "").replace(/_v$/, "");
+    const wallHex = GEM_HEX[colorKey] ?? 0xffffff;
+    const mat = toToonMaterial(
+      { name: `toon_wall_${colorKey}`, color: new THREE.Color(wallHex) },
+      wallHex,
+    );
     const inst = new THREE.InstancedMesh(geo, mat, groups.length);
     inst.castShadow = true;
     inst.receiveShadow = true;
-    const m4 = new THREE.Matrix4();
     groups.forEach((g, i) => {
       g.updateMatrixWorld(true);
-      m4.copy(g.matrixWorld);
+      m4.multiplyMatrices(rigInv, g.matrixWorld);
       inst.setMatrixAt(i, m4);
     });
     inst.instanceMatrix.needsUpdate = true;
-    const inkInst = addInkInstanced(rig, geo, groups.length);
-    for (let i = 0; i < groups.length; i += 1) {
-      inst.getMatrixAt(i, m4);
-      inkInst.setMatrixAt(i, m4);
-    }
-    inkInst.instanceMatrix.needsUpdate = true;
     rig.add(inst);
     groups.forEach((g) => {
       while (g.children.length) g.remove(g.children[0]);
