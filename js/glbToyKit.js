@@ -2,6 +2,7 @@
  * Toy planet GLB kit (?glb=1). Prototypes are named proto_* in assets/models/toy_planet.glb.
  */
 import * as THREE from "./vendor/three.module.js";
+import { mergeGeometries } from "./vendor/BufferGeometryUtils.js";
 import { GLTFLoader } from "./vendor/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/meshopt_decoder.module.js";
 import { inkOutlineMaterial } from "./sphereMaps.js";
@@ -33,9 +34,25 @@ const PROTO_ROOTS = [
   "proto_deco_balloon", "proto_deco_stack_b", "proto_deco_stack", "proto_deco_robot",
 ];
 
+const NAME_COLORS = {
+  toon_frame_mid: 0xe25b8a,
+  toon_frame_hi: 0xffb8d0,
+  toon_frame_low: 0xc43d6c,
+  toon_button_plate: 0xffffff,
+  toon_goal_pedestal: 0xe23b3b,
+  toon_goal_lid: 0xffc21a,
+  toon_goal_star: 0xffc21a,
+  toon_gate_lens: 0xffffff,
+  toon_deco_orange: 0xff8a33,
+  toon_deco_grey: 0x8a929c,
+};
+
 let loadJob = null;
 let library = null;
 let gradientMap = null;
+let floorQueue = [];
+let wallQueue = [];
+let gateQueue = [];
 
 function brickIndex(n) {
   const used = Array.from({ length: n }, () => Array(n).fill(-1));
@@ -59,6 +76,12 @@ function rootFor(name) {
   return null;
 }
 
+function isInkMesh(obj) {
+  const n = obj.name || "";
+  const m = obj.material?.name || "";
+  return n.endsWith("_ink") || m === "ink" || m.startsWith("ink.");
+}
+
 function ramp() {
   if (gradientMap) return gradientMap;
   const data = new Uint8Array([32, 160, 255]);
@@ -69,45 +92,55 @@ function ramp() {
   return gradientMap;
 }
 
-function toToonMaterial(srcMat) {
+function resolveColor(srcMat) {
   const name = srcMat?.name || "";
-  if (name === "ink" || name.startsWith("ink.")) return inkOutlineMaterial();
-  const color = srcMat?.color?.getHex?.() ?? 0xffffff;
+  if (NAME_COLORS[name] != null) return NAME_COLORS[name];
+  if (name.startsWith("toon_wall_") || name.startsWith("toon_button_dome") || name.startsWith("toon_button_side")) {
+    const c = srcMat?.color;
+    if (c && (c.r + c.g + c.b) > 0.05) return c.getHex();
+  }
+  if (name.startsWith("toon_floor") || name.includes("_stud") || name.includes("_tile")) {
+    const c = srcMat?.color;
+    if (c && (c.r + c.g + c.b) > 0.05) return c.getHex();
+    return 0xf2e2c4;
+  }
+  const c = srcMat?.color;
+  return c?.getHex?.() ?? 0xffffff;
+}
+
+function toToonMaterial(srcMat, colorOverride = null) {
+  const name = srcMat?.name || "";
+  const color = colorOverride ?? resolveColor(srcMat);
   const mat = new THREE.MeshToonMaterial({
     color,
     gradientMap: ramp(),
     toneMapped: false,
+    vertexColors: false,
   });
-  mat.name = name;
-  if (srcMat?.vertexColors) mat.vertexColors = true;
+  mat.name = name || "toon";
   return mat;
 }
 
-function remapMaterials(root) {
-  root.traverse((node) => {
-    if (!node.isMesh || !node.material) return;
-    const name = node.material.name || "";
-    if (name === "ink" || name.startsWith("ink.")) {
-      node.material = inkOutlineMaterial();
-      node.raycast = () => {};
-    } else {
-      node.material = toToonMaterial(node.material);
-    }
-    node.castShadow = true;
-    node.receiveShadow = true;
-  });
+function attachInk(mesh) {
+  if (mesh.isInstancedMesh) return;
+  const ink = new THREE.Mesh(mesh.geometry, inkOutlineMaterial());
+  ink.scale.setScalar(1.06);
+  ink.raycast = () => {};
+  mesh.add(ink);
 }
 
-function tintRoot(root, hex) {
-  root.traverse((node) => {
-    if (!node.isMesh || !node.material) return;
-    const n = node.material.name || "";
-    if (n.startsWith("ink")) return;
-    if (n.startsWith("toon_wall") || n.startsWith("toon_gate") || n.includes("_dome_")) {
-      node.material = node.material.clone();
-      node.material.color.setHex(hex);
-    }
-  });
+function scaledGeometry(geo, scale) {
+  const g = geo.clone();
+  g.applyMatrix4(new THREE.Matrix4().makeScale(scale, scale, scale));
+  return g;
+}
+
+function addInkInstanced(parent, geo, count) {
+  const inkGeo = scaledGeometry(geo, 1.06);
+  const ink = new THREE.InstancedMesh(inkGeo, inkOutlineMaterial(), count);
+  ink.raycast = () => {};
+  parent.add(ink);
+  return ink;
 }
 
 function collectTemplate(scene, rootName) {
@@ -135,23 +168,77 @@ function collectTemplate(scene, rootName) {
   return group;
 }
 
+function processedGroupFromTemplate(tpl, colorOverride = null) {
+  const root = new THREE.Group();
+  root.name = tpl.name;
+  const toDrop = [];
+  tpl.traverse((o) => {
+    if (o.isMesh && isInkMesh(o)) toDrop.push(o);
+  });
+  toDrop.forEach((o) => o.parent?.remove(o));
+
+  tpl.traverse((o) => {
+    if (!o.isMesh || isInkMesh(o)) return;
+    const mesh = o.clone(false);
+    mesh.geometry = o.geometry;
+    mesh.material = toToonMaterial(o.material, colorOverride);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    if (o.parent && o.parent !== tpl) {
+      const p = new THREE.Group();
+      p.position.copy(o.position);
+      p.quaternion.copy(o.quaternion);
+      p.scale.copy(o.scale);
+      p.add(mesh);
+      root.add(p);
+    } else {
+      mesh.position.copy(o.position);
+      mesh.quaternion.copy(o.quaternion);
+      mesh.scale.copy(o.scale);
+      root.add(mesh);
+    }
+    attachInk(mesh);
+  });
+  return root;
+}
+
+function mergedGeometryFromTemplate(tpl) {
+  const geos = [];
+  const toDrop = [];
+  tpl.traverse((o) => {
+    if (o.isMesh && isInkMesh(o)) toDrop.push(o);
+  });
+  tpl.updateMatrixWorld(true);
+  tpl.traverse((o) => {
+    if (!o.isMesh || isInkMesh(o)) return;
+    const g = o.geometry.clone();
+    o.updateWorldMatrix(true, false);
+    g.applyMatrix4(o.matrixWorld);
+    geos.push(g);
+  });
+  if (!geos.length) return null;
+  return mergeGeometries(geos, false);
+}
+
 function buildLibrary(gltf) {
   const templates = new Map();
+  const merged = new Map();
   for (const root of PROTO_ROOTS) {
     const tpl = collectTemplate(gltf.scene, root);
-    if (tpl) templates.set(root, tpl);
+    if (!tpl) continue;
+    templates.set(root, tpl);
+    if (root.startsWith("proto_floor_")) {
+      const geo = mergedGeometryFromTemplate(tpl);
+      if (geo) merged.set(root, geo);
+    }
   }
-  return {
-    gltf,
-    templates,
-    clone(name) {
-      const tpl = templates.get(name);
-      if (!tpl) return null;
-      const root = tpl.clone(true);
-      remapMaterials(root);
-      return root;
-    },
-  };
+  return { gltf, templates, merged };
+}
+
+export function resetToyQueues() {
+  floorQueue.length = 0;
+  wallQueue.length = 0;
+  gateQueue.length = 0;
 }
 
 export function glbToyWanted() {
@@ -187,8 +274,10 @@ export function toyGlbReady() {
   return !!library;
 }
 
-export function cloneProto(name) {
-  return library?.clone(name) || null;
+function cloneProto(name, colorOverride = null) {
+  const tpl = library?.templates.get(name);
+  if (!tpl) return null;
+  return processedGroupFromTemplate(tpl, colorOverride);
 }
 
 export function listProtoKeys() {
@@ -205,40 +294,24 @@ export function mountToyFloor(rig, n, step, cellXZ) {
     for (let c = 0; c < n; c++) {
       const k = used[r][c];
       const pick = k % 2 === 0 ? "proto_floor_a" : "proto_floor_b";
-      const tile = cloneProto(pick);
-      if (!tile) continue;
-      tintRoot(tile, rgbToHex(BRICKS[k]));
       const { x, z } = cellXZ(r, c);
-      tile.position.set(x, 0, z);
-      rig.add(tile);
+      floorQueue.push({ pick, x, z, y: BOARD_TOP + 0.004, color: rgbToHex(BRICKS[k]) });
     }
   }
 }
 
 export function mountToyFrame(rig, n) {
-  const frame = cloneProto(`proto_frame_n${n}`);
-  if (frame) {
-    rig.add(frame);
-    return true;
-  }
   return false;
 }
 
 export function mountToyWall(group, color, axis) {
-  const key = axis === "h" ? `proto_wall_${color}` : `proto_wall_${color}_v`;
-  const wall = cloneProto(key);
-  if (!wall) return null;
-  group.add(wall);
-  return wall;
+  wallQueue.push({ color, axis, group });
+  return group;
 }
 
 export function mountToyGate(group, color) {
-  const key = GEM_HEX[color] ? `proto_gate_${color}` : "proto_gate_red";
-  let gate = cloneProto(key) || cloneProto("proto_gate_red");
-  if (!gate) return null;
-  if (GEM_HEX[color]) tintRoot(gate, GEM_HEX[color]);
-  group.add(gate);
-  return gate;
+  gateQueue.push({ color, group });
+  return group;
 }
 
 export function mountToyButton(x, z, color, row, col) {
@@ -296,4 +369,112 @@ export function mountToyStarGoal(goalGroup, api) {
   if (doll) api.act(doll, (b, env) => { b.node.position.y = b.y + env * api.hh(0.16); });
   api.shadow(goalGroup, 0, api.zb(-0.48), 0.4, 0.24);
   return true;
+}
+
+export function flushToyMeshes(rig) {
+  if (!library) return;
+
+  const floorMat = toToonMaterial({ name: "toon_floor_a", color: new THREE.Color(0xffffff) }, 0xffffff);
+  floorMat.vertexColors = true;
+  const geoA = library.merged.get("proto_floor_a");
+  const geoB = library.merged.get("proto_floor_b");
+  if (geoA && geoB && floorQueue.length) {
+    const meshA = new THREE.InstancedMesh(geoA, floorMat, floorQueue.length);
+    meshA.castShadow = true;
+    meshA.receiveShadow = true;
+    const meshB = new THREE.InstancedMesh(geoB, floorMat.clone(), floorQueue.length);
+    meshB.castShadow = true;
+    meshB.receiveShadow = true;
+    const m4 = new THREE.Matrix4();
+    const cA = new THREE.Color();
+    const cB = new THREE.Color();
+    let ia = 0;
+    let ib = 0;
+    for (const q of floorQueue) {
+      m4.makeTranslation(q.x, q.y ?? BOARD_TOP + 0.004, q.z);
+      if (q.pick === "proto_floor_a") {
+        meshA.setMatrixAt(ia, m4);
+        cA.setHex(q.color);
+        meshA.setColorAt(ia, cA);
+        ia += 1;
+      } else {
+        meshB.setMatrixAt(ib, m4);
+        cB.setHex(q.color);
+        meshB.setColorAt(ib, cB);
+        ib += 1;
+      }
+    }
+    meshA.count = ia;
+    meshB.count = ib;
+    meshA.instanceMatrix.needsUpdate = true;
+    if (meshA.instanceColor) meshA.instanceColor.needsUpdate = true;
+    meshB.instanceMatrix.needsUpdate = true;
+    if (meshB.instanceColor) meshB.instanceColor.needsUpdate = true;
+    const inkA = addInkInstanced(rig, geoA, ia);
+    const inkB = addInkInstanced(rig, geoB, ib);
+    for (let i = 0; i < ia; i += 1) {
+      meshA.getMatrixAt(i, m4);
+      inkA.setMatrixAt(i, m4);
+    }
+    for (let i = 0; i < ib; i += 1) {
+      meshB.getMatrixAt(i, m4);
+      inkB.setMatrixAt(i, m4);
+    }
+    inkA.count = ia;
+    inkB.count = ib;
+    inkA.instanceMatrix.needsUpdate = true;
+    inkB.instanceMatrix.needsUpdate = true;
+    rig.add(meshA, meshB);
+  }
+
+  const wallBuckets = new Map();
+  for (const q of wallQueue) {
+    const protoKey = q.axis === "h" ? `proto_wall_${q.color}` : `proto_wall_${q.color}_v`;
+    if (!wallBuckets.has(protoKey)) wallBuckets.set(protoKey, []);
+    wallBuckets.get(protoKey).push(q.group);
+  }
+  for (const [protoKey, groups] of wallBuckets) {
+    const tpl = library.templates.get(protoKey);
+    const geo = tpl ? mergedGeometryFromTemplate(tpl) : null;
+    if (!geo) {
+      for (const g of groups) {
+        const wall = cloneProto(protoKey);
+        if (wall) g.add(...wall.children);
+      }
+      continue;
+    }
+    const sample = tpl.children.find((c) => c.isMesh && !isInkMesh(c));
+    const mat = toToonMaterial(sample?.material || { name: `toon_wall_${protoKey.split("_")[2]}` });
+    const inst = new THREE.InstancedMesh(geo, mat, groups.length);
+    inst.castShadow = true;
+    inst.receiveShadow = true;
+    const m4 = new THREE.Matrix4();
+    groups.forEach((g, i) => {
+      g.updateMatrixWorld(true);
+      m4.copy(g.matrixWorld);
+      inst.setMatrixAt(i, m4);
+    });
+    inst.instanceMatrix.needsUpdate = true;
+    const inkInst = addInkInstanced(rig, geo, groups.length);
+    for (let i = 0; i < groups.length; i += 1) {
+      inst.getMatrixAt(i, m4);
+      inkInst.setMatrixAt(i, m4);
+    }
+    inkInst.instanceMatrix.needsUpdate = true;
+    rig.add(inst);
+    groups.forEach((g) => {
+      while (g.children.length) g.remove(g.children[0]);
+    });
+  }
+
+  for (const q of gateQueue) {
+    const color = q.color || "red";
+    const protoKey = GEM_HEX[color] ? `proto_gate_${color}` : "proto_gate_red";
+    const gate = cloneProto(protoKey, GEM_HEX[color]) || cloneProto("proto_gate_red", GEM_HEX.red);
+    if (gate) q.group.add(gate);
+  }
+
+  floorQueue.length = 0;
+  wallQueue.length = 0;
+  gateQueue.length = 0;
 }

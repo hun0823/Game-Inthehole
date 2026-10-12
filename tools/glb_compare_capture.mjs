@@ -64,7 +64,14 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
 
-  const target = join(ROOT, "feedback/toy8_target.png");
+  const targetUpload = "/home/ubuntu/.cursor/projects/workspace/uploads/toy8_target_33c6.png";
+  const target = join(OUT, "toy8_target_ref.png");
+  const targetSrc = await readFile(targetUpload);
+  const refImg = await loadImage(targetSrc);
+  const refCanvas = createCanvas(W, H);
+  const refCtx = refCanvas.getContext("2d");
+  refCtx.drawImage(refImg, 0, 0, refImg.width, refImg.height, 0, 0, W, H);
+  await writeFile(target, refCanvas.toBuffer("image/png"));
   const mainP = join(OUT, "shot_main.png");
   const glbP = join(OUT, "shot_glb.png");
 

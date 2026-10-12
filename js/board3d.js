@@ -26,6 +26,8 @@ import {
   mountToyButton,
   mountToyDeco,
   mountToyStarGoal,
+  resetToyQueues,
+  flushToyMeshes,
 } from "./glbToyKit.js";
 
 const STEP = 1.16;
@@ -1900,6 +1902,7 @@ export function createView(canvas) {
     clearFx();
     const span = n * STEP;
     const toyGlb = glbToyWanted() && (level.planet || activeTheme.id) === "toy" && toyGlbReady();
+    if (toyGlb) resetToyQueues();
     const inner = span / 2 - 0.01;
     // Thickness tracks board size so 3×3 through 8×8 keep about the same
     // outline weight: a charcoal stroke and one theme-color band.
@@ -1937,10 +1940,6 @@ export function createView(canvas) {
     const boardH = 0.26;
     if (toyGlb) {
       mountToyFloor(rig, n, STEP, cellXZ);
-      const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
-      board.position.y = BOARD_TOP - boardH / 2;
-      board.receiveShadow = true;
-      rig.add(board);
     } else {
       const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
       board.position.y = BOARD_TOP - boardH / 2;
@@ -2121,6 +2120,8 @@ export function createView(canvas) {
     };
     paintGlass(game.hGlass, "h");
     paintGlass(game.vGlass, "v");
+
+    if (toyGlb) flushToyMeshes(rig);
 
     const { x: hx, z: hz } = cellXZ(level.hole[0], level.hole[1]);
     stockHole = new THREE.Group();
