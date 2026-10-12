@@ -2260,8 +2260,8 @@ export function createView(canvas) {
         base.y + 0.06,
         base.z + Math.sin(ang) * 0.04,
       );
-      shard.rotation.set(Math.random() * 0.6, Math.random() * Math.PI, Math.random() * 0.4);
-      shard.scale.setScalar(0.85 + Math.random() * 0.7);
+      shard.rotation.set(-Math.PI / 2 + (Math.random() - 0.5) * 0.5, Math.random() * Math.PI, (Math.random() - 0.5) * 0.4);
+      shard.scale.setScalar(1.6 + Math.random() * 1.1);
       shard.userData.v = {
         x: Math.cos(ang) * speed,
         y: 1.15 + Math.random() * 1.35,
@@ -3012,10 +3012,9 @@ export function createView(canvas) {
     const lp = project(logical);
     const delta = (node) => {
       if (!node) return null;
-      const world = node.getWorldPosition(new THREE.Vector3());
-      const flat = world.clone();
-      flat.y = logical.y;
-      const sp = project(flat);
+      const local = rig.worldToLocal(node.getWorldPosition(new THREE.Vector3()));
+      const aligned = rig.localToWorld(new THREE.Vector3(local.x, BOARD_TOP, local.z));
+      const sp = project(aligned);
       return {
         dx: Math.round((sp.x - lp.x) * 100) / 100,
         dy: Math.round((sp.y - lp.y) * 100) / 100,
