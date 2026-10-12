@@ -143,6 +143,54 @@ function mixRgb(a, b, t) {
   return a.map((c, i) => Math.round(c + (b[i] - c) * t));
 }
 
+const BRICKS = [
+  [242, 226, 196],
+  [244, 206, 214],
+  [196, 228, 210],
+  [244, 230, 176],
+  [216, 204, 232],
+  [196, 220, 236],
+];
+
+function brickIndex(n) {
+  const used = Array.from({ length: n }, () => Array(n).fill(-1));
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      let k = (r * 2 + c * 3) % BRICKS.length;
+      const left = c > 0 ? used[r][c - 1] : -1;
+      const up = r > 0 ? used[r - 1][c] : -1;
+      while (k === left || k === up) k = (k + 1) % BRICKS.length;
+      used[r][c] = k;
+    }
+  }
+  return used;
+}
+
+function paintStuds(g, x, y, w, rgb) {
+  const lite = rgb.map((c) => Math.min(255, c + 22));
+  const dark = rgb.map((c) => Math.max(0, c - 22));
+  const s = w * 0.15;
+  for (const [u, v] of [[0.3, 0.32], [0.7, 0.32], [0.3, 0.68], [0.7, 0.68]]) {
+    const cx = x + w * u;
+    const cy = y + w * v;
+    g.fillStyle = `rgba(${dark.join(",")}, 0.55)`;
+    g.beginPath();
+    g.ellipse(cx, cy + s * 0.22, s * 0.72, s * 0.28, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = `rgb(${rgb.join(",")})`;
+    g.beginPath();
+    g.arc(cx, cy, s * 0.62, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = `rgba(${dark.join(",")}, 0.65)`;
+    g.lineWidth = 1.5;
+    g.stroke();
+    g.fillStyle = `rgba(${lite.join(",")}, 0.9)`;
+    g.beginPath();
+    g.ellipse(cx - s * 0.12, cy - s * 0.14, s * 0.22, s * 0.1, -0.4, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
 function paintMotif(g, id, x, y, w, groove) {
   g.strokeStyle = `rgba(${groove}, 0.22)`;
   g.fillStyle = `rgba(${groove}, 0.14)`;
@@ -182,22 +230,6 @@ function paintMotif(g, id, x, y, w, groove) {
     g.stroke();
   } else if (id === "machine") {
     g.strokeRect(x + w * 0.28, y + w * 0.28, w * 0.44, w * 0.44);
-  } else if (id === "toy") {
-    g.fillStyle = `rgba(${groove}, 0.72)`;
-    g.beginPath();
-    const spikes = 5;
-    const outer = w * 0.2;
-    const inner = w * 0.08;
-    for (let i = 0; i < spikes * 2; i++) {
-      const rad = i % 2 === 0 ? outer : inner;
-      const a = -Math.PI / 2 + (i * Math.PI) / spikes;
-      const px = cx + Math.cos(a) * rad;
-      const py = cy + Math.sin(a) * rad;
-      if (i === 0) g.moveTo(px, py);
-      else g.lineTo(px, py);
-    }
-    g.closePath();
-    g.fill();
   }
 }
 
@@ -208,24 +240,45 @@ function makeBoardTexture(n, palette) {
   const c = document.createElement("canvas");
   c.width = c.height = size;
   const g = c.getContext("2d");
-  const floor = palette?.floor || "#e4a45e";
-  const base = rgbOf(floor);
-  const pale = mixRgb(base, [255, 255, 255], id === "toy" ? 0.1 : 0.46);
-  const deep = mixRgb(base, [0, 0, 0], id === "toy" ? 0.08 : 0.12);
-  const seam = mixRgb(base, [255, 255, 255], id === "toy" ? 0.04 : 0.18);
-  const groove = palette?.groove || "80, 80, 80";
-  g.fillStyle = `rgb(${seam.join(",")})`;
-  g.fillRect(0, 0, size, size);
-  const gap = 2;
-  for (let r = 0; r < n; r++) {
-    for (let col = 0; col < n; col++) {
-      const x = col * cell + gap;
-      const y = r * cell + gap;
-      const w = cell - gap * 2;
-      const tone = (r + col) % 2 === 0 ? pale : deep;
-      g.fillStyle = `rgb(${tone.join(",")})`;
-      roundFill(g, x, y, w, w, 8);
-      paintMotif(g, id, x, y, w, groove);
+  if (id === "toy") {
+    g.fillStyle = "#e4d5c6";
+    g.fillRect(0, 0, size, size);
+    const used = brickIndex(n);
+    const gap = 3;
+    for (let r = 0; r < n; r++) {
+      for (let col = 0; col < n; col++) {
+        const x = col * cell + gap;
+        const y = r * cell + gap;
+        const w = cell - gap * 2;
+        const rgb = BRICKS[used[r][col]];
+        const shade = rgb.map((ch) => Math.max(0, ch - 12));
+        g.fillStyle = `rgb(${shade.join(",")})`;
+        roundFill(g, x, y + 2, w, w - 2, 8);
+        g.fillStyle = `rgb(${rgb.join(",")})`;
+        roundFill(g, x, y, w, w - 2, 8);
+        paintStuds(g, x, y, w, rgb);
+      }
+    }
+  } else {
+    const floor = palette?.floor || "#e4a45e";
+    const base = rgbOf(floor);
+    const pale = mixRgb(base, [255, 255, 255], 0.46);
+    const deep = mixRgb(base, [0, 0, 0], 0.12);
+    const seam = mixRgb(base, [255, 255, 255], 0.18);
+    const groove = palette?.groove || "80, 80, 80";
+    g.fillStyle = `rgb(${seam.join(",")})`;
+    g.fillRect(0, 0, size, size);
+    const gap = 2;
+    for (let r = 0; r < n; r++) {
+      for (let col = 0; col < n; col++) {
+        const x = col * cell + gap;
+        const y = r * cell + gap;
+        const w = cell - gap * 2;
+        const tone = (r + col) % 2 === 0 ? pale : deep;
+        g.fillStyle = `rgb(${tone.join(",")})`;
+        roundFill(g, x, y, w, w, 8);
+        paintMotif(g, id, x, y, w, groove);
+      }
     }
   }
   const tex = new THREE.CanvasTexture(c);
@@ -1731,30 +1784,45 @@ export function createView(canvas) {
     const cracks = new THREE.Group();
     cracks.visible = false;
     cracks.userData.spread = 0;
-    cracks.position.y = h * 0.5 + 0.028;
+    cracks.position.y = h * 0.5 + 0.04;
     const long = Math.max(w, d);
+    const span = Math.min(w, d);
+    const frostMat = new THREE.MeshBasicMaterial({
+      color: 0xf7fbff,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const frost = new THREE.Mesh(new THREE.PlaneGeometry(long * 0.96, Math.max(span * 1.8, 0.28)), frostMat);
+    frost.rotation.x = -Math.PI / 2;
+    frost.position.y = 0.004;
+    frost.raycast = () => {};
+    frost.userData.ownMat = true;
+    frost.userData.ownGeo = true;
+    cracks.add(frost);
     const bar = (mat, len, thick, rot, x, z, lift) => {
       const line = new THREE.Mesh(crackGeo, mat);
-      line.scale.set(len, 0.018, thick);
+      line.scale.set(len, 0.04, thick);
       line.rotation.y = rot;
       line.position.set(x, lift, z);
       line.raycast = () => {};
       cracks.add(line);
     };
-    const ang = 0.62;
-    const len = long * 0.82;
-    bar(crackHi, len, 0.07, ang, 0, 0, 0);
-    bar(crackHi, len, 0.07, -ang, 0, 0, 0);
-    bar(crackInk, len * 0.94, 0.034, ang, 0, 0, 0.012);
-    bar(crackInk, len * 0.94, 0.034, -ang, 0, 0, 0.012);
-    const branches = [0.22, -0.22, 1.15, -1.15];
+    const ang = 0.38;
+    const diag = (long * 0.94) / Math.cos(ang);
+    bar(crackInk, diag, 0.26, ang, 0, 0, 0);
+    bar(crackInk, diag, 0.26, -ang, 0, 0, 0);
+    bar(crackHi, diag * 0.96, 0.14, ang, 0, 0, 0.03);
+    bar(crackHi, diag * 0.96, 0.14, -ang, 0, 0, 0.03);
+    const branches = [0.55, -0.55, 1.35, -1.35];
     branches.forEach((extra, i) => {
-      const a = ang * (i < 2 ? 1 : -1) + extra;
-      const bl = long * (0.16 + (i % 2) * 0.06);
-      const ox = Math.sin(a) * 0.02;
-      const oz = Math.cos(a) * 0.02;
-      bar(crackHi, bl, 0.04, a, ox, oz, 0.004);
-      bar(crackInk, bl * 0.82, 0.018, a, ox, oz, 0.014);
+      const a = (i < 2 ? ang : -ang) + extra * 0.35;
+      const bl = long * (0.22 + (i % 2) * 0.06);
+      const ox = Math.sin(a) * long * 0.04;
+      const oz = Math.cos(a) * long * 0.02;
+      bar(crackInk, bl, 0.12, a, ox, oz, 0.01);
+      bar(crackHi, bl * 0.88, 0.06, a, ox, oz, 0.036);
     });
     cracks.scale.setScalar(0.12);
     group.add(cracks);
@@ -2261,7 +2329,7 @@ export function createView(canvas) {
         base.z + Math.sin(ang) * 0.04,
       );
       shard.rotation.set(-Math.PI / 2 + (Math.random() - 0.5) * 0.5, Math.random() * Math.PI, (Math.random() - 0.5) * 0.4);
-      shard.scale.setScalar(1.6 + Math.random() * 1.1);
+      shard.scale.setScalar(2.5 + Math.random() * 1.3);
       shard.userData.v = {
         x: Math.cos(ang) * speed,
         y: 1.15 + Math.random() * 1.35,
