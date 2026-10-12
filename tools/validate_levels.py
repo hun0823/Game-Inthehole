@@ -189,7 +189,7 @@ def _replay(level, moves):
         if action == "press":
             continue
         dir_i = next(i for i, (name, _dr, _dc) in enumerate(DIRS) if name == action)
-        r, c, gstate, act, _moved, _won, collapse, phase, path = tilt(
+        r, c, gstate, act, _moved, _won, collapse, phase, path, _lost = tilt(
             board, r, c, dir_i, gstate, act, allow, collapse, phase
         )
         paths.append(path)

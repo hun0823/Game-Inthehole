@@ -17,7 +17,10 @@ tools/generate_campaign.py and tools/validate_levels.py both call this module.
 import copy
 from collections import deque
 
-from tilt_solver import COLOR_IDS, DIRS, _activate, _bump_tilts, color_id, edges_crossed, play, prepare, solve, tilt
+from tilt_solver import (
+    COLOR_IDS, DIRS, _activate, _bump_tilts, collapses_under, color_id,
+    edges_crossed, play, prepare, solve, tilt,
+)
 
 GAP = 3
 DIR_INDEX = {name: i for i, (name, _dr, _dc) in enumerate(DIRS)}
@@ -67,13 +70,23 @@ def replay(level, moves):
     for action in moves:
         if action == "press":
             act = _activate(board, r, c, act, ALLOW)
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
             continue
         before = phase
         res = tilt(board, r, c, DIR_INDEX[action], gstate, act, ALLOW, collapse, phase, tilts)
-        r, c, gstate, act, moved, _won, collapse, phase, path = res
+        r, c, gstate, act, moved, _won, collapse, phase, path, lost = res
+        if lost:
+            out.append((action, path, before))
+            break
         if moved:
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                out.append((action, path, before))
+                break
         out.append((action, path, before))
     return out
 
@@ -436,28 +449,59 @@ def _replay_tilts(level, moves):
     for action in moves:
         if action == "press":
             act = _activate(board, r, c, act, ALLOW)
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
             continue
         res = tilt(board, r, c, DIR_INDEX[action], gstate, act, ALLOW, collapse, phase, tilts)
-        r, c, gstate, act, moved, _won, collapse, phase, path = res
-        out.append((action, path, tilts))
+        r, c, gstate, act, moved, _won, collapse, phase, path, lost = res
+        out.append((action, path, tilts, lost))
+        if lost:
+            break
         if moved:
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
     return out
 
 
+def _line_dies(level, moves):
+    """True when replaying `moves` on this board touches lava."""
+    board = prepare(level)
+    r, c = board["ball"]
+    gstate = act = collapse = phase = tilts = 0
+    for action in moves:
+        if action == "press":
+            act = _activate(board, r, c, act, ALLOW)
+            before = tilts
+            tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before, tilts):
+                return True
+            continue
+        res = tilt(board, r, c, DIR_INDEX[action], gstate, act, ALLOW, collapse, phase, tilts)
+        r, c, gstate, act, moved, _won, collapse, phase, _path, lost = res
+        if lost:
+            return True
+        if moved:
+            before = tilts
+            tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before, tilts):
+                return True
+    return False
+
+
 def magma_ok(level, moves=None):
-    """Timing is the trick: pass a vent before it erupts, or stop on the new crust.
+    """The line has to use the lava timer.
 
-    Pass-before: the line enters the cell while tilts < at. Forcing at=0 (the
-    cell is crust from the start) must raise par by GAP or make it unsolvable.
-    Deleting the vent can leave that early path intact, so par may not change.
-    That is expected. The binding test is the closed vent.
+    Stripping every vent must shorten par by GAP. A board that solves the
+    same way with the magma deleted is rejected.
 
-    Stopper: a tilt ends with the next cell erupted, and that edge is not a
-    wall. Removing the vents must raise par by GAP or make it unsolvable.
-    A vent the line can never reach before `at` is just a wall and fails.
-    A level may use either kind. Each kind that appears must pass its test.
+    The solution also has to use the timing, not a static death tile:
+    it crosses a cell while that cell is still floor or warn, or the
+    shorter bare-board line dies when the vents are present (the obvious
+    path becomes deadly and forces another route).
     """
     vents = level.get("magma") or []
     if not vents:
@@ -465,35 +509,22 @@ def magma_ok(level, moves=None):
     moves = moves or par_moves(level)
     if not moves:
         return False
+    bare = par_moves(_strip(level, magma=[]), cap=len(moves))
+    if not better(len(moves), bare, GAP):
+        return False
     schedule = {(v["row"], v["col"]): int(v["at"]) for v in vents}
-    entered = set()
-    stopped = False
-    for action, path, tilts in _replay_tilts(level, moves):
-        for cell in path:
+    crossed = False
+    for _action, path, tilts, lost in _replay_tilts(level, moves):
+        if lost:
+            return False
+        for cell in path[1:]:
             at = schedule.get(cell)
             if at is not None and tilts < at:
-                entered.add(cell)
-        if not path:
-            continue
-        dr, dc = DIR_DELTA[action]
-        ahead = (path[-1][0] + dr, path[-1][1] + dc)
-        at = schedule.get(ahead)
-        if at is None or tilts < at:
-            continue
-        if ahead_open(level, path[-1], action):
-            stopped = True
-    if not entered and not stopped:
-        return False
-    if entered:
-        closed = clone(level)
-        closed["magma"] = [{**v, "at": 0} for v in vents]
-        if not worse(len(moves), par_moves(closed, cap=len(moves) + 16)):
-            return False
-    if stopped:
-        bare = par_moves(_strip(level, magma=[]), cap=len(moves) + 16)
-        if not worse(len(moves), bare):
-            return False
-    return True
+                crossed = True
+                break
+    if crossed:
+        return True
+    return bool(bare) and _line_dies(level, bare)
 
 
 def movers_ok(level, moves=None):
@@ -604,13 +635,18 @@ def shortest_visits(level, limit=8, cap=42):
         if board["buttons"]:
             new_act = _activate(board, r, c, act, ALLOW)
             if new_act != act:
-                nxt = (pos, gstate, new_act, collapse, phase, _bump_tilts(board, tilts))
-                _link(dist, prevs, q, state, nxt, "press", depth)
+                next_tilts = _bump_tilts(board, tilts)
+                if not collapses_under(board, (r, c), tilts, next_tilts):
+                    nxt = (pos, gstate, new_act, collapse, phase, next_tilts)
+                    _link(dist, prevs, q, state, nxt, "press", depth)
         for dir_i, (name, _dr, _dc) in enumerate(DIRS):
-            nr, nc, ng, na, moved, won, ncoll, nphase, _path = tilt(
+            nr, nc, ng, na, moved, won, ncoll, nphase, _path, lost = tilt(
                 board, r, c, dir_i, gstate, act, ALLOW, collapse, phase, tilts
             )
-            if not moved:
+            if not moved or lost:
+                continue
+            next_tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (nr, nc), tilts, next_tilts):
                 continue
             if won:
                 if best is None:
@@ -618,7 +654,7 @@ def shortest_visits(level, limit=8, cap=42):
                 if depth + 1 == best:
                     winning.append((state, name))
                 continue
-            nxt = (nr * n + nc, ng, na, ncoll, nphase, _bump_tilts(board, tilts))
+            nxt = (nr * n + nc, ng, na, ncoll, nphase, next_tilts)
             _link(dist, prevs, q, state, nxt, name, depth)
     if best is None:
         return []
@@ -675,12 +711,15 @@ def state_count(level, cap_states=80, cap_moves=42):
         pos, gstate, act, collapse, phase, tilts = state
         r, c = divmod(pos, n)
         for dir_i, _dir in enumerate(DIRS):
-            nr, nc, ng, na, moved, won, ncoll, nphase, _path = tilt(
+            nr, nc, ng, na, moved, won, ncoll, nphase, _path, lost = tilt(
                 board, r, c, dir_i, gstate, act, ALLOW, collapse, phase, tilts
             )
-            if not moved or won:
+            if not moved or won or lost:
                 continue
-            nxt = (nr * n + nc, ng, na, ncoll, nphase, _bump_tilts(board, tilts))
+            next_tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (nr, nc), tilts, next_tilts):
+                continue
+            nxt = (nr * n + nc, ng, na, ncoll, nphase, next_tilts)
             if nxt not in dist:
                 dist[nxt] = depth + 1
                 q.append(nxt)
@@ -881,20 +920,23 @@ def budget_dead_ends(level, moves=None):
         r, c = divmod(pos, n)
         outs = []
         for dir_i, _dir in enumerate(DIRS):
-            nr, nc, ng, na, moved, won, ncoll, nphase, _path = tilt(
+            nr, nc, ng, na, moved, won, ncoll, nphase, _path, lost = tilt(
                 board, r, c, dir_i, gstate, act, ALLOW, collapse, phase, tilts
             )
             if not moved:
                 continue
-            if won:
+            next_tilts = _bump_tilts(board, tilts)
+            dies = lost or collapses_under(board, (nr, nc), tilts, next_tilts)
+            if won and not dies:
                 wins.add(state)
                 outs.append(None)
                 continue
-            nxt = (nr * n + nc, ng, na, ncoll, nphase, _bump_tilts(board, tilts))
+            nxt = (nr * n + nc, ng, na, ncoll, nphase, next_tilts)
             outs.append(nxt)
             if nxt not in dist:
                 dist[nxt] = depth + 1
-                q.append(nxt)
+                if not dies:
+                    q.append(nxt)
         succ[state] = outs
     goal = {}
     rq = deque()

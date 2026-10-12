@@ -97,6 +97,7 @@ let lessonQueue = [];
 let pendingBuy = null;
 let storeTab = "balls";
 let overlayMode = null;
+let overlayLoseReason = "moves";
 let overlayReward = null;
 let overlayCoin = false;
 let overlayStarsN = 0;
@@ -615,17 +616,23 @@ function replayStage() {
   renderBoard();
 }
 
-function showGameOver() {
+function showGameOver(reason = "moves") {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   overlayMode = "lose";
+  overlayLoseReason = reason === "lava" ? "lava" : "moves";
   hideClearStars();
   hideReward();
   overlay.classList.remove("hidden", "is-win");
   overlay.classList.add("is-lose");
   overlayKicker.textContent = stageTitle(level, stageIndex);
-  overlayTitle.textContent = t(lang, "out");
-  overlayMsg.textContent = par > 0 ? `${game.moves}/${par}` : String(game.moves);
+  if (overlayLoseReason === "lava") {
+    overlayTitle.textContent = t(lang, "fell");
+    overlayMsg.textContent = t(lang, "fell-note");
+  } else {
+    overlayTitle.textContent = t(lang, "out");
+    overlayMsg.textContent = par > 0 ? `${game.moves}/${par}` : String(game.moves);
+  }
   overlayBtn.textContent = t(lang, "retry");
   overlayBtn.onclick = () => replayStage();
 }
@@ -693,7 +700,7 @@ function handleAfterMove(won) {
   if (isGameOver(par, game.moves)) {
     gameOver = true;
     updateHud();
-    showGameOver();
+    showGameOver("moves");
     return;
   }
   if (!won) {
@@ -704,7 +711,7 @@ function handleAfterMove(won) {
   if (award.stars <= 0) {
     gameOver = true;
     updateHud();
-    showGameOver();
+    showGameOver("moves");
     return;
   }
   const starsBefore = getStars(level.id);
@@ -717,7 +724,7 @@ function handleAfterMove(won) {
 }
 
 function showHint() {
-  if (uiBlocked() || animating || game.won || gameOver) return;
+  if (uiBlocked() || animating || game.won || game.lost || gameOver) return;
   clearHintUi();
   const route = game.hintRoute();
   if (!route) {
@@ -741,7 +748,8 @@ function showHint() {
 }
 
 // Map rule events onto the roll fx. view.roll calls view.onGlassEvent(ev)
-// for each glassCrack / glassShatter when the ball reaches that pane.
+// for each glassCrack / glassShatter when the ball reaches that pane, and
+// view.onMagmaEvent(ev) for magmaCrack / magmaCollapse / lavaDeath.
 // edge is { axis, r, c }. board3d glassMesh also accepts kind as that axis.
 function glassRollFx(events) {
   const cracked = [];
@@ -758,7 +766,7 @@ function glassRollFx(events) {
 }
 
 async function handleButtonPress(row, col) {
-  if (uiBlocked() || animating || game.won || gameOver) return;
+  if (uiBlocked() || animating || game.won || game.lost || gameOver) return;
   if (game.ball[0] !== row || game.ball[1] !== col) return;
   clearHintUi();
   if (!game.pressButton()) {
@@ -768,21 +776,32 @@ async function handleButtonPress(row, col) {
   audio.playPress(game, true);
   animating = true;
   view.dipButton(row, col);
-  view.sync(game, { ready: false, animateGates: true });
+  const lost = game.lost;
   updateHud();
+  if (lost) {
+    await view.roll([[row, col]], "down", false, { events: game.shiftEvents || [] });
+    view.sync(game, { ready: true, animateGates: true });
+    await wait(700);
+    animating = false;
+    gameOver = true;
+    updateHud();
+    showGameOver("lava");
+    return;
+  }
+  view.sync(game, { ready: false, animateGates: true });
   await wait(280);
   animating = false;
   handleAfterMove(game.won);
 }
 
 async function handleTilt(dir) {
-  if (uiBlocked() || animating || game.won || gameOver) return;
+  if (uiBlocked() || animating || game.won || game.lost || gameOver) return;
   clearHintUi();
   const tiltsBefore = game.tilts;
   const phaseBefore = game.phase;
-  const { path, moved, won, events } = game.simulateTilt(dir);
+  const { path, moved, won, lost, events } = game.simulateTilt(dir);
   const glassFx = glassRollFx(events);
-  audio.playTilt(game, { path, moved, won, events, dir, tilts: tiltsBefore, phase: phaseBefore });
+  audio.playTilt(game, { path, moved, won, lost, events, dir, tilts: tiltsBefore, phase: phaseBefore });
   view.nudge(dir);
   if (!moved) {
     view.bump(0.45);
@@ -791,13 +810,25 @@ async function handleTilt(dir) {
     return;
   }
   animating = true;
-  game.applyTiltResult(path, won, moved);
+  // Sync while the tilt counter is still the pre-bump value. magmaLook.sync
+  // reads snapshot().magma, and a post-bump sync would rest a collapse to
+  // lava before onMagmaEvent can play it. Glass and gates stay on the roll.
   view.sync(game, { ready: false, skipGlass: true, skipGates: true, adoptReveal: false, skipShift: true });
+  game.applyTiltResult(path, won, moved, lost);
   view.armGateOpen(game);
   updateHud();
-  await view.roll(path, dir, won, glassFx);
-  if (!won) view.bump(path.length > 1 ? 0.16 : 0.32);
+  await view.roll(path, dir, won && !lost, glassFx);
   view.nudge(null);
+  if (lost) {
+    view.sync(game, { ready: true });
+    await wait(700);
+    animating = false;
+    gameOver = true;
+    updateHud();
+    showGameOver("lava");
+    return;
+  }
+  if (!won) view.bump(path.length > 1 ? 0.16 : 0.32);
   if (won) {
     view.celebrate(path[path.length - 1]);
     await wait(360);
@@ -1824,7 +1855,7 @@ function applyLang() {
   updateHud();
   paintSky();
   if (overlayMode === "win") showWin(overlayStarsN, overlayCoin, overlayReward);
-  else if (overlayMode === "lose") showGameOver();
+  else if (overlayMode === "lose") showGameOver(overlayLoseReason);
 }
 
 function setLang(next) {

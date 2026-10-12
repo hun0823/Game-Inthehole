@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "levels": [
     {
       "id": 1,
@@ -8244,8 +8244,12 @@
       "size": 5,
       "hWalls": [
         {
-          "row": 1,
+          "row": 0,
           "col": 1
+        },
+        {
+          "row": 1,
+          "col": 0
         },
         {
           "row": 1,
@@ -8256,51 +8260,31 @@
           "col": 4
         },
         {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
           "row": 3,
-          "col": 2
+          "col": 3
         }
       ],
       "vWalls": [
         {
-          "row": 0,
+          "row": 1,
           "col": 2
         },
         {
           "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 3
+          "col": 0
         },
         {
           "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 3
+          "col": 2
         },
         {
           "row": 4,
-          "col": 0
+          "col": 2
         }
       ],
       "ball": {
         "row": 2,
-        "col": 1
+        "col": 0
       },
       "hole": {
         "row": 4,
@@ -8309,9 +8293,9 @@
       "par": 13,
       "magma": [
         {
-          "row": 0,
+          "row": 2,
           "col": 4,
-          "at": 14
+          "at": 3
         }
       ],
       "planet": "lava"
@@ -8322,12 +8306,16 @@
       "size": 5,
       "hWalls": [
         {
-          "row": 1,
-          "col": 1
+          "row": 0,
+          "col": 2
+        },
+        {
+          "row": 0,
+          "col": 4
         },
         {
           "row": 1,
-          "col": 2
+          "col": 1
         },
         {
           "row": 2,
@@ -8335,61 +8323,37 @@
         },
         {
           "row": 3,
-          "col": 1
+          "col": 0
         },
         {
           "row": 3,
-          "col": 3
+          "col": 1
         }
       ],
       "vWalls": [
         {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
           "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
           "col": 2
         },
         {
           "row": 3,
-          "col": 2
-        },
-        {
-          "row": 4,
           "col": 1
         }
       ],
       "ball": {
-        "row": 0,
-        "col": 2
-      },
-      "hole": {
         "row": 4,
         "col": 0
+      },
+      "hole": {
+        "row": 0,
+        "col": 2
       },
       "par": 13,
       "magma": [
         {
-          "row": 3,
-          "col": 4,
-          "at": 14
+          "row": 0,
+          "col": 1,
+          "at": 6
         }
       ],
       "planet": "lava"
@@ -8401,7 +8365,7 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 1
+          "col": 3
         },
         {
           "row": 0,
@@ -8409,11 +8373,17 @@
         },
         {
           "row": 1,
-          "col": 0
+          "col": 1
         },
         {
-          "row": 1,
-          "col": 1
+          "row": 2,
+          "col": 3
+        }
+      ],
+      "vWalls": [
+        {
+          "row": 0,
+          "col": 0
         },
         {
           "row": 1,
@@ -8425,37 +8395,35 @@
         },
         {
           "row": 2,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 1
+          "col": 2
         },
         {
           "row": 2,
-          "col": 1
+          "col": 3
+        },
+        {
+          "row": 3,
+          "col": 0
         },
         {
           "row": 4,
-          "col": 1
+          "col": 2
         }
       ],
       "ball": {
         "row": 2,
-        "col": 0
+        "col": 3
       },
       "hole": {
-        "row": 0,
-        "col": 1
+        "row": 4,
+        "col": 0
       },
       "par": 13,
       "magma": [
         {
           "row": 4,
-          "col": 3,
-          "at": 14
+          "col": 1,
+          "at": 6
         }
       ],
       "planet": "lava"
@@ -8467,23 +8435,11 @@
       "hWalls": [
         {
           "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
           "col": 4
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 5
         },
         {
           "row": 2,
@@ -8491,41 +8447,69 @@
         },
         {
           "row": 2,
-          "col": 2
-        }
-      ],
-      "vWalls": [
+          "col": 1
+        },
         {
-          "row": 0,
+          "row": 2,
           "col": 2
         },
         {
-          "row": 1,
+          "row": 2,
           "col": 3
         },
         {
           "row": 2,
+          "col": 5
+        },
+        {
+          "row": 3,
           "col": 1
         },
         {
-          "row": 5,
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 0
+        },
+        {
+          "row": 4,
           "col": 1
         }
       ],
+      "vWalls": [
+        {
+          "row": 1,
+          "col": 2
+        },
+        {
+          "row": 3,
+          "col": 3
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 5,
+          "col": 2
+        }
+      ],
       "ball": {
-        "row": 2,
-        "col": 2
+        "row": 5,
+        "col": 1
       },
       "hole": {
         "row": 0,
-        "col": 4
+        "col": 5
       },
       "par": 15,
       "magma": [
         {
-          "row": 4,
-          "col": 0,
-          "at": 16
+          "row": 1,
+          "col": 5,
+          "at": 10
         }
       ],
       "planet": "lava"
@@ -8537,73 +8521,73 @@
       "hWalls": [
         {
           "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
           "col": 2
+        },
+        {
+          "row": 1,
+          "col": 4
         },
         {
           "row": 1,
           "col": 5
         },
         {
-          "row": 3,
-          "col": 2
+          "row": 2,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
         },
         {
           "row": 3,
           "col": 5
-        },
-        {
-          "row": 4,
-          "col": 2
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 3
+          "col": 1
         },
         {
           "row": 1,
-          "col": 1
+          "col": 2
         },
         {
           "row": 2,
           "col": 2
         },
         {
-          "row": 2,
+          "row": 3,
+          "col": 2
+        },
+        {
+          "row": 3,
           "col": 3
         },
         {
-          "row": 4,
-          "col": 1
+          "row": 5,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 4,
-        "col": 2
+        "row": 1,
+        "col": 4
       },
       "hole": {
-        "row": 0,
+        "row": 5,
         "col": 3
       },
       "par": 15,
       "magma": [
         {
-          "row": 3,
-          "col": 2,
-          "at": 16
+          "row": 5,
+          "col": 0,
+          "at": 9
         }
       ],
       "planet": "lava"
@@ -8614,12 +8598,16 @@
       "size": 6,
       "hWalls": [
         {
-          "row": 1,
-          "col": 0
+          "row": 0,
+          "col": 2
         },
         {
-          "row": 1,
-          "col": 2
+          "row": 0,
+          "col": 3
+        },
+        {
+          "row": 0,
+          "col": 4
         },
         {
           "row": 1,
@@ -8627,57 +8615,57 @@
         },
         {
           "row": 2,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 1
+          "col": 2
         },
         {
           "row": 4,
           "col": 0
+        },
+        {
+          "row": 4,
+          "col": 2
+        },
+        {
+          "row": 4,
+          "col": 3
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 2
+          "col": 3
         },
         {
           "row": 1,
-          "col": 1
+          "col": 3
         },
         {
           "row": 2,
           "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
         },
         {
           "row": 4,
           "col": 1
+        },
+        {
+          "row": 5,
+          "col": 3
         }
       ],
       "ball": {
-        "row": 2,
-        "col": 2
+        "row": 0,
+        "col": 5
       },
       "hole": {
-        "row": 3,
-        "col": 4
+        "row": 5,
+        "col": 0
       },
       "par": 16,
       "magma": [
         {
-          "row": 1,
-          "col": 5,
-          "at": 17
+          "row": 2,
+          "col": 0,
+          "at": 8
         }
       ],
       "planet": "lava"
@@ -8689,10 +8677,22 @@
       "hWalls": [
         {
           "row": 1,
+          "col": 1
+        },
+        {
+          "row": 2,
+          "col": 0
+        },
+        {
+          "row": 2,
+          "col": 2
+        },
+        {
+          "row": 2,
           "col": 3
         },
         {
-          "row": 1,
+          "row": 2,
           "col": 4
         },
         {
@@ -8701,65 +8701,46 @@
         },
         {
           "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
           "col": 5
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
           "col": 4
         },
         {
           "row": 3,
-          "col": 1
+          "col": 2
         },
         {
           "row": 4,
-          "col": 3
+          "col": 1
         },
         {
           "row": 5,
           "col": 2
-        },
-        {
-          "row": 5,
-          "col": 3
         }
       ],
       "ball": {
-        "row": 1,
-        "col": 3
+        "row": 3,
+        "col": 0
       },
       "hole": {
-        "row": 5,
+        "row": 4,
         "col": 5
       },
       "par": 16,
       "magma": [
         {
-          "row": 4,
-          "col": 0,
-          "at": 17
+          "row": 2,
+          "col": 3,
+          "at": 6
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "at": 6
         }
       ],
       "planet": "lava"
@@ -8771,105 +8752,82 @@
       "hWalls": [
         {
           "row": 1,
-          "col": 3
+          "col": 2
         },
         {
           "row": 1,
           "col": 4
         },
         {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 6
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
           "row": 3,
           "col": 3
         },
         {
-          "row": 4,
-          "col": 1
+          "row": 3,
+          "col": 4
+        },
+        {
+          "row": 3,
+          "col": 5
+        },
+        {
+          "row": 3,
+          "col": 6
+        },
+        {
+          "row": 5,
+          "col": 0
+        },
+        {
+          "row": 5,
+          "col": 3
         }
       ],
       "vWalls": [
         {
           "row": 0,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 2
+          "col": 1
         },
         {
           "row": 2,
           "col": 3
+        },
+        {
+          "row": 2,
+          "col": 4
         },
         {
           "row": 3,
-          "col": 2
+          "col": 3
         },
         {
           "row": 4,
           "col": 2
         },
         {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
+          "row": 6,
           "col": 2
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 6,
-          "col": 1
-        },
-        {
-          "row": 6,
-          "col": 3
         }
       ],
       "ball": {
-        "row": 2,
+        "row": 6,
         "col": 3
       },
       "hole": {
-        "row": 3,
-        "col": 1
+        "row": 0,
+        "col": 6
       },
       "par": 16,
       "magma": [
         {
-          "row": 1,
-          "col": 6,
-          "at": 17
+          "row": 0,
+          "col": 5,
+          "at": 12
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "at": 12
         }
       ],
       "planet": "lava"
@@ -8935,10 +8893,6 @@
         },
         {
           "row": 6,
-          "col": 1
-        },
-        {
-          "row": 6,
           "col": 4
         }
       ],
@@ -8957,14 +8911,19 @@
           "col": 2
         }
       ],
+      "planet": "lava",
       "magma": [
         {
-          "row": 4,
-          "col": 3,
-          "at": 17
+          "row": 6,
+          "col": 0,
+          "at": 5
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "at": 5
         }
-      ],
-      "planet": "lava"
+      ]
     },
     {
       "id": 106,
@@ -9018,10 +8977,6 @@
           "col": 2
         },
         {
-          "row": 3,
-          "col": 3
-        },
-        {
           "row": 4,
           "col": 0
         },
@@ -9053,14 +9008,19 @@
           "col": 5
         }
       ],
+      "planet": "lava",
       "magma": [
         {
-          "row": 4,
-          "col": 2,
-          "at": 18
+          "row": 1,
+          "col": 3,
+          "at": 11
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "at": 11
         }
-      ],
-      "planet": "lava"
+      ]
     },
     {
       "id": 107,
@@ -9078,10 +9038,6 @@
         {
           "row": 2,
           "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
         },
         {
           "row": 3,
@@ -9141,14 +9097,14 @@
           "col": 2
         }
       ],
+      "planet": "lava",
       "magma": [
         {
-          "row": 5,
-          "col": 0,
-          "at": 18
+          "row": 3,
+          "col": 6,
+          "at": 8
         }
-      ],
-      "planet": "lava"
+      ]
     },
     {
       "id": 108,
@@ -9178,10 +9134,6 @@
         {
           "row": 2,
           "col": 5
-        },
-        {
-          "row": 2,
-          "col": 6
         }
       ],
       "vWalls": [
@@ -9225,14 +9177,14 @@
           "col": 3
         }
       ],
+      "planet": "lava",
       "magma": [
         {
-          "row": 1,
-          "col": 1,
-          "at": 18
+          "row": 2,
+          "col": 6,
+          "at": 2
         }
-      ],
-      "planet": "lava"
+      ]
     },
     {
       "id": 109,
