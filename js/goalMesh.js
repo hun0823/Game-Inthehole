@@ -4,6 +4,7 @@
  */
 import * as THREE from "./vendor/three.module.js";
 import { themeById } from "./themes.js";
+import { createToon } from "./toonPalette.js";
 import { mountGoalV3, socketFor } from "./goalV3.js";
 
 const BOARD_TOP = 0.5;
@@ -50,13 +51,7 @@ function lipMaterial(theme) {
       g.stroke();
     }
   });
-  const mat = new THREE.MeshStandardMaterial({
-    map,
-    color: 0xffffff,
-    roughness: icy ? 0.36 : 0.86,
-    metalness: 0,
-    envMapIntensity: 0,
-  });
+  const mat = createToon(0xffffff, { map });
   mat.userData.shared = true;
   lipCache.set(id, mat);
   return mat;
@@ -82,9 +77,9 @@ let mouthMat = null;
 let charcoalMat = null;
 function darkMats() {
   if (!wellMat) {
-    wellMat = new THREE.MeshStandardMaterial({ color: 0x16110e, roughness: 0.94, metalness: 0, envMapIntensity: 0 });
-    mouthMat = new THREE.MeshBasicMaterial({ color: CHARCOAL });
-    charcoalMat = new THREE.MeshStandardMaterial({ color: CHARCOAL, roughness: 0.72, metalness: 0, envMapIntensity: 0 });
+    wellMat = createToon(0x16110e);
+    mouthMat = new THREE.MeshBasicMaterial({ color: CHARCOAL, toneMapped: false });
+    charcoalMat = createToon(CHARCOAL);
   }
   return { wellMat, mouthMat, charcoalMat };
 }
@@ -136,6 +131,7 @@ export function addFloorSocket(group, theme, opts = {}) {
   const mouth = new THREE.Mesh(new THREE.CircleGeometry(0.29, 28), opts.mouth || mouthMat);
   mouth.rotation.x = -Math.PI / 2;
   mouth.position.y = y + 0.016 + lift;
+  mouth.name = "hole-mouth";
   mouth.renderOrder = 5;
   mouth.userData.ownGeo = true;
   const edge = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.012, 6, 32), charcoalMat);
@@ -400,13 +396,9 @@ export function createGoalKit(ballMaterials) {
     const key = legacy ? `old:${kind}` : kind;
     if (goalMats.has(key)) return goalMats.get(key);
     const look = GOAL_LOOKS[kind] || GOAL_LOOKS.knot;
-    const mat = new THREE.MeshStandardMaterial({
-      color: look.color,
+    const mat = createToon(look.color, {
       emissive: look.emissive,
       emissiveIntensity: look.emissive ? (legacy ? 0.35 : 0.06) : 0,
-      roughness: look.roughness,
-      metalness: look.metalness || 0,
-      envMapIntensity: legacy ? 0.45 : 0.08,
     });
     goalMats.set(key, mat);
     return mat;
@@ -416,20 +408,20 @@ export function createGoalKit(ballMaterials) {
     goalDiscGeo: new THREE.CircleGeometry(0.3, 28),
     goalTorusGeo: new THREE.TorusGeometry(0.4, 0.07, 8, 28),
     sinkMat: new THREE.MeshBasicMaterial({ color: 0x14080c }),
-    netMat: new THREE.MeshStandardMaterial({ color: 0xf7f7f7, roughness: 0.55, side: THREE.DoubleSide }),
-    rimMat: new THREE.MeshStandardMaterial({ color: 0xe85a12, roughness: 0.42 }),
-    backMat: new THREE.MeshStandardMaterial({ color: 0xf4f4f4, roughness: 0.5 }),
-    pinWhite: new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.42 }),
-    pinRed: new THREE.MeshStandardMaterial({ color: 0xd42828, roughness: 0.4 }),
-    melonFlesh: new THREE.MeshStandardMaterial({ color: 0xe23b4a, roughness: 0.48, emissive: 0x8a2030, emissiveIntensity: 0.06 }),
+    netMat: createToon(0xf7f7f7, { side: THREE.DoubleSide }),
+    rimMat: createToon(0xe85a12),
+    backMat: createToon(0xf4f4f4),
+    pinWhite: createToon(0xf4f1ea),
+    pinRed: createToon(0xd42828),
+    melonFlesh: createToon(0xe23b4a, { emissive: 0x8a2030, emissiveIntensity: 0.06 }),
     pinBodyGeo: new THREE.CylinderGeometry(0.055, 0.085, 0.3, 8),
     pinNeckGeo: new THREE.CylinderGeometry(0.032, 0.046, 0.08, 8),
     pinHeadGeo: new THREE.SphereGeometry(0.055, 8, 6),
     ballMaterials,
     pixelBlockMats: [
-      new THREE.MeshStandardMaterial({ color: 0x3a6cff, roughness: 0.55 }),
-      new THREE.MeshStandardMaterial({ color: 0xffd24a, roughness: 0.55 }),
-      new THREE.MeshStandardMaterial({ color: 0xff5a5a, roughness: 0.55 }),
+      createToon(0x3a6cff),
+      createToon(0xffd24a),
+      createToon(0xff5a5a),
     ],
   };
 }

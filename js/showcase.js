@@ -10,7 +10,8 @@ import { makeBallMaterials } from "./board3d.js";
 import { addSportMarks } from "./ballDress.js";
 import { addFloorSocket, clearGoal, createGoalKit, floorMaterial, mountGoal } from "./goalMesh.js";
 import { bindPlanetMaps, createPlanet, disposeObject } from "./planetFactory.js";
-import { applyBallMaps, inkOutlineMaterial, loadSphereMaps } from "./sphereMaps.js";
+import { applyBallMaps, loadSphereMaps } from "./sphereMaps.js";
+import { addScreenOutline } from "./outline.js";
 import { applyStudio } from "./studioLight.js";
 import { themeById } from "./themes.js";
 
@@ -75,10 +76,7 @@ function ensure() {
   kit = createGoalKit(mats);
   ballSpin = new THREE.Group();
   ballMesh = new THREE.Mesh(new THREE.SphereGeometry(0.36, 48, 32), mats.oak);
-  ballInk = new THREE.Mesh(ballMesh.geometry, inkOutlineMaterial());
-  ballInk.scale.setScalar(1.045);
-  ballInk.raycast = () => {};
-  ballMesh.add(ballInk);
+  ballInk = addScreenOutline(ballMesh);
   ballSpin.add(ballMesh);
   sport = addSportMarks(ballSpin);
   goalGroup = new THREE.Group();

@@ -5,6 +5,8 @@
  * Hole radius and board position are not changed here.
  */
 import * as THREE from "./vendor/three.module.js";
+import { createToon } from "./toonPalette.js";
+import { addScreenOutline } from "./outline.js";
 
 const Y0 = 0.5;
 
@@ -13,13 +15,7 @@ function shade(hex, rough = 0.58, metal = 0) {
   const key = `${hex}|${rough}|${metal}`;
   let mat = mats.get(key);
   if (!mat) {
-    mat = new THREE.MeshStandardMaterial({
-      color: hex,
-      roughness: rough,
-      metalness: metal,
-      emissiveIntensity: 0,
-      envMapIntensity: metal > 0.3 ? 0.12 : 0.05,
-    });
+    mat = createToon(hex);
     mats.set(key, mat);
   }
   return mat;
@@ -33,18 +29,6 @@ function flat(hex) {
     flats.set(hex, mat);
   }
   return mat;
-}
-
-let inkMat = null;
-function inkMaterial() {
-  if (!inkMat) {
-    inkMat = new THREE.MeshBasicMaterial({
-      color: 0x141414,
-      side: THREE.BackSide,
-      toneMapped: false,
-    });
-  }
-  return inkMat;
 }
 
 let shadowMat = null;
@@ -132,12 +116,7 @@ function mesh(parent, geo, material, x, y, z, opt = {}) {
     m.castShadow = true;
     m.receiveShadow = true;
   }
-  if (opt.ink) {
-    const ink = new THREE.Mesh(geo, inkMaterial());
-    ink.scale.setScalar(opt.ink === true ? 1.1 : opt.ink);
-    ink.raycast = () => {};
-    m.add(ink);
-  }
+  if (opt.ink) addScreenOutline(m);
   parent.add(m);
   return m;
 }
@@ -186,20 +165,8 @@ function makeApi(tuck, actors) {
   };
 }
 
-const hoopFlash = new THREE.MeshStandardMaterial({
-  color: 0xfff6c8,
-  roughness: 0.45,
-  emissive: 0xffe36b,
-  emissiveIntensity: 0,
-  envMapIntensity: 0.05,
-});
-const lineFlash = new THREE.MeshStandardMaterial({
-  color: 0xffffff,
-  roughness: 0.55,
-  emissive: 0xfff6c8,
-  emissiveIntensity: 0,
-  envMapIntensity: 0.04,
-});
+const hoopFlash = createToon(0xfff6c8, { emissive: 0xffe36b, emissiveIntensity: 0 });
+const lineFlash = createToon(0xffffff, { emissive: 0xfff6c8, emissiveIntensity: 0 });
 const beamMat = new THREE.MeshBasicMaterial({
   color: 0xb6ff8a,
   transparent: true,
@@ -217,32 +184,10 @@ const emberMat = new THREE.MeshBasicMaterial({
   transparent: true,
   opacity: 0.35,
 });
-const lavaMat = new THREE.MeshStandardMaterial({
-  color: 0xffb020,
-  emissive: 0xff4a10,
-  emissiveIntensity: 0.9,
-  roughness: 0.32,
-});
-const smokeMat = new THREE.MeshStandardMaterial({
-  color: 0x6a645e,
-  transparent: true,
-  opacity: 0,
-  roughness: 0.95,
-  depthWrite: false,
-});
-const steamMat = new THREE.MeshStandardMaterial({
-  color: 0xe7eef3,
-  transparent: true,
-  opacity: 0.88,
-  roughness: 0.9,
-  depthWrite: false,
-});
-const plumeMat = new THREE.MeshStandardMaterial({
-  color: 0xd2b0ff,
-  emissive: 0xa060ff,
-  emissiveIntensity: 0.85,
-  roughness: 0.45,
-});
+const lavaMat = createToon(0xffb020, { emissive: 0xff4a10, emissiveIntensity: 0.9 });
+const smokeMat = createToon(0x6a645e, { transparent: true, opacity: 0, depthWrite: false });
+const steamMat = createToon(0xe7eef3, { transparent: true, opacity: 0.88, depthWrite: false });
+const plumeMat = createToon(0xd2b0ff, { emissive: 0xa060ff, emissiveIntensity: 0.85 });
 
 function acorn(parent, api, x, z, delay) {
   const nut = grp(parent, x, Y0 + 0.08, z);
@@ -1075,14 +1020,9 @@ export function mountGoalV3(group, kind, kit, opts = {}) {
   const actors = [];
   const pins = [];
   const tuck = !!opts.tuck;
-  const edge = opts.edge || "";
   const root = new THREE.Group();
   root.name = "goal-props";
-  const zoom = opts.zoom == null ? 1 : opts.zoom;
-  root.scale.setScalar(zoom);
-  if (tuck) root.position.z = 0.06;
-  if (edge === "left") root.position.x = 0.18;
-  if (edge === "right") root.position.x = -0.18;
+  root.scale.setScalar(1);
   group.add(root);
   const api = makeApi(tuck, actors);
   const build = BUILD[kind] || BUILD.knot;

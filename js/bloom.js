@@ -25,8 +25,8 @@ function shader(fragment, uniforms) {
   return mat;
 }
 
-function target(w, h) {
-  const rt = new THREE.WebGLRenderTarget(w, h, { depthBuffer: false });
+function target(w, h, depth = false) {
+  const rt = new THREE.WebGLRenderTarget(w, h, { depthBuffer: depth });
   rt.texture.colorSpace = THREE.SRGBColorSpace;
   return rt;
 }
@@ -39,9 +39,20 @@ export function createBloom(renderer) {
 
   let w = 0;
   let h = 0;
-  const sceneRT = target(2, 2);
+  const sceneRT = target(2, 2, true);
   const halfA = target(2, 2);
   const halfB = target(2, 2);
+
+  const copyMat = shader(`
+    precision mediump float;
+    uniform sampler2D tDiffuse;
+    varying vec2 vUv;
+    void main() {
+      gl_FragColor = vec4(texture2D(tDiffuse, vUv).rgb, 1.0);
+    }
+  `, {
+    tDiffuse: { value: null },
+  });
 
   const brightMat = shader(`
     precision mediump float;
@@ -147,7 +158,8 @@ export function createBloom(renderer) {
 
       renderer.setRenderTarget(null);
       renderer.autoClear = true;
-      renderer.render(scene, camera);
+      copyMat.uniforms.tDiffuse.value = sceneRT.texture;
+      blit(copyMat, null);
       addMat.uniforms.tBloom.value = halfA.texture;
       renderer.autoClear = false;
       blit(addMat, null);
