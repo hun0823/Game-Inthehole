@@ -20,8 +20,13 @@ let flowMap = null;
 let shared = null;
 
 function hexRgb(hex) {
-  const color = new THREE.Color(hex);
-  return [Math.round(color.r * 255), Math.round(color.g * 255), Math.round(color.b * 255)];
+  const n = parseInt(String(hex).replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mixHex(hex, toward, t) {
+  const m = mixRgb(hexRgb(hex), hexRgb(toward), t);
+  return (m[0] << 16) | (m[1] << 8) | m[2];
 }
 
 function mixRgb(a, b, t) {
@@ -309,9 +314,7 @@ export function createMagmaLook(ctx) {
     group.add(cracks);
 
     const pieces = [];
-    const crust = pale
-      ? new THREE.Color(floorHex).lerp(new THREE.Color(0xffffff), 0.46).getHex()
-      : new THREE.Color(floorHex).lerp(new THREE.Color(0x000000), 0.12).getHex();
+    const crust = pale ? mixHex(floorHex, 0xffffff, 0.46) : mixHex(floorHex, 0x000000, 0.12);
     for (let i = 0; i < PIECES; i++) {
       const mat = createToon(crust);
       mat.transparent = true;
@@ -323,24 +326,28 @@ export function createMagmaLook(ctx) {
       const a1 = ((i + 1) / PIECES) * Math.PI * 2;
       mesh.userData.ang = (a0 + a1) / 2;
       mesh.userData.spin = (i % 2 ? 1 : -1) * (0.4 + i * 0.08);
-      addScreenOutline(mesh);
+      const edge = flat(new THREE.Mesh(geo.pieces[i], inkMat));
+      edge.scale.setScalar(1.28);
+      edge.position.y = -0.012;
+      mesh.add(edge);
       group.add(mesh);
       pieces.push(mesh);
     }
 
     const lava = new THREE.Group();
     lava.visible = false;
-    const lip = flat(new THREE.Mesh(geo.pool, lipMat));
-    lip.position.y = top + 0.02;
-    lip.scale.setScalar(0.92);
     const pool = flat(new THREE.Mesh(geo.pool, poolMat));
-    pool.position.y = top + 0.012;
-    pool.scale.set(0.72, 1, 0.72);
+    pool.position.y = top + 0.02;
+    pool.scale.set(0.86, 1, 0.86);
+    const lip = flat(new THREE.Mesh(geo.rim, lipMat));
+    lip.rotation.x = Math.PI / 2;
+    lip.position.y = top + 0.045;
+    lip.scale.setScalar(0.9);
     const rim = flat(new THREE.Mesh(geo.rim, rimMat));
     rim.rotation.x = Math.PI / 2;
-    rim.position.y = top + 0.05;
+    rim.position.y = top + 0.062;
     addScreenOutline(rim);
-    lava.add(lip, pool, rim);
+    lava.add(pool, lip, rim);
     const chips = [];
     for (let i = 0; i < 6; i++) {
       const a = (i / 6) * Math.PI * 2 + 0.35;
@@ -528,22 +535,23 @@ export function createMagmaLook(ctx) {
         group.position.z = data.baseZ;
       }
       if (data.mode === "collapsing") {
-        data.fall = Math.min(1, data.fall + stepDt / 0.42);
-        const e = data.fall * data.fall;
+        data.fall = Math.min(1, data.fall + stepDt / 0.48);
+        const spread = Math.min(1, data.fall / 0.42);
+        const sink = Math.max(0, (data.fall - 0.58) / 0.42);
         const fit = step * (92 / 96);
         for (const piece of data.pieces) {
           const ang = piece.userData.ang;
-          piece.position.x = Math.cos(ang) * e * 0.18;
-          piece.position.z = Math.sin(ang) * e * 0.18;
-          piece.position.y = top + 0.05 - e * 0.55;
-          piece.rotation.z = e * piece.userData.spin;
-          const s = fit * (1 - e * 0.82);
+          piece.position.x = Math.cos(ang) * spread * 0.11;
+          piece.position.z = Math.sin(ang) * spread * 0.11;
+          piece.position.y = top + 0.08 - sink * 0.5;
+          piece.rotation.z = (spread * 0.45 + sink) * piece.userData.spin;
+          const s = fit * (1 - spread * 0.16 - sink * 0.7);
           piece.scale.setScalar(Math.max(0.02, s));
-          piece.visible = data.fall < 0.96;
+          piece.visible = sink < 0.92;
         }
-        const lavaU = Math.max(0, (data.fall - 0.22) / 0.78);
+        const lavaU = Math.max(0, (data.fall - 0.34) / 0.66);
         data.lava.visible = lavaU > 0.02;
-        data.lava.scale.setScalar(0.28 + 0.72 * lavaU);
+        data.lava.scale.setScalar(0.3 + 0.7 * lavaU);
         if (data.fall >= 1) rest(group, "lava");
       }
       const showIdle = data.lava.visible;
@@ -556,7 +564,7 @@ export function createMagmaLook(ctx) {
         const u = p / 1.5;
         const pop = u < 0.72 ? u / 0.72 : Math.max(0, 1 - (u - 0.72) / 0.28);
         bubble.visible = pop > 0.08;
-        bubble.scale.setScalar(0.45 + pop * 1.15);
+        bubble.scale.setScalar(0.9 + pop * 1.8);
         bubble.position.y = top + 0.06 + pop * 0.05;
       });
       const flare = death && death.r === data.r && death.c === data.c && death.t < 0.6;
@@ -565,12 +573,22 @@ export function createMagmaLook(ctx) {
           flame.visible = false;
           return;
         }
-        const speed = flare ? 2.6 : 1;
-        const p = (time * speed + flame.userData.phase) % 1.1;
-        const pop = Math.sin(Math.min(1, p / 1.1) * Math.PI);
-        flame.visible = pop > 0.12;
-        flame.scale.setScalar((flare ? 1.7 : 0.85) * (0.35 + pop));
+        const speed = flare ? 2.4 : 1.15;
+        const p = (time * speed + flame.userData.phase) % 0.85;
+        const pop = Math.sin((p / 0.85) * Math.PI);
+        flame.visible = pop > 0.2;
+        flame.scale.setScalar((flare ? 2.1 : 1.35) * (0.55 + pop * 0.9));
       });
+    }
+    if (ctx.parent) {
+      if (death && death.t < 0.6) {
+        const mag = 0.11 * (1 - death.t / 0.6);
+        ctx.parent.position.x = Math.sin(time * 52) * mag;
+        ctx.parent.position.z = Math.cos(time * 44) * mag;
+      } else {
+        ctx.parent.position.x = 0;
+        ctx.parent.position.z = 0;
+      }
     }
     if (!death) return;
     death.t += stepDt;
@@ -608,6 +626,10 @@ export function createMagmaLook(ctx) {
     death = null;
     heat.visible = false;
     heatMat.opacity = 0;
+    if (ctx.parent) {
+      ctx.parent.position.x = 0;
+      ctx.parent.position.z = 0;
+    }
     if (ctx.contact && ctx.contact.material) ctx.contact.material.opacity = 0.28;
   }
 
