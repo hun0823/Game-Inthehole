@@ -19,6 +19,38 @@ const COLOR_BIT = { red: 1, blue: 2, green: 4, purple: 8 };
 const POW3 = [1];
 for (let i = 1; i < 16; i++) POW3.push(POW3[i - 1] * 3);
 
+// Glass edge the renderer already uses. board3d addEdge stores this on the
+// glass mesh as userData, and glassMesh(edge) matches
+// userData.axis === (edge.axis || edge.kind) && userData.r === edge.r && userData.c === edge.c.
+//   axis "h" — between row r and r+1, column c  (0 ≤ r < size-1, 0 ≤ c < size)
+//   axis "v" — between column c and c+1, row r  (0 ≤ r < size, 0 ≤ c < size-1)
+function glassEdge(pane) {
+  return { axis: pane.axis, r: pane.r, c: pane.c };
+}
+
+// Packed search digit for one pane is 2 - hp:
+//   digit 0 = hp 2 intact, digit 1 = hp 1 cracked, digit 2 = hp 0 gone.
+// A hit is the ball sliding into that edge (the next step of the slide is
+// across it, and a wall, closed gate, one-way, shifter, crumbled floor, or
+// erupted magma did not already stop the ball). The first hit cracks the
+// pane and it stays a blocking wall (hp 2→1). The second hit shatters it
+// and the edge becomes passable (hp 1→0). A pane at hp 0 is not hit again.
+// A jelly jump skips the edges in between and does not hit them.
+function strikeGlass(board, info, gstate, events) {
+  if (!info || info.glassIndex < 0) return { gstate, blocked: false };
+  const index = info.glassIndex;
+  const base = POW3[index];
+  const digit = Math.floor(gstate / base) % 3;
+  if (digit >= 2) return { gstate, blocked: false };
+  const edge = glassEdge(board.glass[index]);
+  if (digit === 0) {
+    events.push({ type: "glassCrack", edge });
+    return { gstate: gstate + base, blocked: true };
+  }
+  events.push({ type: "glassShatter", edge });
+  return { gstate: gstate + base, blocked: false };
+}
+
 function emptyH(size) {
   return Array.from({ length: size - 1 }, () => Array(size).fill(false));
 }
@@ -176,8 +208,8 @@ function activateAt(board, r, c, act) {
 // flip shifting walls.
 //
 // Ice: once a tilt steps on ice, the ball keeps going in that direction. A
-// first glass hit does not stop it while it is on ice (the pane still cracks).
-// The tilt ends on the first non-ice cell after that ice, or sooner on sand,
+// first glass hit (hp 2→1, event glassCrack) does not stop it while it is on
+// ice. The tilt ends on the first non-ice cell after that ice, or sooner on sand,
 // the goal, or a hard block. A hard block (border, wall, closed gate, one-way
 // facing the wrong way, shifting wall, crumbled floor) always stops the ball,
 // even on ice.
@@ -192,7 +224,8 @@ function activateAt(board, r, c, act) {
 // Jelly: rolling INTO a jelly cell (not starting a tilt already on one) jumps
 // two cells ahead in the travel direction and keeps sliding. The jump ignores
 // every edge between the jelly and the landing cell — walls, glass (a jumped
-// pane does not crack), gates, one-ways, and shifting walls. The skipped cell
+// pane is not a hit: no glassCrack / glassShatter, hp unchanged), gates,
+// one-ways, and shifting walls. The skipped cell
 // is not entered; the path records the jelly cell, then the landing cell.
 // If the landing cell is out of bounds, erupted magma, or a crumbled floor,
 // the ball stops on the jelly and the tilt ends, even on ice. Landing on
@@ -215,7 +248,7 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
   const n = board.n;
   let newAct = activateAt(board, r, c, act);
   const path = [[r, c]];
-  const broken = [];
+  const events = [];
   let moved = false;
   let coll = collapse | 0;
   let iceRun = board.ice.has(`${r},${c}`);
@@ -251,17 +284,11 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
   for (let steps = 0; steps < limit; steps++) {
     const info = table[r * n + c];
     if (blocked(board, info, dir.name, newAct, coll, phase, tilts)) break;
-    if (info.glassIndex >= 0) {
-      const base = POW3[info.glassIndex];
-      const st = Math.floor(gstate / base) % 3;
-      if (st === 0) {
-        gstate += base;
-        moved = true;
-        if (!board.ice.has(`${r},${c}`)) break;
-      } else if (st === 1) {
-        gstate += base;
-        broken.push(board.glass[info.glassIndex]);
-      }
+    const hit = strikeGlass(board, info, gstate, events);
+    gstate = hit.gstate;
+    if (hit.blocked) {
+      moved = true;
+      if (!board.ice.has(`${r},${c}`)) break;
     }
     const hop = board.teleport.get(`${info.nr},${info.nc}`);
     let destR = info.nr;
@@ -283,13 +310,13 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
     path.push([r, c]);
     newAct = activateAt(board, r, c, newAct);
     if (r === board.holeR && c === board.holeC) {
-      return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, broken);
+      return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, events);
     }
     if (board.sand.has(`${r},${c}`)) break;
     if (board.jelly.has(`${r},${c}`)) {
       const outcome = jellyChain();
       if (outcome === "won") {
-        return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, broken);
+        return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, events);
       }
       if (outcome === "stop") break;
     }
@@ -298,7 +325,7 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
     if (nowIce) iceRun = true;
   }
   if (moved) crumble(r, c);
-  return finish(board, r, c, gstate, act, newAct, coll, phase, moved, false, path, broken);
+  return finish(board, r, c, gstate, act, newAct, coll, phase, moved, false, path, events);
 }
 
 function slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase) {
@@ -307,25 +334,18 @@ function slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase) {
   const n = board.n;
   let newAct = activateAt(board, r, c, act);
   const path = [[r, c]];
-  const broken = [];
+  const events = [];
   let moved = false;
 
   while (true) {
     const info = table[r * n + c];
     if (!info || info.wall) break;
     if (info.colorBit && (newAct & info.colorBit) === 0) break;
-    if (info.glassIndex >= 0) {
-      const base = POW3[info.glassIndex];
-      const st = Math.floor(gstate / base) % 3;
-      if (st === 0) {
-        gstate += base;
-        moved = true;
-        break;
-      }
-      if (st === 1) {
-        gstate += base;
-        broken.push(board.glass[info.glassIndex]);
-      }
+    const hit = strikeGlass(board, info, gstate, events);
+    gstate = hit.gstate;
+    if (hit.blocked) {
+      moved = true;
+      break;
     }
     r += dir.dr;
     c += dir.dc;
@@ -333,11 +353,11 @@ function slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase) {
     moved = true;
     newAct = activateAt(board, r, c, newAct);
     if (r === board.holeR && c === board.holeC) {
-      return finish(board, r, c, gstate, act, newAct, collapse, phase, true, true, path, broken);
+      return finish(board, r, c, gstate, act, newAct, collapse, phase, true, true, path, events);
     }
   }
 
-  return finish(board, r, c, gstate, act, newAct, collapse, phase, moved, false, path, broken);
+  return finish(board, r, c, gstate, act, newAct, collapse, phase, moved, false, path, events);
 }
 
 function magmaBlocks(board, r, c, tilts) {
@@ -365,9 +385,9 @@ function shifterBlocks(board, edgeKey, phase) {
   return false;
 }
 
-function finish(board, r, c, gstate, act, newAct, collapse, phase, moved, won, path, broken) {
+function finish(board, r, c, gstate, act, newAct, collapse, phase, moved, won, path, events) {
   const nextPhase = board.shifters.length && moved ? phase ^ 1 : phase;
-  return { r, c, gstate, act: newAct, collapse, phase: nextPhase, moved, won, path, broken };
+  return { r, c, gstate, act: newAct, collapse, phase: nextPhase, moved, won, path, events };
 }
 
 function stateKey(r, c, gstate, act, collapse, phase, tilts) {
@@ -411,8 +431,10 @@ export class Game {
       this.coinsGot.add(`${this.ball[0]},${this.ball[1]}`);
     }
     this.hintCache = new Map();
+    this.applyGlass(0);
   }
 
+  // Restores every glass pane to hp 2. Hint search reads the same hp through packGlass().
   reset() {
     this.loadLevel(this.level);
   }
@@ -436,16 +458,43 @@ export class Game {
     return state;
   }
 
-  writeGlass(gstate) {
+  // Writes packed digits back onto the boolean grids the current renderer
+  // reads, and onto this.glass[].hp (2 intact, 1 cracked, 0 gone).
+  // hp 2 keeps the intact look (pane up, no crack). hp 1 is the stressed
+  // pane (existing crack overlay). hp 0 removes the pane.
+  applyGlass(gstate) {
     const glass = this.board.glass;
+    const list = new Array(glass.length);
     for (let i = 0; i < glass.length; i++) {
       const pane = glass[i];
+      const digit = Math.floor(gstate / POW3[i]) % 3;
+      const hp = 2 - digit;
+      list[i] = { axis: pane.axis, r: pane.r, c: pane.c, hp };
       const grid = pane.axis === "h" ? this.hGlass : this.vGlass;
       const stress = pane.axis === "h" ? this.hGlassStressed : this.vGlassStressed;
-      const digit = Math.floor(gstate / POW3[i]) % 3;
-      grid[pane.r][pane.c] = digit !== 2;
-      stress[pane.r][pane.c] = digit === 1;
+      grid[pane.r][pane.c] = hp > 0;
+      stress[pane.r][pane.c] = hp === 1;
     }
+    this.glass = list;
+  }
+
+  writeGlass(gstate) {
+    this.applyGlass(gstate);
+  }
+
+  // State snapshot. Each glass edge carries hp: 2 intact, 1 cracked, 0 gone.
+  // edge fields are { axis, r, c } — see glassEdge(). Copy is safe to store
+  // for a later undo; reset() rebuilds hp 2 from the level.
+  snapshot() {
+    return {
+      ball: this.ball.slice(),
+      moves: this.moves,
+      won: this.won,
+      phase: this.phase,
+      tilts: this.tilts,
+      collapse: this.collapse,
+      glass: this.glass.map((edge) => ({ axis: edge.axis, r: edge.r, c: edge.c, hp: edge.hp })),
+    };
   }
 
   packAct() {
@@ -478,11 +527,11 @@ export class Game {
 
   simulateTilt(direction) {
     if (this.won) {
-      return { path: [this.ball.slice()], moved: false, won: true, glassBroken: [] };
+      return { path: [this.ball.slice()], moved: false, won: true, events: [] };
     }
     const dirIndex = DIR_INDEX[direction];
     if (dirIndex === undefined) {
-      return { path: [this.ball.slice()], moved: false, won: false, glassBroken: [] };
+      return { path: [this.ball.slice()], moved: false, won: false, events: [] };
     }
     const result = slide(
       this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct(),
@@ -493,11 +542,16 @@ export class Game {
       this.collapse = result.collapse;
       this.phase = result.phase;
     }
+    // events are the transitions just applied. hp on snapshot()/this.glass is
+    // already the post-tilt value; play crack/shatter from events.
+    // { type: 'glassCrack', edge } when hp goes 2→1
+    // { type: 'glassShatter', edge } when hp goes 1→0
+    // edge is { axis: 'h'|'v', r, c } (glassEdge / board3d glass userData).
     return {
       path: result.path,
       moved: result.moved,
       won: result.won,
-      glassBroken: result.broken.map((edge) => ({ kind: edge.axis, r: edge.r, c: edge.c })),
+      events: result.events,
     };
   }
 
@@ -537,7 +591,7 @@ export class Game {
     return true;
   }
 
-  // Next optimal action from the current ball, glass, and gate state.
+  // Next optimal action from the current ball, glass hp, and gate state.
   // "up" | "down" | "left" | "right" | "press", or null if none within the cap.
   // Hints are unlimited; each call is cached by state.
   nextMove(limit = 40) {

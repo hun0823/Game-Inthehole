@@ -47,6 +47,10 @@
       "sfx/glass.m4a",
       "sfx/glass.ogg"
     ],
+    "glassCrack": [
+      "sfx/glassCrack.m4a",
+      "sfx/glassCrack.ogg"
+    ],
     "ice": [
       "sfx/ice.m4a",
       "sfx/ice.ogg"

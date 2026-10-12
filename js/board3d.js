@@ -2191,6 +2191,12 @@ export function createView(canvas) {
 
   function applyEdgeVisibility(mesh, ruleVisible) {
     if (ruleVisible !== undefined) mesh.userData.ruleVisible = ruleVisible;
+    // A shattered pane (hp 0) stays down. Fog refresh must not pop it back up.
+    if (mesh.parent?.userData.shattered) {
+      mesh.userData.ruleVisible = false;
+      mesh.parent.visible = false;
+      return;
+    }
     if (mesh.userData.opening) return;
     if (!mesh.parent) return;
     const show = mesh.userData.ruleVisible !== false && !edgeFogged(mesh);
@@ -2263,6 +2269,8 @@ export function createView(canvas) {
     const parent = mesh && mesh.parent;
     if (!parent || parent.userData.shattered) return;
     parent.userData.shattered = true;
+    // hp 0. refreshFog reapplies ruleVisible while the ball is still rolling.
+    if (mesh) mesh.userData.ruleVisible = false;
     const base = parent.position;
     for (let i = 0; i < 8; i++) {
       const mat = new THREE.MeshStandardMaterial({
@@ -2345,7 +2353,10 @@ export function createView(canvas) {
         const grid = data.axis === "h" ? game.hGlass : game.vGlass;
         const stress = data.axis === "h" ? game.hGlassStressed : game.vGlassStressed;
         const alive = edgeAlive(grid, data.r, data.c);
+        // hp 0: shatter sets parent.userData.shattered. refreshFog reapplies
+        // ruleVisible, so clear it or the pane pops back.
         if (mesh.parent.userData.shattered) {
+          mesh.userData.ruleVisible = false;
           mesh.parent.visible = false;
           continue;
         }
