@@ -2008,8 +2008,19 @@ export function createView(canvas) {
         }
       }
     };
-    paintGlass(game.hGlass, "h");
-    paintGlass(game.vGlass, "v");
+    // hp 2 intact, hp 1 cracked in place, hp 0 omitted. snapshot().glass is
+    // the rules copy, so reset, restart, and any later undo rebuild match it.
+    const panes = glassPanes(game);
+    if (panes) {
+      for (const edge of panes) {
+        if (!edge || edge.hp <= 0) continue;
+        const mesh = addEdge(edge.axis, edge.r, edge.c, "glass");
+        if (edge.hp === 1) restCrack(mesh);
+      }
+    } else {
+      paintGlass(game.hGlass, "h");
+      paintGlass(game.vGlass, "v");
+    }
 
     const { x: hx, z: hz } = cellXZ(level.hole[0], level.hole[1]);
     stockHole = new THREE.Group();
@@ -2303,6 +2314,61 @@ export function createView(canvas) {
     if (flash) pulseFlash(mesh);
   }
 
+  // Settled crack for a rebuild (hp 1). The live hit still spreads via showCrack.
+  function restCrack(mesh) {
+    if (!mesh) return;
+    const parent = mesh.parent;
+    if (parent && parent.userData.shattered) return;
+    mesh.userData.cracked = true;
+    const cracks = mesh.userData.cracks;
+    if (cracks) {
+      cracks.visible = true;
+      cracks.userData.spread = 1;
+      cracks.scale.setScalar(1);
+    }
+    if (parent && parent.userData.rest) {
+      parent.position.x = parent.userData.rest.x;
+      parent.position.z = parent.userData.rest.z;
+    }
+  }
+
+  function clearCrack(mesh) {
+    if (!mesh) return;
+    mesh.userData.cracked = false;
+    const cracks = mesh.userData.cracks;
+    if (cracks) {
+      cracks.visible = false;
+      cracks.userData.spread = 0;
+      cracks.scale.setScalar(0.12);
+    }
+  }
+
+  function hideGlassMesh(mesh) {
+    const parent = mesh && mesh.parent;
+    if (!parent) return;
+    parent.userData.shattered = true;
+    mesh.userData.ruleVisible = false;
+    parent.visible = false;
+  }
+
+  function revealGlassMesh(mesh) {
+    const parent = mesh && mesh.parent;
+    if (!parent) return;
+    parent.userData.shattered = false;
+    mesh.userData.ruleVisible = true;
+    parent.visible = true;
+  }
+
+  function glassPanes(game) {
+    if (!game) return null;
+    if (typeof game.snapshot === "function") {
+      const snap = game.snapshot();
+      if (snap && Array.isArray(snap.glass)) return snap.glass;
+    }
+    if (Array.isArray(game.glass)) return game.glass;
+    return null;
+  }
+
   function shatterPane(mesh) {
     const parent = mesh && mesh.parent;
     if (!parent || parent.userData.shattered) return;
@@ -2358,13 +2424,6 @@ export function createView(canvas) {
     else if (event.type === "glassShatter") shatterPane(mesh);
   }
 
-  function playCracks(list) {
-    for (const edge of list || []) {
-      const mesh = glassMesh(edge);
-      if (mesh) showCrack(mesh, true);
-    }
-  }
-
   function crosses(a, b, edge) {
     const axis = edge.axis || edge.kind;
     if (!a || !b) return false;
@@ -2408,20 +2467,34 @@ export function createView(canvas) {
       }
     }
     if (!skipGlass) {
+      const panes = glassPanes(game);
+      const hpOf = new Map();
+      if (panes) {
+        for (const edge of panes) hpOf.set(`${edge.axis}:${edge.r}:${edge.c}`, edge.hp);
+      }
       for (const mesh of glasses) {
         const data = mesh.userData;
-        const grid = data.axis === "h" ? game.hGlass : game.vGlass;
-        const stress = data.axis === "h" ? game.hGlassStressed : game.vGlassStressed;
-        const alive = edgeAlive(grid, data.r, data.c);
-        // hp 0: shatter sets parent.userData.shattered. refreshFog reapplies
-        // ruleVisible, so clear it or the pane pops back.
-        if (mesh.parent.userData.shattered) {
-          mesh.userData.ruleVisible = false;
-          mesh.parent.visible = false;
+        const key = `${data.axis}:${data.r}:${data.c}`;
+        let hp = hpOf.has(key) ? hpOf.get(key) : null;
+        if (hp == null) {
+          const grid = data.axis === "h" ? game.hGlass : game.vGlass;
+          const stress = data.axis === "h" ? game.hGlassStressed : game.vGlassStressed;
+          hp = edgeAlive(grid, data.r, data.c) ? (edgeAlive(stress, data.r, data.c) ? 1 : 2) : 0;
+        }
+        // hp 0: no pane. A live shatter already hid it; a rebuild omits the mesh.
+        if (hp <= 0) {
+          hideGlassMesh(mesh);
           continue;
         }
-        applyEdgeVisibility(mesh, alive && !mesh.parent.userData.shattered);
-        if (alive && edgeAlive(stress, data.r, data.c)) showCrack(mesh, false);
+        if (mesh.parent && mesh.parent.userData.shattered) revealGlassMesh(mesh);
+        applyEdgeVisibility(mesh, true);
+        if (hp === 1) {
+          const cracks = mesh.userData.cracks;
+          const spreading = mesh.userData.cracked && cracks && (cracks.userData.spread || 0) < 1;
+          if (!spreading) restCrack(mesh);
+        } else if (mesh.userData.cracked) {
+          clearCrack(mesh);
+        }
       }
     }
     if (!skipShift) {
@@ -2550,6 +2623,41 @@ export function createView(canvas) {
     return { row: data.row, col: data.col };
   }
 
+  function glassEventsOf(fx) {
+    if (fx && Array.isArray(fx.events)) {
+      return fx.events.filter((ev) => ev && ev.edge && (ev.type === "glassCrack" || ev.type === "glassShatter"));
+    }
+    const out = [];
+    for (const edge of (fx && fx.cracked) || []) out.push({ type: "glassCrack", edge });
+    for (const edge of (fx && fx.broken) || []) out.push({ type: "glassShatter", edge });
+    return out;
+  }
+
+  // Distance along the roll where the ball reaches the pane. A crossing
+  // (shatter, or a crack the ball slides through on ice) is the segment
+  // midpoint. A blocking crack has no crossing: null means "when the roll ends".
+  function hitDistance(path, cum, hop, edge) {
+    for (let s = 1; s < path.length; s++) {
+      if (hop[s]) continue;
+      if (!crosses(path[s - 1], path[s], edge)) continue;
+      return (cum[s - 1] + cum[s]) * 0.5;
+    }
+    return null;
+  }
+
+  function fireDueGlass(job, dist, finished) {
+    const events = job.glassEvents || [];
+    for (let i = 0; i < events.length; i++) {
+      if (job.glassFired[i]) continue;
+      const at = job.glassAt[i];
+      if (at == null) {
+        if (!finished) continue;
+      } else if (dist + 1e-4 < at) continue;
+      job.glassFired[i] = true;
+      onGlassEvent(events[i]);
+    }
+  }
+
   function roll(path, dir, intoHole, fx = {}) {
     const my = ++token;
     if (rollJob) rollJob.resolve();
@@ -2563,10 +2671,12 @@ export function createView(canvas) {
       cum.push(cum[i - 1] + (far ? STEP * 0.18 : len));
     }
     const total = cum[cum.length - 1] || 0;
+    const events = glassEventsOf(fx);
     return new Promise((resolve) => {
       const finishStill = () => {
         triggerCell(path, 0);
-        playCracks(fx.cracked || []);
+        // The ball is already against the pane. There is no travel to wait for.
+        for (const ev of events) onGlassEvent(ev);
         if (intoHole) sink(path[path.length - 1], my).then(resolve);
         else resolve();
       };
@@ -2577,7 +2687,10 @@ export function createView(canvas) {
       const dur = Math.max(0.28, Math.min(0.8, 0.16 + total * 0.092));
       rollJob = {
         path, pts, cum, hop, total, dur, t: 0, prevDist: 0, dir, intoHole,
-        resolve, token: my, fx, triggered: [true], segHit: [],
+        resolve, token: my, fx, triggered: [true],
+        glassEvents: events,
+        glassFired: events.map(() => false),
+        glassAt: events.map((ev) => hitDistance(path, cum, hop, ev.edge)),
       };
       triggerCell(path, 0);
     });
@@ -2661,18 +2774,6 @@ export function createView(canvas) {
         triggerCell(job.path, k);
       }
     }
-    const broken = job.fx.broken || [];
-    for (let s = 1; s < job.cum.length; s++) {
-      if (job.segHit[s]) continue;
-      const mid = (job.cum[s - 1] + job.cum[s]) * 0.5;
-      if (dist < mid) continue;
-      job.segHit[s] = true;
-      const edge = broken.find((g) => crosses(job.path[s - 1], job.path[s], g));
-      if (edge) {
-        const mesh = glassMesh(edge);
-        if (mesh) shatterPane(mesh);
-      }
-    }
     let seg = 1;
     while (seg < job.cum.length - 1 && job.cum[seg] < dist) seg++;
     const span = job.cum[seg] - job.cum[seg - 1] || 1;
@@ -2692,8 +2793,8 @@ export function createView(canvas) {
       if (equipped.motion === "grow") snowGrow = Math.min(1.18, snowGrow + traveled * 0.04);
       if (equipped.motion === "yarn") yarnScale = Math.max(0.72, yarnScale - traveled * 0.045);
     }
+    fireDueGlass(job, dist, t >= 1);
     if (t >= 1) {
-      playCracks(job.fx.cracked || []);
       const done = job;
       rollJob = null;
       squash = 0.9;

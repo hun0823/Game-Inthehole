@@ -740,8 +740,8 @@ function showHint() {
   if (btn) btn.classList.add("is-hint");
 }
 
-// Map rule events onto the roll fx the current renderer already plays.
-// events stay on the object so a glass visual can read them directly.
+// Map rule events onto the roll fx. view.roll calls view.onGlassEvent(ev)
+// for each glassCrack / glassShatter when the ball reaches that pane.
 // edge is { axis, r, c }. board3d glassMesh also accepts kind as that axis.
 function glassRollFx(events) {
   const cracked = [];
