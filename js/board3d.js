@@ -1179,30 +1179,6 @@ export function createView(canvas) {
   dancerArmR.position.set(0.13, 0.22, 0);
   dancer.add(dancerHead, dancerBody, dancerArmL, dancerArmR);
   scene.add(dancer);
-  const magmaCalmMat = new THREE.MeshStandardMaterial({
-    color: 0x5a2818,
-    roughness: 0.86,
-    emissive: 0x3a1208,
-    emissiveIntensity: 0.2,
-  });
-  const magmaWarnMat = new THREE.MeshStandardMaterial({
-    color: 0xffb020,
-    emissive: 0xff6a10,
-    emissiveIntensity: 0.7,
-    roughness: 0.4,
-  });
-  const magmaHotMat = new THREE.MeshStandardMaterial({
-    color: 0xff4a18,
-    emissive: 0xff1a08,
-    emissiveIntensity: 1.15,
-    roughness: 0.45,
-    polygonOffset: true,
-    polygonOffsetFactor: -2,
-    polygonOffsetUnits: -2,
-  });
-  const magmaDiscGeo = new THREE.CircleGeometry(0.46, 22);
-  const magmaRingGeo = new THREE.TorusGeometry(0.36, 0.07, 8, 24);
-  const magmaCrustGeo = new THREE.CylinderGeometry(0.48, 0.42, 0.16, 18);
   let smogKeys = new Set();
   let visualReveal = new Set();
   const shiftCanvas = document.createElement("canvas");
@@ -2506,11 +2482,8 @@ export function createView(canvas) {
       }
       const spent = game.tilts || 0;
       for (const group of magmas) {
-        const hot = spent >= group.userData.at;
-        const warn = !hot && spent === group.userData.at - 1;
-        group.userData.calm.visible = !hot && !warn;
-        group.userData.warn.visible = warn;
-        group.userData.hot.visible = hot;
+        const at = group.userData.at;
+        group.userData.phase = spent >= at ? 2 : spent === at - 1 ? 1 : 0;
       }
     }
     for (const mesh of fogWalls) {
@@ -2856,7 +2829,6 @@ export function createView(canvas) {
       } else {
         tickTricks(time, 0);
       }
-      magmaWarnMat.emissiveIntensity = 0.85 + Math.sin(time * 8) * 0.25;
       if (equipped.id === "globe" && !rollJob && !sinkJob) {
         ballSpin.rotateOnWorldAxis(upAxis, dt * 0.55);
       }
