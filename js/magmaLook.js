@@ -2,7 +2,7 @@
  * Lava-planet magma visuals. Rules stay in the other PR.
  *
  * view.onMagmaEvent(ev) and window.RB_MAGMA:
- *   { type: "magmaCrack", r, c }     floor cracks (warn)
+ *   { type: "magmaCrack", r, c }     orange field, thick #141414 diagonal stripes
  *   { type: "magmaCollapse", r, c }  floor falls in, lava stays
  *   { type: "lavaDeath", r, c }      the ball heats, sinks, smoke and flame
  * r and c may arrive on ev.cell instead. A cell that was not mounted is ignored.
@@ -80,6 +80,35 @@ function tileTexture(floorHex, pale) {
   tex.anisotropy = 4;
   tileTex.set(key, tex);
   return tex;
+}
+
+let warnMap = null;
+function warnTexture() {
+  if (warnMap) return warnMap;
+  const size = 128;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const g = canvas.getContext("2d");
+  g.clearRect(0, 0, size, size);
+  g.fillStyle = "#ff7a18";
+  roundFill(g, 1, 1, size - 2, size - 2, size * 0.1);
+  g.save();
+  g.globalCompositeOperation = "source-atop";
+  g.strokeStyle = "#141414";
+  g.lineWidth = 20;
+  g.lineCap = "butt";
+  const pitch = 36;
+  for (let i = -size; i < size * 2; i += pitch) {
+    g.beginPath();
+    g.moveTo(i, 0);
+    g.lineTo(i - size, size);
+    g.stroke();
+  }
+  g.restore();
+  warnMap = new THREE.CanvasTexture(canvas);
+  warnMap.colorSpace = THREE.SRGBColorSpace;
+  warnMap.anisotropy = 4;
+  return warnMap;
 }
 
 function lavaFlow() {
@@ -226,12 +255,11 @@ export function createMagmaLook(ctx) {
   const geo = geos();
   const flow = lavaFlow();
   const inkMat = new THREE.MeshBasicMaterial({ color: 0x141414, toneMapped: false });
-  const glowMat = new THREE.MeshBasicMaterial({
-    color: 0xff7a18,
-    transparent: true,
-    opacity: 0.85,
-    depthWrite: false,
+  const warnMat = new THREE.MeshBasicMaterial({
+    map: warnTexture(),
+    color: 0xffffff,
     toneMapped: false,
+    alphaTest: 0.45,
   });
   const poolMat = new THREE.MeshBasicMaterial({ map: flow, color: 0xffffff, toneMapped: false });
   const lipMat = new THREE.MeshBasicMaterial({ color: 0x3a100c, toneMapped: false });
@@ -267,15 +295,6 @@ export function createMagmaLook(ctx) {
     return mesh;
   }
 
-  function bar(parent, mat, len, thick, rot, y) {
-    const line = own(new THREE.Mesh(geo.box, mat));
-    line.scale.set(len, 0.045, thick);
-    line.rotation.y = rot;
-    line.position.y = y;
-    parent.add(line);
-    return line;
-  }
-
   function spawn(r, c) {
     const key = cellKey(r, c);
     if (cells.has(key)) return cells.get(key);
@@ -299,17 +318,9 @@ export function createMagmaLook(ctx) {
 
     const cracks = new THREE.Group();
     cracks.visible = false;
-    const ang = Math.PI / 4;
-    const span = step * (92 / 96);
-    const diag = span * 1.18;
-    bar(cracks, inkMat, diag, 0.2, ang, top + 0.07);
-    bar(cracks, inkMat, diag, 0.2, -ang, top + 0.07);
-    bar(cracks, glowMat, diag * 0.92, 0.09, ang, top + 0.095);
-    bar(cracks, glowMat, diag * 0.92, 0.09, -ang, top + 0.095);
-    bar(cracks, inkMat, span * 0.48, 0.13, 0.12, top + 0.075);
-    bar(cracks, glowMat, span * 0.4, 0.06, 0.12, top + 0.1);
-    bar(cracks, inkMat, span * 0.42, 0.12, -1.02, top + 0.075);
-    bar(cracks, glowMat, span * 0.34, 0.055, -1.02, top + 0.1);
+    const stripe = flat(new THREE.Mesh(new THREE.BoxGeometry(tileSize, 0.05, tileSize), warnMat));
+    stripe.position.y = top + 0.08;
+    cracks.add(stripe);
     cracks.scale.setScalar(0.12);
     group.add(cracks);
 
@@ -514,7 +525,6 @@ export function createMagmaLook(ctx) {
 
   function tick(time, dt) {
     const stepDt = dt > 0 ? dt : 0;
-    glowMat.opacity = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(time * 7.5));
     flow.offset.y = (time * 0.07) % 1;
     for (const group of cells.values()) {
       const data = group.userData;
