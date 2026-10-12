@@ -22,7 +22,7 @@
  * loopDuration). Menu and game entries that share one file keep the same
  * source playing, so a scene change does not restart the song.
  */
-import { planClear, planMagma, planPress, planTilt } from "./sfxCues.js";
+import { magmaCues, planClear, planPress, planTilt } from "./sfxCues.js";
 
 const STORAGE_KEY = "inthehole_audio";
 const MAX_VOICES = 8;
@@ -45,6 +45,9 @@ const HAPTIC = {
   jelly: [12, 32, 14],
   "magma-warn": [18, 40, 18],
   magma: [16, 28, 20],
+  magmaCrack: [8, 20, 10],
+  magmaCollapse: [18, 36, 22],
+  lavaDeath: [20, 50, 24],
   ui: 6,
   buy: [8, 30, 12],
   denied: [14, 46, 14],
@@ -663,15 +666,14 @@ export function createAudio() {
     },
     playTilt(game, detail) {
       safe(() => {
-        const cues = planTilt(game, detail);
-        if (detail.moved) cues.push(...planMagma(game, detail.tilts + 1));
-        playCues(cues);
+        playCues(planTilt(game, detail));
       });
     },
     playPress(game, ok) {
       safe(() => {
-        playCues(planPress(ok));
-        if (ok) playCues(planMagma(game, game.tilts));
+        const cues = planPress(ok);
+        if (ok) cues.push(...magmaCues(game.shiftEvents, 0));
+        playCues(cues);
       });
     },
     playClear(gainedStars) {

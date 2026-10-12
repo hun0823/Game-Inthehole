@@ -2639,6 +2639,42 @@ export function createView(canvas) {
     }
   }
 
+  function magmaEventsOf(fx) {
+    if (!fx || !Array.isArray(fx.events)) return [];
+    return fx.events.filter((ev) => ev && (
+      ev.type === "magmaCrack" || ev.type === "magmaCollapse" || ev.type === "lavaDeath"
+    ));
+  }
+
+  // lavaDeath is the distance where the path reaches that cell, so the ball
+  // stops there. Crack and collapse wait until the roll ends (the counter
+  // bumps after the slide). null means "when the roll ends".
+  function magmaDistance(path, cum, ev) {
+    if (!ev || ev.type !== "lavaDeath") return null;
+    const src = ev.cell && typeof ev.cell === "object" ? ev.cell : ev;
+    const r = Number(src.r ?? src.row);
+    const c = Number(src.c ?? src.col);
+    if (!Number.isInteger(r) || !Number.isInteger(c)) return null;
+    for (let s = 0; s < path.length; s++) {
+      if (path[s][0] === r && path[s][1] === c) return cum[s];
+    }
+    return null;
+  }
+
+  function fireDueMagma(job, dist, finished) {
+    const events = job.magmaEvents || [];
+    for (let i = 0; i < events.length; i++) {
+      if (job.magmaFired[i]) continue;
+      const at = job.magmaAt[i];
+      if (at == null) {
+        if (!finished) continue;
+      } else if (dist + 1e-4 < at) continue;
+      job.magmaFired[i] = true;
+      onMagmaEvent(events[i]);
+      if (events[i].type === "lavaDeath") job.died = true;
+    }
+  }
+
   function roll(path, dir, intoHole, fx = {}) {
     const my = ++token;
     if (rollJob) rollJob.resolve();
@@ -2653,12 +2689,16 @@ export function createView(canvas) {
     }
     const total = cum[cum.length - 1] || 0;
     const events = glassEventsOf(fx);
+    const magmaEvents = magmaEventsOf(fx);
     return new Promise((resolve) => {
       const finishStill = () => {
         triggerCell(path, 0);
         // The ball is already against the pane. There is no travel to wait for.
         for (const ev of events) onGlassEvent(ev);
-        if (intoHole) sink(path[path.length - 1], my).then(resolve);
+        for (const ev of magmaEvents) onMagmaEvent(ev);
+        const died = magmaEvents.some((ev) => ev.type === "lavaDeath");
+        if (died) resolve();
+        else if (intoHole) sink(path[path.length - 1], my).then(resolve);
         else resolve();
       };
       if (path.length < 2 || total < 1e-5) {
@@ -2672,6 +2712,10 @@ export function createView(canvas) {
         glassEvents: events,
         glassFired: events.map(() => false),
         glassAt: events.map((ev) => hitDistance(path, cum, hop, ev.edge)),
+        magmaEvents,
+        magmaFired: magmaEvents.map(() => false),
+        magmaAt: magmaEvents.map((ev) => magmaDistance(path, cum, ev)),
+        died: false,
       };
       triggerCell(path, 0);
     });
@@ -2775,12 +2819,24 @@ export function createView(canvas) {
       if (equipped.motion === "yarn") yarnScale = Math.max(0.72, yarnScale - traveled * 0.045);
     }
     fireDueGlass(job, dist, t >= 1);
-    if (t >= 1) {
+    fireDueMagma(job, dist, t >= 1);
+    if (t >= 1 || job.died) {
+      if (job.died && t < 1) {
+        fireDueMagma(job, job.total, true);
+        const death = (job.magmaEvents || []).find((ev) => ev.type === "lavaDeath");
+        const src = death && (death.cell || death);
+        if (src && Number.isInteger(Number(src.r)) && Number.isInteger(Number(src.c))) {
+          const p = cellXZ(Number(src.r), Number(src.c));
+          ballRoot.position.set(p.x, BALL_Y, p.z);
+          contact.position.set(p.x, BOARD_TOP + 0.02, p.z);
+        }
+      }
       const done = job;
       rollJob = null;
       squash = 0.9;
       squashV = -0.6;
-      if (done.intoHole) sink(done.path[done.path.length - 1], done.token).then(done.resolve);
+      if (done.died) done.resolve();
+      else if (done.intoHole) sink(done.path[done.path.length - 1], done.token).then(done.resolve);
       else done.resolve();
     }
   }

@@ -167,10 +167,16 @@ def _activate(board, r, c, act, allow_mask):
     return act
 
 
-def _magma_blocks(board, cell, tilts):
-    """Erupted magma cannot be entered. The cell under the ball is not re-checked."""
+def _is_lava(board, cell, tilts):
+    """A magma cell is molten once completed spent tilts >= at. Not a wall."""
     at = board["magma"].get(cell)
     return at is not None and tilts >= at
+
+
+def collapses_under(board, cell, before, after):
+    """True when this counter bump turns the cell under the ball into lava."""
+    at = board["magma"].get(cell)
+    return at is not None and before < at and after >= at
 
 
 def _bump_tilts(board, tilts):
@@ -190,28 +196,30 @@ def _shifter_blocks(board, edge, phase):
 def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts=0):
     """One tilt.
 
-    Returns (nr, nc, gstate, act, spent, won, collapse, phase, path).
+    Returns (nr, nc, gstate, act, spent, won, collapse, phase, path, lost).
     `spent` is true when the ball moved or glass took a hit. A button that
     opens only because the ball is carried onto it is included in `act`;
     opening a button without moving does not spend the tilt (press does that).
     `tilts` is the count of spent tilts already completed BEFORE this one.
     The slide uses that count for the whole move; callers increment it after
     a spent tilt or a press. Behavior is identical once tilts reaches magma_cap.
+    `lost` is true when the slide enters lava. Sitting on a cell as it
+    collapses is checked by the caller after the counter bumps.
 
     Jelly: rolling INTO a jelly cell (not starting a tilt already on one)
     jumps two cells ahead in the travel direction and keeps sliding. The jump
     ignores every edge between the jelly and the landing cell (walls, glass,
     gates, one-ways, shifting walls). Glass on a jumped edge does not crack.
-    The skipped cell is not entered. If the landing cell is out of bounds,
-    erupted magma, or a crumbled floor, the ball stops on the jelly and the
-    tilt ends, even on ice. Landing on jelly jumps again (bounded). After a
-    successful landing, the hole wins, sand stops, and ice applies to that
-    landing cell.
+    The skipped cell is not entered. If the landing cell is out of bounds
+    or a crumbled floor, the ball stops on the jelly and the tilt ends, even
+    on ice. Landing on lava loses the stage on that cell. Landing on jelly
+    jumps again (bounded). After a successful landing, the hole wins, sand
+    stops, and ice applies to that landing cell.
 
-    Magma: a vent {row, col, at} is blocked once completed spent tilts >= at.
-    The ball cannot enter it. Standing on it when it erupts does not bury the
-    ball; leaving is allowed and re-entry is not. Telegraph (tilts == at-1)
-    is visual only.
+    Magma: a cell {row, col, at} is floor, then warn when tilts == at-1, then
+    lava once tilts >= at. Lava is not a wall. Entering it stops the ball
+    there and loses. The slide does not bury a ball that is merely standing
+    on a warn cell; the caller does that after the bump.
 
     Ice, sand, teleports, one-ways, crumbling floors, and shifting walls match
     the comments on slide() in js/game.js. Boards without those use the
@@ -225,9 +233,11 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts
     path = [(r, c)]
     moved = False
 
-    def done(won):
+    def done(won, lost=False):
         next_phase = phase ^ 1 if board["shifters"] and moved else phase
-        return r, c, gstate, new_act, moved, won, collapse, next_phase, path
+        if lost:
+            won = False
+        return r, c, gstate, new_act, moved, won, collapse, next_phase, path, bool(lost)
 
     if not board["special"]:
         while True:
@@ -268,8 +278,6 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts
             lr, lc = r + dr * 2, c + dc * 2
             if lr < 0 or lc < 0 or lr >= n or lc >= n:
                 return "stop"
-            if _magma_blocks(board, (lr, lc), tilts):
-                return "stop"
             land_bit = board["collapse_index"].get((lr, lc))
             if land_bit and collapse & land_bit:
                 return "stop"
@@ -280,6 +288,8 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts
             path.append((r, c))
             moved = True
             new_act = _activate(board, r, c, new_act, allow_mask)
+            if _is_lava(board, (r, c), tilts):
+                return "dead"
             if (r, c) == hole:
                 return "won"
             if (r, c) in board["sand"]:
@@ -301,8 +311,6 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts
         cell_bit = board["collapse_index"].get((nr, nc))
         if cell_bit and collapse & cell_bit:
             break
-        if _magma_blocks(board, (nr, nc), tilts):
-            break
         if edge is not None:
             gi = board["glass_index"].get(edge)
             if gi is not None:
@@ -321,8 +329,6 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts
             exit_bit = board["collapse_index"].get(hop)
             if exit_bit and collapse & exit_bit:
                 break
-            if _magma_blocks(board, hop, tilts):
-                break
             via = (nr, nc)
             dest_r, dest_c = hop
         prev_bit = board["collapse_index"].get((r, c))
@@ -331,15 +337,22 @@ def tilt(board, r, c, dir_i, gstate, act, allow_mask, collapse=0, phase=0, tilts
         moved = True
         if via:
             path.append(via)
+            if _is_lava(board, via, tilts):
+                r, c = via
+                return done(False, True)
         r, c = dest_r, dest_c
         path.append((r, c))
         new_act = _activate(board, r, c, new_act, allow_mask)
+        if _is_lava(board, (r, c), tilts):
+            return done(False, True)
         if (r, c) == hole:
             return done(True)
         if (r, c) in board["sand"]:
             break
         if (r, c) in board["jelly"]:
             outcome = jelly_chain()
+            if outcome == "dead":
+                return done(False, True)
             if outcome == "won":
                 return done(True)
             if outcome == "stop":
@@ -387,15 +400,21 @@ def _solve_board(board, max_moves, allow_mask):
         if buttons and allow_mask:
             for brr, bcc, bit in buttons:
                 if r == brr and c == bcc and (bit & allow_mask) and not (act & bit):
-                    nxt = (pos, gstate, act | bit, collapse, phase, _bump_tilts(board, tilts))
+                    next_tilts = _bump_tilts(board, tilts)
+                    if collapses_under(board, (r, c), tilts, next_tilts):
+                        continue
+                    nxt = (pos, gstate, act | bit, collapse, phase, next_tilts)
                     if nxt not in parent:
                         parent[nxt] = (state, "press")
                         q.append((nxt, depth + 1))
         for dir_i, (name, _dr, _dc) in enumerate(DIRS):
-            nr, nc, ng, na, moved, won, ncoll, nphase, _path = tilt(
+            nr, nc, ng, na, moved, won, ncoll, nphase, _path, lost = tilt(
                 board, r, c, dir_i, gstate, act, allow_mask, collapse, phase, tilts
             )
-            if not moved:
+            if not moved or lost:
+                continue
+            next_tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (nr, nc), tilts, next_tilts):
                 continue
             if won:
                 moves = [name]
@@ -407,7 +426,7 @@ def _solve_board(board, max_moves, allow_mask):
                     cur = prev
                 moves.reverse()
                 return tuple(moves)
-            nxt = (nr * n + nc, ng, na, ncoll, nphase, _bump_tilts(board, tilts))
+            nxt = (nr * n + nc, ng, na, ncoll, nphase, next_tilts)
             if nxt not in parent:
                 parent[nxt] = (state, name)
                 q.append((nxt, depth + 1))
@@ -440,14 +459,25 @@ def play(level, moves, allow_mask=None):
         before = gstate
         if action == "press":
             act = _activate(board, r, c, act, allow_mask)
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                won = False
+                break
             continue
         dir_i = next(i for i, (name, _, _) in enumerate(DIRS) if name == action)
-        r, c, gstate, act, moved, won, collapse, phase, _path = tilt(
+        r, c, gstate, act, moved, won, collapse, phase, _path, lost = tilt(
             board, r, c, dir_i, gstate, act, allow_mask, collapse, phase, tilts
         )
+        if lost:
+            won = False
+            break
         if moved:
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                won = False
+                break
         for i in range(board["gcount"]):
             if _glass_digit(before, i) != 2 and _glass_digit(gstate, i) == 2:
                 broken.add(i)
@@ -470,15 +500,23 @@ def glass_broken_on(level, moves):
     for action in moves:
         if action == "press":
             act = _activate(board, r, c, act, allow)
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
             continue
         dir_i = next(i for i, (name, _, _) in enumerate(DIRS) if name == action)
         before = gstate
-        r, c, gstate, act, moved, won, collapse, phase, _path = tilt(
+        r, c, gstate, act, moved, won, collapse, phase, _path, lost = tilt(
             board, r, c, dir_i, gstate, act, allow, collapse, phase, tilts
         )
+        if lost:
+            break
         if moved:
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
         for i in range(board["gcount"]):
             if _glass_digit(before, i) != 2 and _glass_digit(gstate, i) == 2:
                 broken.add(i)
@@ -501,14 +539,22 @@ def edges_crossed(level, moves):
     for action in moves:
         if action == "press":
             act = _activate(board, r, c, act, allow)
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
             continue
         dir_i = next(i for i, (name, _, _) in enumerate(DIRS) if name == action)
-        _nr, _nc, gstate, act, moved, won, collapse, phase, path = tilt(
+        _nr, _nc, gstate, act, moved, won, collapse, phase, path, lost = tilt(
             board, r, c, dir_i, gstate, act, allow, collapse, phase, tilts
         )
+        if lost:
+            break
         if moved:
+            before_t = tilts
             tilts = _bump_tilts(board, tilts)
+            if collapses_under(board, (r, c), before_t, tilts):
+                break
         for i in range(1, len(path)):
             a = path[i - 1]
             b = path[i]

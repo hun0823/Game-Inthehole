@@ -46,20 +46,42 @@ function hitsHard(game, r, c, dir, phase, act) {
   }
   const crumbled = game.board.collapseIndex.get(`${info.nr},${info.nc}`);
   if (crumbled && (game.collapse & crumbled)) return true;
-  const at = game.board.magma.get(`${info.nr},${info.nc}`);
-  if (at !== undefined && game.tilts >= at) return true;
   return false;
+}
+
+export function magmaCues(events, endDelay = 0, path = null, times = null) {
+  const cues = [];
+  for (const ev of events || []) {
+    if (ev.type === "magmaCrack") cues.push({ id: "magmaCrack", delay: endDelay });
+    else if (ev.type === "magmaCollapse") cues.push({ id: "magmaCollapse", delay: endDelay });
+    else if (ev.type === "lavaDeath") {
+      let delay = endDelay;
+      const cell = ev.cell;
+      if (cell && path && times) {
+        for (let i = 0; i < path.length; i++) {
+          if (path[i][0] === cell.r && path[i][1] === cell.c) {
+            delay = times[i] ?? endDelay;
+            break;
+          }
+        }
+      }
+      cues.push({ id: "lavaDeath", delay });
+    }
+  }
+  return cues;
 }
 
 export function planTilt(game, detail) {
   const path = detail.path || [];
   if (!detail.moved) return [{ id: "bump", delay: 0 }];
   if (path.length < 2) {
-    const cues = [{ id: "bump", delay: 0 }, { id: "stop", delay: 0.05 }];
+    const died = (detail.events || []).some((ev) => ev.type === "lavaDeath");
+    const cues = died ? [] : [{ id: "bump", delay: 0 }, { id: "stop", delay: 0.05 }];
     for (const ev of detail.events || []) {
       if (ev.type === "glassCrack") cues.push({ id: "glassCrack", delay: 0 });
       else if (ev.type === "glassShatter") cues.push({ id: "glass", delay: 0.04 });
     }
+    cues.push(...magmaCues(detail.events, 0, path, [0]));
     return cues;
   }
 
@@ -112,8 +134,10 @@ export function planTilt(game, detail) {
       cues.push({ id: "glass", delay: Math.max(0.06, Math.min(dur * 0.42, Math.max(0.06, dur - 0.05))) });
     }
   }
+  cues.push(...magmaCues(detail.events, endT, path, times));
 
   const end = path[path.length - 1];
+  if ((detail.events || []).some((ev) => ev.type === "lavaDeath")) return cues;
   if (detail.won) {
     cues.push({ id: "goal", delay: endT });
   } else if (board.sand.has(`${end[0]},${end[1]}`)) {
@@ -134,21 +158,6 @@ export function planPress(ok) {
     { id: "switch", delay: 0 },
     { id: "gate", delay: 0.09 },
   ];
-}
-
-export function planMagma(game, tiltsAfter) {
-  const vents = game.board && game.board.magma;
-  if (!vents || vents.size === 0) return [];
-  let warn = false;
-  let erupt = false;
-  for (const at of vents.values()) {
-    if (tiltsAfter === at - 1) warn = true;
-    if (tiltsAfter === at) erupt = true;
-  }
-  const cues = [];
-  if (warn) cues.push({ id: "magma-warn", delay: 0.04 });
-  if (erupt) cues.push({ id: "magma", delay: 0.02 });
-  return cues;
 }
 
 export function planClear(gainedStars) {

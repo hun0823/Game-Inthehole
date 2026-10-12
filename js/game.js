@@ -31,8 +31,9 @@ function glassEdge(pane) {
 // Packed search digit for one pane is 2 - hp:
 //   digit 0 = hp 2 intact, digit 1 = hp 1 cracked, digit 2 = hp 0 gone.
 // A hit is the ball sliding into that edge (the next step of the slide is
-// across it, and a wall, closed gate, one-way, shifter, crumbled floor, or
-// erupted magma did not already stop the ball). The first hit cracks the
+// across it, and a wall, closed gate, one-way, shifter, or crumbled floor
+// did not already stop the ball). Lava is not a wall: the ball enters it
+// and the slide ends there. The first hit cracks the
 // pane and it stays a blocking wall (hp 2→1). The second hit shatters it
 // and the edge becomes passable (hp 1→0). A pane at hp 0 is not hit again.
 // A jelly jump skips the edges in between and does not hit them.
@@ -227,17 +228,19 @@ function activateAt(board, r, c, act) {
 // pane is not a hit: no glassCrack / glassShatter, hp unchanged), gates,
 // one-ways, and shifting walls. The skipped cell
 // is not entered; the path records the jelly cell, then the landing cell.
-// If the landing cell is out of bounds, erupted magma, or a crumbled floor,
-// the ball stops on the jelly and the tilt ends, even on ice. Landing on
-// jelly jumps again, up to size*2 times. After a successful landing the hole
-// wins, sand stops, and ice applies to that landing cell.
-// Magma: each vent is [row, col, at]. The cell is blocked once completed spent
-// tilts >= at, so the ball cannot enter it. `tilts` is the count at the START
-// of this tilt and stays fixed for the whole slide; callers increment it after
-// a spent tilt or a press. Standing on a vent when it erupts does not bury the
-// ball: leaving is allowed, re-entry is not. Telegraph (tilts == at-1) is
-// visual only. Once tilts reaches the latest `at`, further tilts do not change
-// the schedule.
+// If the landing cell is out of bounds or a crumbled floor, the ball stops
+// on the jelly and the tilt ends, even on ice. Landing on lava is not a
+// stop: the ball lands there and the stage is lost. Landing on jelly jumps
+// again, up to size*2 times. After a successful landing the hole wins, sand
+// stops, and ice applies to that landing cell.
+// Magma: each cell is [row, col, at] and starts as floor. `tilts` is the
+// count at the START of this tilt and stays fixed for the whole slide;
+// callers increment it after a spent tilt or a press. State is floor while
+// tilts < at-1, warn (cracked) when tilts == at-1, and lava once tilts >= at.
+// Lava is not a wall. Entering a lava cell stops the ball on that cell and
+// loses the stage. A cell that becomes lava while the ball is sitting on it
+// also loses; that check is after the counter bumps, not inside the slide.
+// Once tilts reaches the latest `at`, further tilts do not change the schedule.
 // Smog does not change the slide. It only hides walls until the ball has been
 // on that cell. Coins, when present, are collected along the path; the hole
 // is still the only clear condition. New stages do not use coins.
@@ -266,7 +269,6 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
       const lr = r + dir.dr * 2;
       const lc = c + dir.dc * 2;
       if (lr < 0 || lc < 0 || lr >= n || lc >= n) return "stop";
-      if (magmaBlocks(board, lr, lc, tilts)) return "stop";
       const landBit = board.collapseIndex.get(`${lr},${lc}`);
       if (landBit && coll & landBit) return "stop";
       crumble(r, c);
@@ -275,6 +277,10 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
       path.push([r, c]);
       moved = true;
       newAct = activateAt(board, r, c, newAct);
+      if (isLava(board, r, c, tilts)) {
+        events.push({ type: "lavaDeath", cell: { r, c } });
+        return "dead";
+      }
       if (r === board.holeR && c === board.holeC) return "won";
       if (board.sand.has(`${r},${c}`)) return "stop";
     }
@@ -297,24 +303,35 @@ function slide(board, r, c, dirIndex, gstate, act, collapse = 0, phase = 0, tilt
     if (hop) {
       const exitBit = board.collapseIndex.get(`${hop[0]},${hop[1]}`);
       if (exitBit && coll & exitBit) break;
-      if (magmaBlocks(board, hop[0], hop[1], tilts)) break;
       via = [info.nr, info.nc];
       destR = hop[0];
       destC = hop[1];
     }
     crumble(r, c);
     moved = true;
-    if (via) path.push(via);
+    if (via) {
+      path.push(via);
+      if (isLava(board, via[0], via[1], tilts)) {
+        return finish(board, via[0], via[1], gstate, act, newAct, coll, phase, true, false, path, events, true);
+      }
+    }
     r = destR;
     c = destC;
     path.push([r, c]);
     newAct = activateAt(board, r, c, newAct);
+    if (isLava(board, r, c, tilts)) {
+      events.push({ type: "lavaDeath", cell: { r, c } });
+      return finish(board, r, c, gstate, act, newAct, coll, phase, true, false, path, events, true);
+    }
     if (r === board.holeR && c === board.holeC) {
       return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, events);
     }
     if (board.sand.has(`${r},${c}`)) break;
     if (board.jelly.has(`${r},${c}`)) {
       const outcome = jellyChain();
+      if (outcome === "dead") {
+        return finish(board, r, c, gstate, act, newAct, coll, phase, true, false, path, events, true);
+      }
       if (outcome === "won") {
         return finish(board, r, c, gstate, act, newAct, coll, phase, true, true, path, events);
       }
@@ -360,12 +377,41 @@ function slideClassic(board, r, c, dirIndex, gstate, act, collapse, phase) {
   return finish(board, r, c, gstate, act, newAct, collapse, phase, moved, false, path, events);
 }
 
-function magmaBlocks(board, r, c, tilts) {
+// floor → warn one tilt before `at`, then warn → lava permanently.
+function magmaStateName(at, tilts) {
+  if (tilts >= at) return "lava";
+  if (at > 0 && tilts === at - 1) return "warn";
+  return "floor";
+}
+
+function isLava(board, r, c, tilts) {
   const at = board.magma.get(`${r},${c}`);
   return at !== undefined && tilts >= at;
 }
 
-function blocked(board, info, dirName, act, collapse, phase, tilts = 0) {
+function magmaTransitions(board, before, after) {
+  const events = [];
+  if (before === after) return events;
+  for (const [key, at] of board.magma) {
+    const comma = key.indexOf(",");
+    const r = Number(key.slice(0, comma));
+    const c = Number(key.slice(comma + 1));
+    const prev = magmaStateName(at, before);
+    const next = magmaStateName(at, after);
+    if (prev === next) continue;
+    const cell = { r, c };
+    if (next === "warn") events.push({ type: "magmaCrack", cell });
+    else if (next === "lava") events.push({ type: "magmaCollapse", cell });
+  }
+  return events;
+}
+
+function collapsesUnder(board, r, c, before, after) {
+  const at = board.magma.get(`${r},${c}`);
+  return at !== undefined && before < at && after >= at;
+}
+
+function blocked(board, info, dirName, act, collapse, phase, _tilts = 0) {
   if (!info || info.wall) return true;
   if (info.colorBit && (act & info.colorBit) === 0) return true;
   const allow = board.oneWays.get(info.edgeKey);
@@ -373,7 +419,6 @@ function blocked(board, info, dirName, act, collapse, phase, tilts = 0) {
   if (shifterBlocks(board, info.edgeKey, phase)) return true;
   const bit = board.collapseIndex.get(`${info.nr},${info.nc}`);
   if (bit && collapse & bit) return true;
-  if (magmaBlocks(board, info.nr, info.nc, tilts)) return true;
   return false;
 }
 
@@ -385,9 +430,15 @@ function shifterBlocks(board, edgeKey, phase) {
   return false;
 }
 
-function finish(board, r, c, gstate, act, newAct, collapse, phase, moved, won, path, events) {
+function finish(board, r, c, gstate, act, newAct, collapse, phase, moved, won, path, events, lost = false) {
   const nextPhase = board.shifters.length && moved ? phase ^ 1 : phase;
-  return { r, c, gstate, act: newAct, collapse, phase: nextPhase, moved, won, path, events };
+  if (lost && !events.some((ev) => ev.type === "lavaDeath")) {
+    events.push({ type: "lavaDeath", cell: { r, c } });
+  }
+  return {
+    r, c, gstate, act: newAct, collapse, phase: nextPhase, moved,
+    won: !!won && !lost, lost: !!lost, path, events,
+  };
 }
 
 function stateKey(r, c, gstate, act, collapse, phase, tilts) {
@@ -421,6 +472,8 @@ export class Game {
     this.hole = [...level.hole];
     this.moves = 0;
     this.won = false;
+    this.lost = false;
+    this.shiftEvents = [];
     this.collapse = 0;
     this.phase = 0;
     this.tilts = 0;
@@ -486,14 +539,23 @@ export class Game {
   // edge fields are { axis, r, c } — see glassEdge(). Copy is safe to store
   // for a later undo; reset() rebuilds hp 2 from the level.
   snapshot() {
+    const magma = [];
+    for (const [key, at] of this.board.magma) {
+      const comma = key.indexOf(",");
+      const r = Number(key.slice(0, comma));
+      const c = Number(key.slice(comma + 1));
+      magma.push({ r, c, at, state: magmaStateName(at, this.tilts) });
+    }
     return {
       ball: this.ball.slice(),
       moves: this.moves,
       won: this.won,
+      lost: this.lost,
       phase: this.phase,
       tilts: this.tilts,
       collapse: this.collapse,
       glass: this.glass.map((edge) => ({ axis: edge.axis, r: edge.r, c: edge.c, hp: edge.hp })),
+      magma,
     };
   }
 
@@ -526,12 +588,12 @@ export class Game {
   }
 
   simulateTilt(direction) {
-    if (this.won) {
-      return { path: [this.ball.slice()], moved: false, won: true, events: [] };
+    if (this.won || this.lost) {
+      return { path: [this.ball.slice()], moved: false, won: this.won, lost: this.lost, events: [] };
     }
     const dirIndex = DIR_INDEX[direction];
     if (dirIndex === undefined) {
-      return { path: [this.ball.slice()], moved: false, won: false, events: [] };
+      return { path: [this.ball.slice()], moved: false, won: false, lost: false, events: [] };
     }
     const result = slide(
       this.board, this.ball[0], this.ball[1], dirIndex, this.packGlass(), this.packAct(),
@@ -542,20 +604,35 @@ export class Game {
       this.collapse = result.collapse;
       this.phase = result.phase;
     }
+    const events = result.events.slice();
+    let lost = result.lost;
+    if (result.moved) {
+      const nextTilts = bumpTilts(this.board, this.tilts);
+      events.push(...magmaTransitions(this.board, this.tilts, nextTilts));
+      if (!lost && collapsesUnder(this.board, result.r, result.c, this.tilts, nextTilts)) {
+        lost = true;
+        events.push({ type: "lavaDeath", cell: { r: result.r, c: result.c } });
+      }
+    }
     // events are the transitions just applied. hp on snapshot()/this.glass is
     // already the post-tilt value; play crack/shatter from events.
     // { type: 'glassCrack', edge } when hp goes 2→1
     // { type: 'glassShatter', edge } when hp goes 1→0
     // edge is { axis: 'h'|'v', r, c } (glassEdge / board3d glass userData).
+    // Magma, after a spent tilt bumps the counter:
+    // { type: 'magmaCrack', cell: {r,c} } floor → warn
+    // { type: 'magmaCollapse', cell: {r,c} } warn → lava
+    // { type: 'lavaDeath', cell: {r,c} } the ball touched lava and stops on cell
     return {
       path: result.path,
       moved: result.moved,
-      won: result.won,
-      events: result.events,
+      won: result.won && !lost,
+      lost,
+      events,
     };
   }
 
-  applyTiltResult(path, won, moved) {
+  applyTiltResult(path, won, moved, lost = false) {
     let spent = false;
     if (moved) {
       if (path.length > 1) this.ball = path[path.length - 1].slice();
@@ -576,7 +653,8 @@ export class Game {
       this.moves += 1;
       this.tilts = bumpTilts(this.board, this.tilts);
     }
-    if (won) this.won = true;
+    if (lost) this.lost = true;
+    if (won && !this.lost) this.won = true;
   }
 
   allCoins() {
@@ -584,10 +662,17 @@ export class Game {
   }
 
   pressButton() {
-    if (this.won) return false;
+    if (this.won || this.lost) return false;
     if (!this.tryActivateButton()) return false;
+    const before = this.tilts;
     this.moves += 1;
     this.tilts = bumpTilts(this.board, this.tilts);
+    const events = magmaTransitions(this.board, before, this.tilts);
+    if (collapsesUnder(this.board, this.ball[0], this.ball[1], before, this.tilts)) {
+      this.lost = true;
+      events.push({ type: "lavaDeath", cell: { r: this.ball[0], c: this.ball[1] } });
+    }
+    this.shiftEvents = events;
     return true;
   }
 
@@ -621,7 +706,12 @@ export class Game {
         continue;
       }
       const result = slide(this.board, r, c, DIR_INDEX[action], gstate, act, collapse, phase, tilts);
-      if (result.moved) tilts = bumpTilts(this.board, tilts);
+      if (result.lost) break;
+      if (result.moved) {
+        const nextTilts = bumpTilts(this.board, tilts);
+        if (collapsesUnder(this.board, result.r, result.c, tilts, nextTilts)) break;
+        tilts = nextTilts;
+      }
       for (let i = 1; i < result.path.length; i++) cells.push(result.path[i].slice());
       r = result.r;
       c = result.c;
@@ -635,7 +725,7 @@ export class Game {
   }
 
   _hintActions(limit) {
-    if (this.won) return null;
+    if (this.won || this.lost) return null;
     const board = this.board;
     const n = board.n;
     const sr = this.ball[0];
@@ -663,17 +753,20 @@ export class Game {
       if (pressBit) {
         const nextAct = act | pressBit;
         const nextTilts = bumpTilts(board, tilts);
-        const key = stateKey(r, c, gstate, nextAct, collapse, phase, nextTilts);
-        if (!parent.has(key)) {
-          parent.set(key, { prev: here, action: "press" });
-          queue.push([r, c, gstate, nextAct, collapse, phase, nextTilts, depth + 1]);
+        if (!collapsesUnder(board, r, c, tilts, nextTilts)) {
+          const key = stateKey(r, c, gstate, nextAct, collapse, phase, nextTilts);
+          if (!parent.has(key)) {
+            parent.set(key, { prev: here, action: "press" });
+            queue.push([r, c, gstate, nextAct, collapse, phase, nextTilts, depth + 1]);
+          }
         }
       }
 
       for (let dirIndex = 0; dirIndex < DIR_LIST.length; dirIndex++) {
         const result = slide(board, r, c, dirIndex, gstate, act, collapse, phase, tilts);
-        if (!result.moved) continue;
+        if (!result.moved || result.lost) continue;
         const nextTilts = bumpTilts(board, tilts);
+        if (collapsesUnder(board, result.r, result.c, tilts, nextTilts)) continue;
         const key = stateKey(result.r, result.c, result.gstate, result.act, result.collapse, result.phase, nextTilts);
         if (result.won) {
           const actions = [DIR_LIST[dirIndex].name];

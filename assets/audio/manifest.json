@@ -83,6 +83,18 @@
       "sfx/magma.m4a",
       "sfx/magma.ogg"
     ],
+    "magmaCrack": [
+      "sfx/magmaCrack.m4a",
+      "sfx/magmaCrack.ogg"
+    ],
+    "magmaCollapse": [
+      "sfx/magmaCollapse.m4a",
+      "sfx/magmaCollapse.ogg"
+    ],
+    "lavaDeath": [
+      "sfx/lavaDeath.m4a",
+      "sfx/lavaDeath.ogg"
+    ],
     "ui": [
       "sfx/ui.m4a",
       "sfx/ui.ogg"

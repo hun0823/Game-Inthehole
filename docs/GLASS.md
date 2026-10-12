@@ -59,7 +59,7 @@ game.glass[i] = { axis, r, c, hp }
 
 `game.simulateTilt(dir)` returns `{ path, moved, won, events }`.
 
-A **hit** is the ball sliding into that glass edge: the next step of the slide crosses it, and a border, wall, closed gate, one-way, shifting wall, crumbled floor, or erupted magma did not already stop the ball. The ball stops against a pane that still blocks. That contact is one hit.
+A **hit** is the ball sliding into that glass edge: the next step of the slide crosses it, and a border, wall, closed gate, one-way, shifting wall, or crumbled floor did not already stop the ball. Lava is not a wall; touching it loses the stage (`docs/MAGMA.md`) and that slide does not continue into a pane beyond the lava cell. The ball stops against a pane that still blocks. That contact is one hit.
 
 | Transition | Event |
 |------------|--------|
