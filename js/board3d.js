@@ -43,6 +43,50 @@ const FRAME_H = 0.3;
 const GEM_LIT = { red: 0xff8b86, blue: 0x8ec0ff, green: 0x74e09a, purple: 0xdc96ff };
 const GEM_DIM = { red: 0x8e1c28, blue: 0x143e98, green: 0x0d6a34, purple: 0x62148e };
 
+function countStageExpected(level, game) {
+  let walls = 0;
+  let colored = 0;
+  let glass = 0;
+  const walk = (grid) => {
+    if (!grid) return;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        if (grid[r][c]) walls += 1;
+      }
+    }
+  };
+  walk(level.hWalls);
+  walk(level.vWalls);
+  const walkColor = (grid) => {
+    if (!grid) return;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        if (grid[r][c]) colored += 1;
+      }
+    }
+  };
+  walkColor(game.hColored);
+  walkColor(game.vColored);
+  const gWalk = (grid) => {
+    if (!grid) return;
+    for (let r = 0; r < grid.length; r++) {
+      for (let c = 0; c < grid[r].length; c++) {
+        if (grid[r][c]) glass += 1;
+      }
+    }
+  };
+  gWalk(game.hGlass);
+  gWalk(game.vGlass);
+  return {
+    walls,
+    colored,
+    glass,
+    buttons: (level.buttons || []).length,
+    hole: level.hole ? [...level.hole] : null,
+    ball: level.ball ? [...level.ball] : null,
+  };
+}
+
 function mixHex(a, b, t) {
   return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex();
 }
@@ -1892,7 +1936,11 @@ export function createView(canvas) {
 
     const boardH = 0.26;
     if (toyGlb) {
-      mountToyFloor(rig, n, STEP, BOARD_TOP, cellXZ);
+      mountToyFloor(rig, n, STEP, cellXZ);
+      const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
+      board.position.y = BOARD_TOP - boardH / 2;
+      board.receiveShadow = true;
+      rig.add(board);
     } else {
       const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
       board.position.y = BOARD_TOP - boardH / 2;
@@ -1921,6 +1969,16 @@ export function createView(canvas) {
       };
     };
 
+    const stageAudit = {
+      toyGlb,
+      walls: 0,
+      colored: 0,
+      glass: 0,
+      buttons: 0,
+      hole: level.hole ? [...level.hole] : null,
+      ball: level.ball ? [...level.ball] : null,
+    };
+
     const addEdge = (axis, r, c, kind, color) => {
       const { x, z, w, d } = placeEdge(axis, r, c);
       const mat = kind === "glass" ? glassMat : kind === "color" ? gateMaterial(color) : wallMaterial(color);
@@ -1928,47 +1986,45 @@ export function createView(canvas) {
       group.position.set(x, WALL_Y, z);
       let mesh;
       if (toyGlb && kind === "wall") {
-        const group = new THREE.Group();
-        group.position.set(x, WALL_Y, z);
-        mountToyWall(group, 0, 0, color, axis);
-        if (!group.children.length) { /* fall through to code wall */ }
-        else {
-        let mesh = group;
-        group.traverse((o) => { if (o.isMesh && o.material?.name?.startsWith("toon_wall_")) mesh = o; });
-        mesh.userData = {
-          kind,
-          axis,
-          r,
-          c,
-          color: color || null,
-          fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
-          ruleVisible: true,
-        };
-        rig.add(group);
-        fogWalls.push(mesh);
-        return mesh;
+        const glbGroup = new THREE.Group();
+        glbGroup.position.set(x, WALL_Y, z);
+        if (mountToyWall(glbGroup, color, axis)) {
+          stageAudit.walls += 1;
+          let hit = glbGroup;
+          glbGroup.traverse((o) => { if (o.isMesh && o.material?.name?.startsWith("toon_wall_")) hit = o; });
+          hit.userData = {
+            kind,
+            axis,
+            r,
+            c,
+            color: color || null,
+            fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
+            ruleVisible: true,
+          };
+          rig.add(glbGroup);
+          fogWalls.push(hit);
+          return hit;
         }
       }
       if (toyGlb && kind === "color") {
-        const group = new THREE.Group();
-        group.position.set(x, WALL_Y, z);
-        mountToyGate(group, 0, 0);
-        if (!group.children.length) { /* fall through */ }
-        else {
-        const mesh = group;
-        mesh.userData = {
-          kind,
-          axis,
-          r,
-          c,
-          color: color || null,
-          fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
-          ruleVisible: true,
-        };
-        rig.add(group);
-        fogWalls.push(mesh);
-        colored.push(mesh);
-        return mesh;
+        const glbGroup = new THREE.Group();
+        glbGroup.position.set(x, WALL_Y, z);
+        if (mountToyGate(glbGroup, color || "red")) {
+          stageAudit.colored += 1;
+          const hit = glbGroup;
+          hit.userData = {
+            kind,
+            axis,
+            r,
+            c,
+            color: color || null,
+            fogCells: axis === "h" ? [[r, c], [r + 1, c]] : [[r, c], [r, c + 1]],
+            ruleVisible: true,
+          };
+          rig.add(glbGroup);
+          fogWalls.push(hit);
+          colored.push(hit);
+          return hit;
         }
       }
       if (kind === "wall") {
@@ -2013,6 +2069,9 @@ export function createView(canvas) {
       };
       rig.add(group);
       fogWalls.push(mesh);
+      if (kind === "wall") stageAudit.walls += 1;
+      if (kind === "color") stageAudit.colored += 1;
+      if (kind === "glass") stageAudit.glass += 1;
       const skin = trickVariant(activeTheme.id);
       if (kind === "color") {
         dressGate(group, mesh, w, d, color || "red", skin);
@@ -2096,8 +2155,16 @@ export function createView(canvas) {
         mesh = makeButton(x, z, color, btn.row, btn.col, activeTheme.id);
         rig.add(mesh);
       }
-      buttons.push(mesh);
+      if (mesh) buttons.push(mesh);
     }
+    stageAudit.buttons = buttons.length;
+    stageAudit.expected = countStageExpected(level, game);
+    stageAudit.ok = stageAudit.walls === stageAudit.expected.walls
+      && stageAudit.colored === stageAudit.expected.colored
+      && stageAudit.glass === stageAudit.expected.glass
+      && stageAudit.buttons === stageAudit.expected.buttons;
+    console.info("[stage-audit]", JSON.stringify(stageAudit));
+    try { window.__stageAudit = stageAudit; } catch { /* no window */ }
 
     const paintDisc = (r, c, color, radius, y, opacity = 1) => {
       const { x, z } = cellXZ(r, c);

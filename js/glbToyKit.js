@@ -5,8 +5,12 @@ import * as THREE from "./vendor/three.module.js";
 import { GLTFLoader } from "./vendor/GLTFLoader.js";
 import { MeshoptDecoder } from "./vendor/meshopt_decoder.module.js";
 import { inkOutlineMaterial } from "./sphereMaps.js";
+import { decoMetrics } from "./boardDeco.js";
 
 const GLB_URL = new URL("../assets/models/toy_planet.glb", import.meta.url).href;
+const BOARD_TOP = 0.5;
+const BUTTON_Y = BOARD_TOP + 0.055;
+
 const BRICKS = [
   [242, 226, 196],
   [244, 206, 214],
@@ -14,6 +18,19 @@ const BRICKS = [
   [244, 230, 176],
   [216, 204, 232],
   [196, 220, 236],
+];
+
+const GEM_HEX = { red: 0xe23b3b, blue: 0x2f7dff, green: 0x1ea85a, purple: 0xa43adf };
+
+const PROTO_ROOTS = [
+  "proto_wall_red_v", "proto_wall_blue_v", "proto_wall_green_v", "proto_wall_purple_v",
+  "proto_wall_red", "proto_wall_blue", "proto_wall_green", "proto_wall_purple",
+  "proto_gate_purple", "proto_gate_green", "proto_gate_blue", "proto_gate_red",
+  "proto_button_purple", "proto_button_green", "proto_button_blue", "proto_button_red",
+  "proto_floor_b", "proto_floor_a",
+  "proto_frame_n7",
+  "proto_goal_toy_star",
+  "proto_deco_balloon", "proto_deco_stack_b", "proto_deco_stack", "proto_deco_robot",
 ];
 
 let loadJob = null;
@@ -34,6 +51,14 @@ function brickIndex(n) {
   return used;
 }
 
+function rootFor(name) {
+  if (!name || !name.startsWith("proto_")) return null;
+  for (const root of PROTO_ROOTS) {
+    if (name === root || name.startsWith(`${root}_`)) return root;
+  }
+  return null;
+}
+
 function ramp() {
   if (gradientMap) return gradientMap;
   const data = new Uint8Array([32, 160, 255]);
@@ -44,45 +69,89 @@ function ramp() {
   return gradientMap;
 }
 
-function parseColor(mat) {
-  const c = mat?.color;
-  if (!c) return 0xffffff;
-  return c.getHex();
+function toToonMaterial(srcMat) {
+  const name = srcMat?.name || "";
+  if (name === "ink" || name.startsWith("ink.")) return inkOutlineMaterial();
+  const color = srcMat?.color?.getHex?.() ?? 0xffffff;
+  const mat = new THREE.MeshToonMaterial({
+    color,
+    gradientMap: ramp(),
+    toneMapped: false,
+  });
+  mat.name = name;
+  if (srcMat?.vertexColors) mat.vertexColors = true;
+  return mat;
 }
 
 function remapMaterials(root) {
-  const ink = inkOutlineMaterial();
   root.traverse((node) => {
-    if (!node.isMesh) return;
-    const name = node.material?.name || "";
+    if (!node.isMesh || !node.material) return;
+    const name = node.material.name || "";
     if (name === "ink" || name.startsWith("ink.")) {
-      node.material = ink;
+      node.material = inkOutlineMaterial();
       node.raycast = () => {};
-      return;
-    }
-    if (name.startsWith("toon_") || name.startsWith("Palette")) {
-      const color = parseColor(node.material);
-      node.material = new THREE.MeshToonMaterial({
-        color,
-        gradientMap: ramp(),
-        toneMapped: false,
-      });
-      node.material.name = name;
-    }
-    if (node.geometry?.attributes?.color) {
-      node.material.vertexColors = true;
+    } else {
+      node.material = toToonMaterial(node.material);
     }
     node.castShadow = true;
     node.receiveShadow = true;
   });
 }
 
-function indexProtos(scene) {
-  const map = new Map();
-  scene.traverse((node) => {
-    if (node.name && node.name.startsWith("proto_")) map.set(node.name, node);
+function tintRoot(root, hex) {
+  root.traverse((node) => {
+    if (!node.isMesh || !node.material) return;
+    const n = node.material.name || "";
+    if (n.startsWith("ink")) return;
+    if (n.startsWith("toon_wall") || n.startsWith("toon_gate") || n.includes("_dome_")) {
+      node.material = node.material.clone();
+      node.material.color.setHex(hex);
+    }
   });
-  return map;
+}
+
+function collectTemplate(scene, rootName) {
+  const node = scene.getObjectByName(rootName);
+  if (node && (node.children.length || node.isMesh)) return node;
+  const group = new THREE.Group();
+  group.name = rootName;
+  scene.updateMatrixWorld(true);
+  const parts = scene.children.filter((obj) => rootFor(obj.name) === rootName);
+  if (!parts.length) return null;
+  const anchor = new THREE.Vector3();
+  parts[0].getWorldPosition(anchor);
+  for (const src of parts) {
+    const clone = src.clone(true);
+    const wp = new THREE.Vector3();
+    const wq = new THREE.Quaternion();
+    const ws = new THREE.Vector3();
+    src.updateWorldMatrix(true, false);
+    src.matrixWorld.decompose(wp, wq, ws);
+    clone.position.copy(wp.sub(anchor));
+    clone.quaternion.copy(wq);
+    clone.scale.copy(ws);
+    group.add(clone);
+  }
+  return group;
+}
+
+function buildLibrary(gltf) {
+  const templates = new Map();
+  for (const root of PROTO_ROOTS) {
+    const tpl = collectTemplate(gltf.scene, root);
+    if (tpl) templates.set(root, tpl);
+  }
+  return {
+    gltf,
+    templates,
+    clone(name) {
+      const tpl = templates.get(name);
+      if (!tpl) return null;
+      const root = tpl.clone(true);
+      remapMaterials(root);
+      return root;
+    },
+  };
 }
 
 export function glbToyWanted() {
@@ -105,14 +174,7 @@ export function loadToyGlb() {
     const loader = new GLTFLoader();
     loader.setMeshoptDecoder(MeshoptDecoder);
     const gltf = await loader.loadAsync(GLB_URL);
-    const protos = indexProtos(gltf.scene);
-    library = { gltf, protos, clone(name) {
-      const src = protos.get(name);
-      if (!src) return null;
-      const root = src.clone(true);
-      remapMaterials(root);
-      return root;
-    } };
+    library = buildLibrary(gltf);
     return library;
   })().catch((err) => {
     loadJob = null;
@@ -129,30 +191,32 @@ export function cloneProto(name) {
   return library?.clone(name) || null;
 }
 
-export function mountToyFloor(rig, n, step, boardTop, cellXZ) {
+export function listProtoKeys() {
+  return library ? [...library.templates.keys()] : [];
+}
+
+function rgbToHex(rgb) {
+  return (rgb[0] << 16) | (rgb[1] << 8) | rgb[2];
+}
+
+export function mountToyFloor(rig, n, step, cellXZ) {
   const used = brickIndex(n);
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      const pick = used[r][c] % 2 === 0 ? "proto_floor_a" : "proto_floor_b";
+      const k = used[r][c];
+      const pick = k % 2 === 0 ? "proto_floor_a" : "proto_floor_b";
       const tile = cloneProto(pick);
       if (!tile) continue;
+      tintRoot(tile, rgbToHex(BRICKS[k]));
       const { x, z } = cellXZ(r, c);
       tile.position.set(x, 0, z);
       rig.add(tile);
     }
   }
-  const board = new THREE.Mesh(
-    new THREE.BoxGeometry(n * step, 0.26, n * step),
-    new THREE.MeshStandardMaterial({ color: 0xe4d5c6, roughness: 0.8 })
-  );
-  board.position.y = boardTop - 0.13;
-  board.receiveShadow = true;
-  rig.add(board);
 }
 
 export function mountToyFrame(rig, n) {
-  const name = n === 7 ? "proto_frame_n7" : null;
-  const frame = name ? cloneProto(name) : null;
+  const frame = cloneProto(`proto_frame_n${n}`);
   if (frame) {
     rig.add(frame);
     return true;
@@ -160,28 +224,28 @@ export function mountToyFrame(rig, n) {
   return false;
 }
 
-export function mountToyWall(group, x, z, color, axis) {
+export function mountToyWall(group, color, axis) {
   const key = axis === "h" ? `proto_wall_${color}` : `proto_wall_${color}_v`;
   const wall = cloneProto(key);
   if (!wall) return null;
-  wall.position.set(x, 0, z);
   group.add(wall);
   return wall;
 }
 
-export function mountToyGate(group, x, z) {
-  const gate = cloneProto("proto_gate_red");
+export function mountToyGate(group, color) {
+  const key = GEM_HEX[color] ? `proto_gate_${color}` : "proto_gate_red";
+  let gate = cloneProto(key) || cloneProto("proto_gate_red");
   if (!gate) return null;
-  gate.position.set(x, 0, z);
+  if (GEM_HEX[color]) tintRoot(gate, GEM_HEX[color]);
   group.add(gate);
   return gate;
 }
 
 export function mountToyButton(x, z, color, row, col) {
-  const key = `proto_button_${GEM_KEY(color)}`;
+  const key = GEM_HEX[color] ? `proto_button_${color}` : "proto_button_red";
   const btn = cloneProto(key);
   if (!btn) return null;
-  btn.position.set(x, 0, z);
+  btn.position.set(x, BUTTON_Y, z);
   btn.userData = {
     kind: "button",
     row,
@@ -189,40 +253,35 @@ export function mountToyButton(x, z, color, row, col) {
     color,
     glb: true,
     spent: false,
-    baseY: 0,
+    baseY: BUTTON_Y,
   };
   return btn;
 }
 
-function GEM_KEY(color) {
-  return ["red", "blue", "green", "purple"].includes(color) ? color : "red";
-}
-
 export function mountToyDeco(rig, span, frameT) {
-  const outer = span / 2 + frameT;
-  const y = 0.02 + 0.3 * (span / 6 / 6) * 0.9;
+  const m = decoMetrics(span, frameT);
   const robot = cloneProto("proto_deco_robot");
   const stack = cloneProto("proto_deco_stack");
   const stackB = cloneProto("proto_deco_stack_b");
   const balloon = cloneProto("proto_deco_balloon");
   if (robot) {
-    robot.position.set(0, y + 0.35, -outer - 0.15);
-    robot.scale.setScalar(1.2);
+    robot.position.set(0, m.y, m.top);
+    robot.scale.setScalar(1.15 * m.unit);
     rig.add(robot);
   }
   if (stack) {
-    stack.position.set(-outer * 0.95, y, -outer * 0.05);
-    stack.scale.setScalar(1.1);
+    stack.position.set(-m.outer * 0.9, m.y, m.top);
+    stack.scale.setScalar(0.95 * m.unit);
     rig.add(stack);
   }
   if (stackB) {
-    stackB.position.set(outer * 0.95, y, -outer * 0.05);
-    stackB.scale.setScalar(1.05);
+    stackB.position.set(m.outer * 0.9, m.y, m.top);
+    stackB.scale.setScalar(0.92 * m.unit);
     rig.add(stackB);
   }
   if (balloon) {
-    balloon.position.set(outer * 0.55, y + 0.55, -outer * 0.55);
-    balloon.scale.setScalar(1.3);
+    balloon.position.set(m.outer * 0.55, m.y + 0.35, m.top - 0.15);
+    balloon.scale.setScalar(1.1 * m.unit);
     rig.add(balloon);
   }
 }

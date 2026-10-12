@@ -83,6 +83,7 @@ const rewardName = document.getElementById("reward-name");
 const settingsEl = document.getElementById("settings");
 
 const view = createView(playfieldEl);
+try { window.__view = view; } catch { /* non-browser */ }
 if (glbToyWanted()) {
   whenToyGlbReady().then(() => {
     if (LEVELS[stageIndex]?.planet === "toy") renderBoard();

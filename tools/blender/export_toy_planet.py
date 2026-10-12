@@ -155,20 +155,21 @@ def cyl(name, r, h, material, loc=(0, 0, 0), seg=16):
 def wall_block(name, color_key, long_x=True):
     long = STEP * 0.98
     thick = WALL_T
-    bw = long if long_x else thick
-    bd = thick if long_x else long
     body_h = WALL_H * 0.7
+    if long_x:
+        sx, sy, sz = long, thick, body_h
+    else:
+        sx, sy, sz = thick, long, body_h
     rgba = GEM[color_key]
     m = mat(f"toon_wall_{color_key}", rgba, 0.38)
     m_hi = mat(f"toon_wall_{color_key}_hi", tuple(min(1, c + 0.18) for c in rgba[:3]) + (1,), 0.25)
     grp = bpy.data.objects.new(name, None)
     bpy.context.collection.objects.link(grp)
-    grp.location = (0, WALL_Y, 0)
-    body = box(f"{name}_body", bw, body_h, bd, m, (0, 0.03, 0))
+    body = box(f"{name}_body", sx, sy, sz, m, (0, 0, 0.03))
     body.parent = grp
-    cap = box(f"{name}_cap", bw * 0.9, WALL_H * 0.22, bd * 0.72, m_hi, (0, WALL_H * 0.32, 0))
+    cap = box(f"{name}_cap", sx * 0.9, sy * 0.72, WALL_H * 0.22, m_hi, (0, 0, WALL_H * 0.32))
     cap.parent = grp
-    shine = box(f"{name}_shine", bw * 0.42, 0.035, bd * 0.28, m_hi, (0, WALL_H * 0.44, 0))
+    shine = box(f"{name}_shine", sx * 0.42, sy * 0.28, 0.035, m_hi, (0, 0, WALL_H * 0.44))
     shine.parent = grp
     return grp
 
@@ -176,7 +177,7 @@ def wall_block(name, color_key, long_x=True):
 def gate_block(name, color_key="red"):
     grp = wall_block(name, color_key, True)
     m = mat("toon_gate_lens", (1, 1, 1, 1), 0.2)
-    lens = cyl(f"{name}_lens", 0.09, 0.02, m, (0, WALL_H * 0.36, WALL_T * 0.42), 20)
+    lens = cyl(f"{name}_lens", 0.09, 0.02, m, (0, WALL_T * 0.42, WALL_H * 0.36), 20)
     lens.parent = grp
     return grp
 
@@ -185,19 +186,19 @@ def button_proto(color_key="red"):
     name = f"proto_button_{color_key}"
     grp = bpy.data.objects.new(name, None)
     bpy.context.collection.objects.link(grp)
-    grp.location = (0, BOARD_TOP + 0.055, 0)
-    plate = cyl(f"{name}_plate", 0.34, 0.05, mat("toon_button_plate", PLATE, 0.55), (0, -0.012, 0))
+    z0 = BOARD_TOP + 0.055
+    plate = cyl(f"{name}_plate", 0.34, 0.05, mat("toon_button_plate", PLATE, 0.55), (0, 0, z0 - 0.012))
     plate.parent = grp
     gem = GEM[color_key]
-    side = cyl(f"{name}_side", 0.28, 0.08, mat(f"toon_button_side_{color_key}", tuple(c * 0.65 for c in gem[:3]) + (1,), 0.5), (0, 0.055, 0))
-    side.scale = (1.05, 0.58, 1.05)
+    side = cyl(f"{name}_side", 0.28, 0.08, mat(f"toon_button_side_{color_key}", tuple(c * 0.65 for c in gem[:3]) + (1,), 0.5), (0, 0, z0 + 0.055))
+    side.scale = (1.05, 1.05, 0.58)
     bpy.ops.object.select_all(action="DESELECT")
     side.select_set(True)
     bpy.context.view_layer.objects.active = side
     bpy.ops.object.transform_apply(scale=True)
     side.parent = grp
-    dome = cyl(f"{name}_dome", 0.26, 0.08, mat(f"toon_button_dome_{color_key}", gem, 0.35), (0, 0.1, 0))
-    dome.scale = (0.92, 0.62, 0.92)
+    dome = cyl(f"{name}_dome", 0.26, 0.08, mat(f"toon_button_dome_{color_key}", gem, 0.35), (0, 0, z0 + 0.1))
+    dome.scale = (0.92, 0.92, 0.62)
     bpy.ops.object.select_all(action="DESELECT")
     dome.select_set(True)
     bpy.context.view_layer.objects.active = dome
@@ -209,10 +210,10 @@ def button_proto(color_key="red"):
 def floor_tile(name, rgba):
     grp = bpy.data.objects.new(name, None)
     bpy.context.collection.objects.link(grp)
-    grp.location = (0, BOARD_TOP + 0.004, 0)
-    tile = box(f"{name}_tile", STEP - 0.06, 0.08, STEP - 0.06, mat(name.replace("proto_", "toon_"), rgba, 0.62))
+    z0 = BOARD_TOP + 0.004
+    tile = box(f"{name}_tile", STEP - 0.06, STEP - 0.06, 0.08, mat(name.replace("proto_", "toon_"), rgba, 0.62), (0, 0, z0))
     tile.parent = grp
-    stud = cyl(f"{name}_stud", STEP * 0.075, 0.035, mat(f"{name}_stud", rgba, 0.5), (0, 0.05, 0), 12)
+    stud = cyl(f"{name}_stud", STEP * 0.075, 0.035, mat(f"{name}_stud", rgba, 0.5), (0, 0, z0 + 0.05), 12)
     stud.parent = grp
     return grp
 
@@ -233,12 +234,9 @@ def frame_for_n(n=7):
     hi = mat("toon_frame_hi", FRAME_HI, 0.28)
     low = mat("toon_frame_low", FRAME_LOW, 0.55)
 
-    def ring(label, ow, iw, height, material, y):
-        ow_i = ow
-        iw_i = iw
-        thick = (ow_i - iw_i) * 0.5
-        outer_cube = box(f"{name}_{label}_o", ow_i, height, ow_i, material)
-        inner_cube = box(f"{name}_{label}_i", iw_i, height * 1.05, iw_i, mat("toon_void", (0, 0, 0, 0), 1))
+    def ring(label, ow, iw, height, material, z):
+        outer_cube = box(f"{name}_{label}_o", ow, ow, height, material)
+        inner_cube = box(f"{name}_{label}_i", iw, iw, height * 1.05, mat("toon_void", (0, 0, 0, 0), 1))
         inner_cube.location = (0, 0, 0)
         bpy.context.view_layer.objects.active = outer_cube
         mod = outer_cube.modifiers.new("Bool", "BOOLEAN")
@@ -246,7 +244,7 @@ def frame_for_n(n=7):
         mod.object = inner_cube
         bpy.ops.object.modifier_apply(modifier=mod.name)
         bpy.data.objects.remove(inner_cube, do_unlink=True)
-        outer_cube.location = (0, y, 0)
+        outer_cube.location = (0, 0, z)
         outer_cube.parent = grp
         return outer_cube
 
@@ -260,15 +258,14 @@ def star_goal():
     name = "proto_goal_toy_star"
     grp = bpy.data.objects.new(name, None)
     bpy.context.collection.objects.link(grp)
-    z = -0.48
-    grp.location = (0, 0, z)
     h = 0.32 * 1.32
-    base = box(f"{name}_base", 0.44, h * 0.84, 0.32, mat("toon_goal_pedestal", PEDESTAL, 0.48), (0, BOARD_TOP + h * 0.42, 0))
+    zback = -0.48
+    base = box(f"{name}_base", 0.44, 0.32, h * 0.84, mat("toon_goal_pedestal", PEDESTAL, 0.48), (0, zback, BOARD_TOP + h * 0.42))
     base.parent = grp
-    lid = box(f"{name}_lid", 0.46, 0.05, 0.34, mat("toon_goal_lid", STAR, 0.42), (0, BOARD_TOP + h * 0.84, 0.14))
+    lid = box(f"{name}_lid", 0.46, 0.34, 0.05, mat("toon_goal_lid", STAR, 0.42), (0, zback + 0.14, BOARD_TOP + h * 0.84))
     lid.name = "goal_lid"
     lid.parent = grp
-    star = box(f"{name}_star", 0.22, 0.08, 0.22, mat("toon_goal_star", STAR, 0.35), (0, BOARD_TOP + h * 0.55 + 0.16, 0))
+    star = box(f"{name}_star", 0.22, 0.22, 0.08, mat("toon_goal_star", STAR, 0.35), (0, zback, BOARD_TOP + h * 0.55 + 0.16))
     star.name = "goal_star"
     star.parent = grp
     return grp
@@ -312,15 +309,15 @@ def deco_balloon():
 
 def export_glb(path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    objs = [o for o in bpy.data.objects if o.type == "MESH"]
     bpy.ops.object.select_all(action="DESELECT")
-    for o in objs:
-        o.select_set(True)
+    for o in bpy.data.objects:
+        if o.name.startswith("proto_"):
+            o.select_set(True)
     bpy.ops.export_scene.gltf(
         filepath=path,
         export_format="GLB",
         use_selection=True,
-        export_apply=True,
+        export_apply=False,
         export_materials="EXPORT",
         export_vertex_color="ACTIVE",
         export_image_format="NONE",
@@ -338,7 +335,8 @@ def main():
     for c in ["red", "blue", "green", "purple"]:
         wall_block(f"proto_wall_{c}", c, True)
         wall_block(f"proto_wall_{c}_v", c, False)
-    gate_block("proto_gate_red")
+    for c in ["red", "blue", "green", "purple"]:
+        gate_block(f"proto_gate_{c}", c)
     for c in ["red", "blue", "green", "purple"]:
         button_proto(c)
     floor_tile("proto_floor_a", BRICKS[0])

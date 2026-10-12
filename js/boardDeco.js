@@ -142,7 +142,7 @@ function bob(sprite) {
   });
 }
 
-function metrics(span, frameT) {
+export function decoMetrics(span, frameT) {
   const inner = span / 2 - 0.01;
   const outer = inner + frameT;
   const unit = span / (6 * 1.16);
@@ -383,7 +383,7 @@ const SETS = {
 export function createBoardDeco(planet, span, frameT = 0.4) {
   const group = new THREE.Group();
   group.name = "board-deco";
-  const m = metrics(span, frameT);
+  const m = decoMetrics(span, frameT);
   spriteUnit = m.unit;
   const set = SETS[planet] || SETS.wood;
   place(group, set[0], set[1], set[2], m);
