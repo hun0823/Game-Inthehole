@@ -35,10 +35,14 @@ BGM과 효과음은 `js/audio.js` 한 그래프입니다. 마스터 게인 아�
 
 첫 `pointerup` / `touchend` / `keydown`에서 `AudioContext`를 만들고 재개합니다. 탭이 숨으면 BGM만 멈추고, 돌아오면 이어서 재생합니다. 효과음은 미리 디코드해 두고, 짧은 음정·음량 흔들림과 동시에 8목소리 한도로 재생하며 프레임 루프를 기다리지 않습니다.
 
-**BGM 넣기.** 곡 파일은 아직 없습니다. `assets/audio/manifest.json`의 `bgm.menu`(행성 맵)와 `bgm.game`(스테이지) `sources`가 비어 있으면 그 화면은 무음입니다. 루프를 `assets/audio/bgm/`에 두고 매니페스트 기준 상대 경로로 적습니다. 먼저 디코드되는 파일이 재생되고, 화면이 바뀌면 약 0.7초 크로스페이드합니다.
+**BGM.** 메뉴와 스테이지는 같은 곡입니다. Zane Little Music의 Flowerbed Fields [Loop] (CC0, [CREDITS.md](CREDITS.md))를 `assets/audio/bgm/`에 두고, `assets/audio/manifest.json`의 `bgm.menu`와 `bgm.game`가 같은 `sources`를 가리킵니다. 먼저 디코드되는 파일을 쓰고 (m4a, 그다음 mp3), 두 화면이 같은 파일이면 곡을 다시 시작하지 않습니다. 소스가 다르면 약 0.7초 크로스페이드합니다. AAC/MP3 패딩은 디코드 버퍼에서 찾고, `loopDuration`초만 `loopStart`/`loopEnd`로 반복합니다.
 
 ```json
-"menu": { "loop": true, "sources": ["bgm/menu.m4a", "bgm/menu.ogg"] }
+"menu": {
+  "loop": true,
+  "loopDuration": 105.931043,
+  "sources": ["bgm/flowerbed_fields.m4a", "bgm/flowerbed_fields.mp3"]
+}
 ```
 
 **효과음 다시 굽기.** 파라미터는 `tools/sfx/params.json`(jsfxr)입니다. 합성기는 `tools/sfx/vendor/`(public domain)이고, 굽힌 m4a+ogg는 `assets/audio/sfx/`에 있습니다.

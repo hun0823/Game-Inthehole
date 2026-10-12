@@ -1,13 +1,21 @@
 {
-  "notes": "Paths are relative to this file. BGM sources stay empty until a track is chosen. Drop a loop in assets/audio/bgm/ and list it, for example [\"bgm/menu.m4a\", \"bgm/menu.ogg\"]. The first source that decodes is used. Empty or missing files stay silent. SFX entries are rewritten by tools/sfx/bake.mjs.",
+  "notes": "Paths are relative to this file. The first BGM source that decodes is used. loopDuration is the unpadded length in seconds; playback trims encoder padding and loops that long. Menu and game list the same file so the song continues across those scenes. Empty or missing files stay silent. SFX entries are rewritten by tools/sfx/bake.mjs.",
   "bgm": {
     "menu": {
       "loop": true,
-      "sources": []
+      "loopDuration": 105.931043,
+      "sources": [
+        "bgm/flowerbed_fields.m4a",
+        "bgm/flowerbed_fields.mp3"
+      ]
     },
     "game": {
       "loop": true,
-      "sources": []
+      "loopDuration": 105.931043,
+      "sources": [
+        "bgm/flowerbed_fields.m4a",
+        "bgm/flowerbed_fields.mp3"
+      ]
     }
   },
   "sfx": {
