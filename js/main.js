@@ -25,6 +25,16 @@ const STORAGE_BGS = "inthehole_bgs_owned";
 const STORAGE_BG = "inthehole_bg_equipped";
 const STORAGE_CELES = "inthehole_celes_owned";
 const STORAGE_CELE = "inthehole_cele_equipped";
+const STORAGE_UNLOCK_SEEN = "inthehole_unlock_seen";
+
+/** Shop tabs on the counter. Trails and backgrounds stay in the catalog and
+ *  in saves; flip a flag to show that tab again. Equipped ones still apply. */
+const SHOP_TAB_ON = {
+  balls: true,
+  trails: false,
+  bgs: false,
+  celes: true,
+};
 
 const testUnlockOn = resolveTestUnlock(
   location.hostname,
@@ -36,7 +46,6 @@ const testUnlockOn = resolveTestUnlock(
 const skyEl = document.getElementById("sky");
 const boardWrapEl = document.querySelector(".board-wrap");
 const playfieldEl = document.getElementById("playfield");
-const scoreLabel = document.getElementById("score-label");
 const levelLabel = document.getElementById("btn-select");
 const movesLabel = document.getElementById("moves-label");
 const overlay = document.getElementById("overlay");
@@ -54,9 +63,8 @@ const lessonArt = document.getElementById("lesson-art");
 const lessonBody = document.getElementById("lesson-body");
 const lessonBtn = document.getElementById("lesson-btn");
 const pauseMenuEl = document.getElementById("pause-menu");
-const pausePrevBtn = document.getElementById("pause-prev");
-const pauseNextBtn = document.getElementById("pause-next");
 const pauseHowBtn = document.getElementById("pause-how");
+const unlockToast = document.getElementById("unlock-toast");
 const storeEl = document.getElementById("store");
 const storeList = document.getElementById("store-list");
 const storeStars = document.getElementById("store-stars");
@@ -103,6 +111,9 @@ let overlayCoin = false;
 let overlayStarsN = 0;
 let listPlanet = 0;
 let zooming = false;
+let unlockToastTimer = 0;
+let unlockToastIds = [];
+const sessionUnlockBadges = new Set();
 
 const LESSON_ORDER = ["sand", "ice", "oneway", "teleport", "glass", "gates", "mixed", "smog", "jelly", "magma", "collapse", "movers"];
 
@@ -207,6 +218,7 @@ function artHtml(id) {
     magma: `<div class="toy toy-magma"><span class="toy-ball"></span></div>`,
     collapse: `<div class="toy toy-collapse"><span class="toy-pit"></span><span class="toy-ball"></span></div>`,
     movers: `<div class="toy toy-movers"><span class="toy-mover"></span><span class="toy-ball"></span></div>`,
+    plain: `<div class="toy toy-plain"><span class="toy-ball"></span></div>`,
   };
   return toys[id] || toys.mixed;
 }
@@ -249,7 +261,7 @@ function ackLesson() {
 
 function updateLessonButton() {
   if (!pauseHowBtn) return;
-  pauseHowBtn.disabled = lessonsOn(LEVELS[stageIndex]).length === 0;
+  pauseHowBtn.disabled = false;
 }
 
 function maybeAutoLesson() {
@@ -325,23 +337,64 @@ function purse() {
   return Math.max(0, earnedTotal() - spentTotal());
 }
 
-function ownedIds() {
-  const owned = new Set(["oak"]);
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_OWNED) || "[]");
-    if (Array.isArray(raw)) {
-      for (const id of raw) {
-        if (BALLS.some((ball) => ball.id === id)) owned.add(id);
-      }
+function ballUnlockEntries() {
+  const entries = [];
+  for (let p = 0; p < PLANET_ORDER.length; p++) {
+    const planetId = PLANET_ORDER[p];
+    const ballId = PLANET_BALL[planetId];
+    if (!ballId || entries.some((row) => row.ballId === ballId)) continue;
+    let stage = 0;
+    for (let i = 0; i < 12; i++) {
+      if (LEVELS[p * 12 + i]) stage = i + 1;
     }
+    if (stage <= 0) continue;
+    entries.push({ ballId, planetIndex: p + 1, stage, planetZero: p, planetId });
+  }
+  return entries;
+}
+
+let unlockByBall = null;
+function ballUnlock(ballId) {
+  if (!unlockByBall) {
+    unlockByBall = new Map(ballUnlockEntries().map((row) => [row.ballId, row]));
+  }
+  return unlockByBall.get(ballId) || null;
+}
+
+function unlockLabel(ballId) {
+  const info = ballUnlock(ballId);
+  if (!info) return "";
+  return t(lang, "unlock-at", { planet: info.planetIndex, stage: info.stage });
+}
+
+function readStringList(key) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(raw) ? raw.filter((id) => typeof id === "string") : [];
   } catch {
-    /* keep the free ball */
+    return [];
+  }
+}
+
+function ownedIds() {
+  const owned = new Set();
+  for (const ball of BALLS) {
+    if (ball.price === 0 && !ballUnlock(ball.id)) owned.add(ball.id);
+  }
+  for (const id of readStringList(STORAGE_OWNED)) {
+    if (BALLS.some((ball) => ball.id === id)) owned.add(id);
   }
   return owned;
 }
 
 function writeOwned(owned) {
-  const ids = [...owned].filter((id) => id !== "oak");
+  const ids = [];
+  for (const id of owned) {
+    const ball = BALLS.find((item) => item.id === id);
+    if (!ball) continue;
+    if (ball.price === 0 && !ballUnlock(id)) continue;
+    ids.push(id);
+  }
   localStorage.setItem(STORAGE_OWNED, JSON.stringify(ids));
 }
 
@@ -365,21 +418,21 @@ function catalogItem(tab, id) {
 }
 
 function ownedFor(tab) {
+  if (tab === "balls") return ownedIds();
   const spec = SHOP_TABS[tab];
   const known = new Set(spec.items.map((item) => item.id));
   const owned = new Set([spec.free]);
-  try {
-    const raw = JSON.parse(localStorage.getItem(spec.ownedKey) || "[]");
-    if (Array.isArray(raw)) {
-      for (const id of raw) if (known.has(id)) owned.add(id);
-    }
-  } catch {
-    /* keep the free item */
+  for (const id of readStringList(spec.ownedKey)) {
+    if (known.has(id)) owned.add(id);
   }
   return owned;
 }
 
 function writeOwnedFor(tab, owned) {
+  if (tab === "balls") {
+    writeOwned(owned);
+    return;
+  }
   const spec = SHOP_TABS[tab];
   const ids = [...owned].filter((id) => id !== spec.free);
   localStorage.setItem(spec.ownedKey, JSON.stringify(ids));
@@ -456,12 +509,73 @@ function maybeGrantPlanet(level) {
   const p = PLANET_ORDER.indexOf(level.planet);
   if (p < 0 || !planetCleared(p)) return null;
   const ballId = PLANET_BALL[level.planet];
-  if (!ballId || ballId === "oak") return null;
-  const owned = ownedIds();
-  if (owned.has(ballId)) return null;
-  owned.add(ballId);
-  writeOwned(owned);
+  if (!ballId) return null;
+  const fresh = grantClearedPlanetBalls();
+  if (!fresh.includes(ballId)) return null;
+  celebrateUnlocks([ballId]);
   return ballId;
+}
+
+/** Planet-reward balls join the owned list only when that planet is cleared.
+ *  testUnlock opens stages to play; it does not write clears and does not grant.
+ */
+function grantClearedPlanetBalls() {
+  const owned = ownedIds();
+  const fresh = [];
+  for (const row of ballUnlockEntries()) {
+    if (!planetCleared(row.planetZero)) continue;
+    if (owned.has(row.ballId)) continue;
+    owned.add(row.ballId);
+    fresh.push(row.ballId);
+  }
+  if (fresh.length) writeOwned(owned);
+  return fresh;
+}
+
+function celebrateUnlocks(ids) {
+  const seen = new Set(readStringList(STORAGE_UNLOCK_SEEN));
+  const fresh = ids.filter((id) => !seen.has(id));
+  if (!fresh.length) return;
+  markUnlockSeen(fresh);
+  for (const id of fresh) sessionUnlockBadges.add(id);
+  showUnlockToast(fresh);
+}
+
+function markUnlockSeen(ids) {
+  const seen = new Set(readStringList(STORAGE_UNLOCK_SEEN));
+  for (const id of ids) seen.add(id);
+  localStorage.setItem(STORAGE_UNLOCK_SEEN, JSON.stringify([...seen]));
+}
+
+function pendingUnlockBadges() {
+  const owned = ownedIds();
+  const seen = new Set(readStringList(STORAGE_UNLOCK_SEEN));
+  const ids = [];
+  for (const row of ballUnlockEntries()) {
+    if (owned.has(row.ballId) && !seen.has(row.ballId)) ids.push(row.ballId);
+  }
+  for (const id of sessionUnlockBadges) {
+    if (owned.has(id) && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+function showUnlockToast(ids) {
+  if (!unlockToast || !ids.length) return;
+  unlockToastIds = ids.slice();
+  paintUnlockToast();
+  unlockToast.hidden = false;
+  clearTimeout(unlockToastTimer);
+  unlockToastTimer = setTimeout(() => {
+    unlockToast.hidden = true;
+    unlockToastIds = [];
+  }, 3400);
+}
+
+function paintUnlockToast() {
+  if (!unlockToast || !unlockToastIds.length) return;
+  const name = unlockToastIds.map((id) => ballCopy(lang, id).name).join(", ");
+  unlockToast.textContent = t(lang, "unlocked-toast", { name });
 }
 
 function mapOpen() {
@@ -489,12 +603,10 @@ function updateHud() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   const starsLeft = purse();
-  scoreLabel.textContent = String(starsLeft);
   if (mapStars) mapStars.textContent = String(starsLeft);
   const starLabel = `${starsLeft} ${t(lang, "stars")}`;
-  document.getElementById("btn-store").setAttribute("aria-label", starLabel);
   if (mapStarbox) mapStarbox.setAttribute("aria-label", starLabel);
-  if (storeOpen()) storeStars.textContent = String(starsLeft);
+  paintStoreBalance(starsLeft);
   levelLabel.textContent = stageTitle(level, stageIndex);
   const tone = moveCountTone(par, game.moves);
   movesLabel.className = "moves";
@@ -543,9 +655,6 @@ function fitStageTitle() {
 }
 
 function syncPauseLocks() {
-  if (!pausePrevBtn) return;
-  pausePrevBtn.disabled = !canStepTo(stageIndex - 1);
-  pauseNextBtn.disabled = !(stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1));
   updateLessonButton();
 }
 
@@ -1035,26 +1144,14 @@ document.getElementById("pause-resume").addEventListener("click", () => closePau
 pauseMenuEl.addEventListener("click", (e) => {
   if (e.target === pauseMenuEl) closePause();
 });
-document.getElementById("pause-retry").addEventListener("click", () => {
-  closePause();
-  resetStage();
-});
 document.getElementById("pause-stages").addEventListener("click", () => {
   openStageList(planetOf(stageIndex));
 });
-pausePrevBtn.addEventListener("click", () => {
-  if (animating || !canStepTo(stageIndex - 1)) return;
-  loadStage(stageIndex - 1);
-});
-pauseNextBtn.addEventListener("click", () => {
-  if (animating || !(stageIndex < LEVELS.length - 1 && canStepTo(stageIndex + 1))) return;
-  loadStage(stageIndex + 1);
-});
 pauseHowBtn.addEventListener("click", () => {
-  if (pauseHowBtn.disabled || animating) return;
+  if (animating) return;
   const ids = lessonsOn(LEVELS[stageIndex]);
   closePause();
-  playLessonQueue(ids);
+  playLessonQueue(ids.length ? ids : ["plain"]);
 });
 document.getElementById("pause-settings").addEventListener("click", () => openSettings());
 document.getElementById("pause-shop").addEventListener("click", () => openStore());
@@ -1194,7 +1291,7 @@ function openBallDetail(id) {
   storeDetail.hidden = false;
   storeDetailName.textContent = copy.name;
   storeDetailBlurb.textContent = copy.blurb;
-  storeDetailPrice.textContent = item.price === 0 ? t(lang, "free") : `${item.price} ${t(lang, "stars")}`;
+  storeDetailPrice.textContent = itemPriceText("balls", item);
   document.getElementById("store-detail-ball-label").textContent = t(lang, "ball-word");
   document.getElementById("store-detail-goal-label").textContent = t(lang, "goal-word");
   storeDetailBall.alt = copy.name;
@@ -1228,20 +1325,54 @@ function paintBallThumbs(token, nodes) {
   });
 }
 
+function shopTabOn(tab) {
+  return !!(SHOP_TABS[tab] && SHOP_TAB_ON[tab]);
+}
+
+function syncShopTabs() {
+  document.querySelectorAll(".store-tabs button").forEach((btn) => {
+    btn.hidden = !SHOP_TAB_ON[btn.dataset.tab];
+  });
+  if (!shopTabOn(storeTab)) storeTab = "balls";
+}
+
+function paintStoreBalance(starsLeft = purse()) {
+  if (storeStars) storeStars.textContent = String(starsLeft);
+  const balance = document.getElementById("store-balance");
+  if (balance) balance.setAttribute("aria-label", t(lang, "balance-label", { n: starsLeft }));
+}
+
+function itemPriceText(tab, item) {
+  if (tab === "balls" && ballUnlock(item.id)) return unlockLabel(item.id);
+  if (item.price === 0) return t(lang, "free");
+  return `${item.price} ${t(lang, "stars")}`;
+}
+
+function canBuy(tab, item) {
+  if (!item || ownedFor(tab).has(item.id)) return false;
+  if (tab === "balls" && ballUnlock(item.id)) return false;
+  return item.price > 0 && purse() >= item.price;
+}
+
 function renderStore() {
-  const tab = SHOP_TABS[storeTab] ? storeTab : "balls";
+  syncShopTabs();
+  const tab = shopTabOn(storeTab) ? storeTab : "balls";
+  storeTab = tab;
   const spec = SHOP_TABS[tab];
   const owned = ownedFor(tab);
   const equipped = equippedFor(tab);
   const stars = purse();
-  storeStars.textContent = String(stars);
+  const pending = new Set(tab === "balls" ? pendingUnlockBadges() : []);
+  paintStoreBalance(stars);
   storeList.replaceChildren();
   const thumbs = [];
   bakeToken += 1;
   const token = bakeToken;
   for (const item of spec.items) {
+    const locked = tab === "balls" && !!ballUnlock(item.id) && !owned.has(item.id);
+    const showEquipped = item.id === equipped && owned.has(item.id);
     const li = document.createElement("li");
-    li.className = "store-row" + (item.id === equipped ? " is-equipped" : "");
+    li.className = "store-row" + (showEquipped ? " is-equipped" : "") + (locked ? " is-locked" : "");
     let preview;
     if (tab === "balls") {
       const copy = itemCopy(tab, item.id);
@@ -1250,7 +1381,8 @@ function renderStore() {
       preview.className = "ball-pair";
       preview.dataset.act = "detail";
       preview.dataset.id = item.id;
-      preview.setAttribute("aria-label", `${copy.name}, ${t(lang, "goal-word")}`);
+      const lockNote = locked ? `, ${unlockLabel(item.id)}` : "";
+      preview.setAttribute("aria-label", `${copy.name}, ${t(lang, "goal-word")}${lockNote}`);
       const ballWrap = document.createElement("span");
       ballWrap.className = "ball-pair-ball";
       const ballImg = document.createElement("img");
@@ -1276,12 +1408,19 @@ function renderStore() {
     const name = document.createElement("strong");
     name.textContent = copyText.name;
     const price = document.createElement("em");
-    price.textContent = item.price === 0 ? t(lang, "free") : `${item.price} ${t(lang, "stars")}`;
+    price.textContent = itemPriceText(tab, item);
     const blurb = document.createElement("span");
     blurb.textContent = copyText.blurb;
-    copy.append(name, price, blurb);
+    copy.append(name);
+    if (pending.has(item.id)) {
+      const badge = document.createElement("span");
+      badge.className = "store-badge";
+      badge.textContent = t(lang, "unlocked");
+      copy.append(badge);
+    }
+    copy.append(price, blurb);
     li.append(preview, copy);
-    if (item.id === equipped) {
+    if (showEquipped) {
       const state = document.createElement("span");
       state.className = "store-state";
       state.textContent = t(lang, "equipped");
@@ -1294,7 +1433,14 @@ function renderStore() {
       btn.dataset.id = item.id;
       btn.textContent = t(lang, "equip");
       li.append(btn);
-    } else if (stars >= item.price) {
+    } else if (locked) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "store-act";
+      btn.disabled = true;
+      btn.textContent = t(lang, "locked");
+      li.append(btn);
+    } else if (canBuy(tab, item)) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "store-act store-act--buy";
@@ -1307,10 +1453,15 @@ function renderStore() {
       btn.type = "button";
       btn.className = "store-act";
       btn.disabled = true;
-      btn.textContent = `${t(lang, "need")} ${item.price - stars}`;
+      btn.textContent = `${t(lang, "need")} ${Math.max(0, item.price - stars)}`;
       li.append(btn);
     }
     storeList.append(li);
+  }
+  if (tab === "balls" && pending.size) {
+    const migrated = [...pending].filter((id) => !sessionUnlockBadges.has(id));
+    if (migrated.length) markUnlockSeen(migrated);
+    for (const id of pending) sessionUnlockBadges.delete(id);
   }
   if (tab === "balls" && thumbs.length) paintBallThumbs(token, thumbs);
   if (tab === "balls" && detailId && spec.items.some((item) => item.id === detailId)) openBallDetail(detailId);
@@ -1335,7 +1486,7 @@ function closeStore() {
 function askBuy(id) {
   const tab = storeTab;
   const item = catalogItem(tab, id);
-  if (!item || item.id !== id || ownedFor(tab).has(item.id) || purse() < item.price || item.price <= 0) return;
+  if (!item || item.id !== id || !canBuy(tab, item)) return;
   pendingBuy = { tab, id: item.id };
   storeConfirmText.textContent = t(lang, "spend-on", {
     price: item.price,
@@ -1355,7 +1506,7 @@ function confirmBuy() {
   cancelBuy();
   if (!pending) return;
   const item = catalogItem(pending.tab, pending.id);
-  if (!item || item.id !== pending.id || ownedFor(pending.tab).has(item.id) || purse() < item.price) {
+  if (!item || item.id !== pending.id || !canBuy(pending.tab, item)) {
     audio.play("denied");
     renderStore();
     return;
@@ -1381,7 +1532,7 @@ function equipOwned(id) {
 }
 
 function selectStoreTab(tab) {
-  if (!SHOP_TABS[tab]) return;
+  if (!shopTabOn(tab)) return;
   storeTab = tab;
   closeBallDetail();
   document.querySelectorAll(".store-tabs button").forEach((btn) => {
@@ -1393,10 +1544,6 @@ function selectStoreTab(tab) {
   renderStore();
 }
 
-document.getElementById("btn-store").addEventListener("click", () => {
-  if (storeOpen()) closeStore();
-  else openStore();
-});
 storeClose.addEventListener("click", () => closeStore());
 storeSpend.addEventListener("click", () => confirmBuy());
 document.getElementById("store-cancel").addEventListener("click", () => cancelBuy());
@@ -1803,7 +1950,6 @@ function closeSettings() {
 
 function applyLang() {
   document.documentElement.lang = lang;
-  document.getElementById("btn-store").setAttribute("aria-label", t(lang, "shop"));
   document.getElementById("map-starbox").setAttribute("aria-label", t(lang, "shop"));
   document.getElementById("map-shop").textContent = t(lang, "shop");
   document.getElementById("map-play").textContent = t(lang, "play");
@@ -1811,20 +1957,20 @@ function applyLang() {
   document.getElementById("map-settings").setAttribute("aria-label", t(lang, "settings"));
   document.getElementById("pause-title").textContent = t(lang, "paused");
   document.getElementById("pause-resume").textContent = t(lang, "resume");
-  document.getElementById("pause-retry").textContent = t(lang, "retry");
+  document.getElementById("pause-how").textContent = t(lang, "how");
   document.getElementById("pause-stages").textContent = t(lang, "stage-list");
-  pausePrevBtn.textContent = t(lang, "prev");
-  pauseNextBtn.textContent = t(lang, "next-stage");
-  pauseHowBtn.textContent = t(lang, "how");
-  document.getElementById("pause-settings").textContent = t(lang, "settings");
   document.getElementById("pause-shop").textContent = t(lang, "shop");
+  document.getElementById("pause-settings").textContent = t(lang, "settings");
   document.querySelector(".lesson-replay").textContent = t(lang, "replay");
   lessonBtn.textContent = t(lang, "got-it");
   document.getElementById("store-title").textContent = t(lang, "shop-title");
+  syncShopTabs();
   document.querySelectorAll(".store-tabs button").forEach((btn) => {
     btn.textContent = t(lang, `tab-${btn.dataset.tab}`);
   });
-  document.querySelector(".store-balance").lastChild.textContent = ` ${t(lang, "stars")}`;
+  document.getElementById("store-balance-prefix").textContent = t(lang, "balance-prefix");
+  document.getElementById("store-balance-suffix").textContent = t(lang, "balance-suffix");
+  paintUnlockToast();
   storeClose.setAttribute("aria-label", t(lang, "close"));
   document.getElementById("store-detail-close").setAttribute("aria-label", t(lang, "close"));
   storeSpend.textContent = t(lang, "spend");
@@ -1951,6 +2097,7 @@ window.RB_AUDIO = {
 };
 applyLang();
 applyBloom();
+grantClearedPlanetBalls();
 view.setBall(equippedId());
 view.setTrail(equippedFor("trails"));
 view.setCelebration(equippedFor("celes"));

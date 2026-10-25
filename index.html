@@ -16,15 +16,6 @@
   <canvas id="sky" class="sky" aria-hidden="true"></canvas>
   <div class="app">
     <header class="topbar">
-      <div class="hud-top">
-        <button type="button" id="btn-store" class="currency-chip" aria-label="Shop">
-          <svg class="currency-star" viewBox="0 0 64 64" aria-hidden="true">
-            <polygon points="32,6 39.2,23.2 58,24.8 43.8,37.4 48,56.2 32,46.6 16,56.2 20.2,37.4 6,24.8 24.8,23.2" fill="#FFD93A" stroke="#141414" stroke-width="5" stroke-linejoin="round"/>
-          </svg>
-          <span id="score-label" class="score">0</span>
-          <span class="currency-plus" aria-hidden="true">+</span>
-        </button>
-      </div>
       <div class="hud-stage">
         <button type="button" id="btn-pause" class="hud-sq hud-sq--pause" aria-label="Pause" aria-expanded="false" aria-controls="pause-menu">
           <span class="hud-sq-depth" aria-hidden="true"></span>
@@ -103,18 +94,18 @@
         <span class="face-caption">Retry</span>
       </button>
     </nav>
-    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. Pause opens the menu for retry, stages, the lesson, settings, and the shop. The question mark shows the next best move. Hints are unlimited. R resets the stage. N loads the next stage. Shop spends stars on balls, trails, backgrounds, and celebrations.</p>
+    <p class="sr-only">Swipe the board, or use arrow keys and WASD, to tilt. Pause opens Continue, Explanation, the stage list, the shop, and settings. The question mark shows the next best move. Hints are unlimited. R resets the stage. N loads the next stage. The shop spends stars on balls and celebrations.</p>
     <div id="store" class="store" hidden>
       <div class="store-card" role="dialog" aria-modal="true" aria-labelledby="store-title">
         <div class="store-head">
           <h2 id="store-title">Ball Shop</h2>
-          <p class="store-balance"><span id="store-stars">0</span> stars</p>
+          <p class="store-balance" id="store-balance"><span id="store-balance-prefix"></span><span id="store-stars">0</span><span id="store-balance-suffix"> stars</span></p>
           <button type="button" id="store-close" class="store-close" aria-label="Close shop">×</button>
         </div>
         <div class="store-tabs" role="tablist">
           <button type="button" data-tab="balls" class="is-on" role="tab" aria-selected="true">Balls</button>
-          <button type="button" data-tab="trails" role="tab" aria-selected="false">Trails</button>
-          <button type="button" data-tab="bgs" role="tab" aria-selected="false">Backgrounds</button>
+          <button type="button" data-tab="trails" role="tab" aria-selected="false" hidden>Trails</button>
+          <button type="button" data-tab="bgs" role="tab" aria-selected="false" hidden>Backgrounds</button>
           <button type="button" data-tab="celes" role="tab" aria-selected="false">Celebrations</button>
         </div>
         <ul id="store-list" class="store-list"></ul>
@@ -152,7 +143,7 @@
         <h2 id="lesson-title">Glass</h2>
         <div id="lesson-art" class="lesson-art" aria-hidden="true"></div>
         <p id="lesson-body"></p>
-        <p class="lesson-replay">Open Pause and tap How? to see this again.</p>
+        <p class="lesson-replay">Open Pause and tap Explanation to see this again.</p>
         <button id="lesson-btn" type="button" class="kit-btn kit-btn--orange">Got it</button>
       </div>
     </div>
@@ -207,14 +198,11 @@
     <div id="pause-menu" class="pause-menu" hidden>
       <div class="pause-card" role="dialog" aria-modal="true" aria-labelledby="pause-title">
         <h2 id="pause-title">Paused</h2>
-        <button type="button" id="pause-resume" class="kit-btn kit-btn--orange">Resume</button>
-        <button type="button" id="pause-retry" class="kit-btn kit-btn--purple">Retry</button>
+        <button type="button" id="pause-resume" class="kit-btn kit-btn--orange">Continue</button>
+        <button type="button" id="pause-how" class="kit-btn kit-btn--yellow">Explanation</button>
         <button type="button" id="pause-stages" class="kit-btn kit-btn--blue">Stage list</button>
-        <button type="button" id="pause-prev" class="kit-btn kit-btn--yellow">Previous stage</button>
-        <button type="button" id="pause-next" class="kit-btn kit-btn--orange">Next stage</button>
-        <button type="button" id="pause-how" class="kit-btn kit-btn--yellow">How?</button>
-        <button type="button" id="pause-settings" class="kit-btn kit-btn--charcoal">Settings</button>
         <button type="button" id="pause-shop" class="kit-btn kit-btn--blue">Shop</button>
+        <button type="button" id="pause-settings" class="kit-btn kit-btn--charcoal">Settings</button>
       </div>
     </div>
     <div id="settings" class="settings" hidden>
@@ -254,6 +242,7 @@
     <button type="button" id="dialog-close">Close</button>
   </dialog>
 
+  <div id="unlock-toast" class="unlock-toast" hidden role="status"></div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
