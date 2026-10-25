@@ -13,7 +13,7 @@
 | `js/main.js` | UI·진행·상점·행성 맵·저장(localStorage) |
 | `js/board3d.js`, `js/boardDeco.js`, `js/trickLook.js`, `js/sphereMaps.js` | Three.js 보드·연출·공/구멍 비주얼 |
 | `js/levels.js` | `shared/levels.json`에서 자동 생성 (**직접 수정 금지**) |
-| `shared/levels.json` | 스테이지 단일 소스 (144판, 12 행성 × 12) |
+| `shared/levels.json` | 스테이지 단일 소스 (132판, 11 행성 × 12) |
 | `tools/` | 레벨 생성·`validate_levels.py`·`sync_js_levels.py` 등 |
 | `assets/` | 텍스처·이미지 (Pages 배포에 포함) |
 | `docs/` | 기획·HUD·Grok 핸드오프 |
@@ -63,7 +63,7 @@ node tools/sfx/bake.mjs
 2. `python3 tools/sync_js_levels.py` → `js/levels.js` 갱신
 3. `python3 tools/validate_levels.py` — BFS·par·유리/게이트 일치 (`tools/tilt_solver.py` = `js/game.js` 규칙)
 
-캠페인 규모: **144 스테이지** — Wood·Desert·Ice·Ocean·Crystal·Toy·Mushroom·Candy·Lava·Jungle·Alien·Machine (각 12). 그리드: Wood 3→7, Desert 4→7, 나머지 5→7.
+캠페인 규모: **132 스테이지** — Wood·Desert·Ice·Ocean·Crystal·Toy·Candy·Lava·Jungle·Alien·Machine (각 12). 그리드: Wood 3→7, Desert 4→7, 나머지 5→7.
 
 ## 배포 (GitHub Pages)
 

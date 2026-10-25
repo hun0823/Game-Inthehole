@@ -22,7 +22,6 @@ const PLATE = {
   ocean: 0x3a4e56,
   crystal: 0x56546c,
   toy: 0x4a4452,
-  mushroom: 0x4a3846,
   candy: 0x6a4a54,
   lava: 0x4a3834,
   jungle: 0x3a4a3c,

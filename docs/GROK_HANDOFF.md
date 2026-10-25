@@ -33,7 +33,7 @@
 - **스테이지:** `shared/levels.json` (version 8, edge walls) → `tools/sync_js_levels.py` → `js/levels.js`
 - **검증:** `python3 tools/validate_levels.py` (BFS, `tools/tilt_solver.py` = `js/game.js` 규칙)
 - **생성:** `python3 tools/generate_edge_levels.py` 등 (`tools/`)
-- **144 스테이지:** 12 행성 × 12 (Wood, Desert, Ice, Ocean, Crystal, Toy, Mushroom, Candy, Lava, Jungle, Alien, Machine). Wood 3→7, Desert 4→7, 나머지 5→7. 상점 공 29종 + goal v3 페어 (`js/balls.js`)
+- **132 스테이지:** 11 행성 × 12 (Wood, Desert, Ice, Ocean, Crystal, Toy, Candy, Lava, Jungle, Alien, Machine). Wood 3→7, Desert 4→7, 나머지 5→7. 사탕은 장난감 다음. 상점 공 29종 + goal v3 페어 (`js/balls.js`). 버섯공은 행성 보상이 아니라 별 64개 상점 공
 - **별·이동 한도:** `par` = BFS 최적 기울임(버튼 프레스 포함). HUD `moves/par`. 게임오버는 `par + 3`.
 - **힌트:** HUD 왼쪽 `?` 는 무제한. `Game.nextMove()` 가 현재 공·유리 스트레스·게이트 상태에서 같은 `slide` 로 BFS 해 다음 최적 행동(기울임 또는 press)을 낸다. 40수 안에 없으면 Retry.
 - **조작:** 별 카운터는 왼쪽 위. 스테이지 배너는 중앙(이전/다음 화살표 없음). 일시정지·힌트는 배너 좌우. 기울임은 하단 D-pad. Retry(다시)는 오른쪽 아래 원형 버튼. 스테이지 이동·설명·설정·상점은 일시정지 메뉴.
@@ -137,7 +137,7 @@ python3 -m http.server 8080
 
 공 4종(야구·테니스·수박·오크)과 행성 4종(나무·사막·바다·용암)은
 `assets/textures/*.webp` 를 쓴다. 같은 베이커가 나머지 무늬 공과 행성 8개
-(얼음·수정·장난감·버섯·사탕·정글·외계·기계)도 굽는다. 젤리는 단색이라 맵을 넣지 않는다.
+(얼음·수정·장난감·사탕·정글·외계·기계)도 굽는다. 버섯 행성 맵은 없다. 버섯공은 상점에 남아 굽는다. 젤리는 단색이라 맵을 넣지 않는다.
 오크 파일은 `--rebuild` 없이 다시 쓰지 않는다. 재생성은 `python3 tools/bake_sphere_maps.py`.
 출처·라이선스·골 색을 바꾼 이유는 `docs/TEXTURE_MAPS.md`.
 게임 규칙(`js/game.js`)과 레벨 데이터는 이 작업에서 바꾸지 않는다.

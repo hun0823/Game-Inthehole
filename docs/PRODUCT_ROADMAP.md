@@ -10,7 +10,7 @@
 ## 현재 상태 (완료)
 
 - [x] Three.js 플레이 (`index.html` + `js/`), 규칙 단일 소스 `js/game.js`
-- [x] 144 스테이지 — `shared/levels.json` (12 행성 × 12), `tools/validate_levels.py` + `sync_js_levels.py`
+- [x] 132 스테이지 — `shared/levels.json` (11 행성 × 12), `tools/validate_levels.py` + `sync_js_levels.py`
 - [x] 행성 맵·진행(행성 클리어 시 다음 해금), KO/EN (`js/i18n.js`)
 - [x] 아케이드 HUD — [`HUD_LAYOUT.md`](HUD_LAYOUT.md)
 - [x] 상점(별): 공 29종 + goal v3 페어, 트레일·배경·클리어 연출 (`js/cosmetics.js`, `js/balls.js`)

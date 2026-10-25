@@ -271,10 +271,6 @@ const draw = {
     box(g, S * 0.3, S * 0.58, S * 0.4, S * 0.2, "#3d9a4a", "#2a6e34");
     box(g, S * 0.34, S * 0.36, S * 0.36, S * 0.2, "#f08a2a", "#c45e12");
   },
-  house(g, S) {
-    puff(g, S * 0.5, S * 0.4, S * 0.28, S * 0.18, "#e23b3b", "#a82028");
-    box(g, S * 0.38, S * 0.5, S * 0.24, S * 0.32, "#f4f1ea", "#d5c8b4");
-  },
   pop(g, S) {
     puff(g, S * 0.5, S * 0.28, S * 0.2, S * 0.2, "#ff5a9a", "#d43070");
     box(g, S * 0.44, S * 0.46, S * 0.12, S * 0.4, "#f4f7fb", "#d5dde6");
@@ -372,7 +368,6 @@ const SETS = {
   ocean: ["crab", "coral", "coral"],
   crystal: ["gem", "gem", "gem"],
   toy: ["robot", "stack", "stackB"],
-  mushroom: ["house", "house", "house"],
   candy: ["pop", "pop", "pop"],
   lava: ["flame", "rock", "rock"],
   jungle: ["parrot", "leaf", "leaf"],

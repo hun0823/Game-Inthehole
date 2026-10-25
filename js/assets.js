@@ -39,7 +39,6 @@ const REST = [
   ["planet", "ice"],
   ["planet", "crystal"],
   ["planet", "toy"],
-  ["planet", "mushroom"],
   ["planet", "candy"],
   ["planet", "jungle"],
   ["planet", "alien"],

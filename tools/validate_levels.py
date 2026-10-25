@@ -245,7 +245,7 @@ def validate(data):
     levels = data.get("levels") or []
     planets = (
         "wood", "desert", "ice", "ocean", "crystal", "toy",
-        "mushroom", "candy", "lava", "jungle", "alien", "machine",
+        "candy", "lava", "jungle", "alien", "machine",
     )
     # Wood 3→7, desert 4→7, every later planet 5→7. Never above 7.
     size_curve = {
@@ -255,8 +255,8 @@ def validate(data):
     late_sizes = [5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 7]
     planet_pars = {name: [] for name in planets}
     planet_deads = {name: [] for name in planets}
-    if len(levels) != 144:
-        errors.append(f"expected 144 levels, got {len(levels)}")
+    if len(levels) != 132:
+        errors.append(f"expected 132 levels, got {len(levels)}")
     seen = set()
     gallery = Gallery()
     prev_par = {}
@@ -358,8 +358,6 @@ def validate(data):
                     errors.append(f"id {i} crystal stage has no glass")
                 if planet == "toy" and "gates" not in names:
                     errors.append(f"id {i} toy stage has no gates")
-                if planet == "mushroom" and "smog" not in names:
-                    errors.append(f"id {i} mushroom stage has no smog")
                 if planet == "candy" and "jelly" not in names:
                     errors.append(f"id {i} candy stage has no jelly")
                 if planet == "lava" and "magma" not in names:

@@ -89,7 +89,6 @@ const GROUND = {
   ocean: "#1f8fb8",
   crystal: "#8ea0c8",
   toy: "#f0c09a",
-  mushroom: "#6d4a78",
   candy: "#f7b4c8",
   lava: "#6a3028",
   jungle: "#2f7a3a",
@@ -221,12 +220,6 @@ function paintCornerProps(ctx, w, h, id) {
       brick(ctx, 14 * s, h - 64 * s, 30 * s, 28 * s, "#3ec0ff", "#1468c8");
       brick(ctx, right - 16 * s, y0 + 18 * s, 28 * s, 18 * s, "#3d9a4a", "#2a6e34");
       brick(ctx, right - 12 * s, y0 + 36 * s, 26 * s, 16 * s, "#e23b6a", "#a82048");
-    },
-    mushroom: () => {
-      blob(ctx, left + 12 * s, y0 + 16 * s, 14 * s, 10 * s, "#e23b3b", "#a82028");
-      brick(ctx, left + 6 * s, y0 + 22 * s, 12 * s, 16 * s, "#f4f1ea", "#d5c8b4");
-      blob(ctx, right, y0 + 14 * s, 12 * s, 9 * s, "#f2c14a", "#c49220");
-      brick(ctx, right - 6 * s, y0 + 20 * s, 12 * s, 14 * s, "#f4f1ea", "#d5c8b4");
     },
     candy: () => {
       blob(ctx, left + 12 * s, y0 + 10 * s, 12 * s, 12 * s, "#ff5a9a", "#d43070");

@@ -10,6 +10,7 @@ import { BACKGROUNDS, CELEBRATIONS, TRAILS, backgroundById, celebrationById, tra
 import { detectLang, t, planetName, ballCopy, cosmeticCopy, lessonCopy } from "./i18n.js";
 import { bloomPreference, bloomWanted, setBloomPreference } from "./quality.js";
 import { PLANET_ORDER, PLANET_BALL, themeById } from "./themes.js";
+import { migrateCampaignSave, remapLegacyStageId, retiredStars } from "./saveMigrate.js";
 import { createAudio } from "./audio.js";
 import { bootPerf } from "./perf.js";
 
@@ -325,7 +326,7 @@ function saveStars(id, stars) {
 function earnedTotal() {
   let stars = 0;
   for (const lv of LEVELS) stars += getStars(lv.id);
-  return stars;
+  return stars + retiredStars(localStorage);
 }
 
 function spentTotal() {
@@ -945,6 +946,32 @@ async function handleTilt(dir) {
   view.sync(game, { ready: true });
   animating = false;
   handleAfterMove(won);
+}
+
+function remapLegacyStageLink() {
+  const hash = /^#(\d+)$/.exec(location.hash || "");
+  const params = new URLSearchParams(location.search);
+  const fromHash = !!(hash && hash[1]);
+  const raw = fromHash ? hash[1] : params.get("stage");
+  if (!raw) return;
+  const mapped = remapLegacyStageId(Number(raw), PLANET_ORDER);
+  const search = () => {
+    const q = params.toString();
+    return q ? `?${q}` : "";
+  };
+  if (mapped.kind === "mushroom") {
+    params.delete("stage");
+    history.replaceState(null, "", location.pathname + search());
+    return;
+  }
+  if (mapped.kind !== "move" && mapped.kind !== "keep") return;
+  if (mapped.id === Number(raw)) return;
+  if (fromHash) {
+    history.replaceState(null, "", `${location.pathname}${search()}#${mapped.id}`);
+    return;
+  }
+  params.set("stage", String(mapped.id));
+  history.replaceState(null, "", `${location.pathname}?${params}`);
 }
 
 function indexFromLocation() {
@@ -2097,6 +2124,8 @@ window.RB_AUDIO = {
 };
 applyLang();
 applyBloom();
+const saveMigration = migrateCampaignSave(localStorage, PLANET_ORDER);
+if (saveMigration.legacy) remapLegacyStageLink();
 grantClearedPlanetBalls();
 view.setBall(equippedId());
 view.setTrail(equippedFor("trails"));

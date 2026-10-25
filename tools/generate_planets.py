@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""144 stages: 12 planets, 12 boards each, every featured mechanic required.
+"""132 stages: 11 planets, 12 boards each, every featured mechanic required.
 
 Wood is walls only. Later planets introduce one mechanic, then mixes.
 Coins are not generated. Par and budget dead-ends both rise inside a planet,
@@ -22,7 +22,6 @@ PLANETS = (
     "ocean",
     "crystal",
     "toy",
-    "mushroom",
     "candy",
     "lava",
     "jungle",
@@ -36,7 +35,6 @@ LABEL = {
     "ocean": "Ocean",
     "crystal": "Crystal",
     "toy": "Toy",
-    "mushroom": "Mushroom",
     "candy": "Candy",
     "lava": "Lava",
     "jungle": "Jungle",
@@ -59,7 +57,6 @@ STAGE_ONE = {
     "ocean": 8,
     "crystal": 9,
     "toy": 10,
-    "mushroom": 11,
     "candy": 12,
     "lava": 13,
     "jungle": 14,
@@ -87,7 +84,6 @@ CAP = {
     "ocean": {5: 12, 6: 14, 7: 16},
     "crystal": {5: 13, 6: 15, 7: 16},
     "toy": {5: 14, 6: 15, 7: 17},
-    "mushroom": {5: 14, 6: 16, 7: 17},
     "candy": {5: 15, 6: 16, 7: 17},
     # 5x5 magma rarely has two different par-14 maps. Three par-13 openers
     # still leave the later sizes to carry the average above candy.
@@ -222,8 +218,6 @@ def slot_kinds(planet, stage_index):
         return ["glass"]
     if planet == "toy":
         return ["gates"]
-    if planet == "mushroom":
-        return ["smog"]
     if planet == "candy":
         return ["jelly"]
     if planet == "lava":

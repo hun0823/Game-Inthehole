@@ -14,7 +14,7 @@ export const MAP_BALLS = [
 export const UNMAPPED_BALLS = [];
 export const MAP_PLANETS = [
   "wood", "desert", "ocean", "lava",
-  "ice", "crystal", "toy", "mushroom", "candy", "jungle", "alien", "machine",
+  "ice", "crystal", "toy", "candy", "jungle", "alien", "machine",
 ];
 
 const BALL_EXTRA = {
@@ -69,7 +69,6 @@ const PLANET_LOOK = {
   ice: { envMapIntensity: 0.22, normalScale: 0.5 },
   crystal: { envMapIntensity: 0.2, normalScale: 0.7 },
   toy: { envMapIntensity: 0.12, normalScale: 0.25 },
-  mushroom: { envMapIntensity: 0.1, normalScale: 0.4 },
   candy: { envMapIntensity: 0.16, normalScale: 0.3 },
   jungle: { envMapIntensity: 0.1, normalScale: 0.5 },
   alien: { envMapIntensity: 0.16, normalScale: 0.8, emissiveIntensity: 0.7 },

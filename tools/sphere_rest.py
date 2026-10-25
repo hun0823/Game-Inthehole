@@ -704,21 +704,6 @@ def paint_toy_planet(x, y, z):
     return col, height, rough
 
 
-def paint_mushroom_planet(x, y, z):
-    field = fbm(x * 1.5, y * 1.2, z * 1.5, 3)
-    cap = mix(rgb_of("#a33a48"), rgb_of("#e23b3b"), smoothstep(0.35, 0.65, field))
-    moss = smoothstep(0.22, 0.34, field)
-    col = mix(rgb_of("#3d5a32"), cap, moss)
-    spots = _fibonacci(9, 1.7)
-    spot = np.zeros(x.shape, dtype=np.float32)
-    for point in spots:
-        spot = np.maximum(spot, _disc(x, y, z, point, 0.11, 0.02))
-    col = mix(col, rgb_of("#f4efe6"), spot * moss)
-    height = (field - 0.5) * 0.08 + spot * 0.03
-    rough = mix(np.float32(0.78), np.float32(0.58), moss)
-    return np.clip(col, 0, 1), height.astype(np.float32), rough.astype(np.float32)
-
-
 def paint_candy_planet(x, y, z):
     lon = np.arctan2(z, x)
     swirl = np.sin(lon * 2.0 + y * 8.0)
@@ -829,7 +814,6 @@ PLANETS = {
     "planet_ice": (paint_ice_planet, 0.6, 80, False),
     "planet_crystal": (paint_crystal_planet, 0.85, 82, False),
     "planet_toy": (paint_toy_planet, 0.2, 84, False),
-    "planet_mushroom": (paint_mushroom_planet, 0.5, 80, False),
     "planet_candy": (paint_candy_planet, 0.35, 82, False),
     "planet_jungle": (paint_jungle_planet, 0.6, 80, False),
     "planet_alien": (paint_alien_planet, 0.55, 80, True),
