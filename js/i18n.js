@@ -27,6 +27,13 @@ const STR = {
     "tab-bgs": "Backgrounds",
     "tab-celes": "Celebrations",
     "stars": "stars",
+    "balance-prefix": "★ ",
+    "balance-suffix": " stars",
+    "balance-label": "{n} stars left",
+    "unlock-at": "(Unlock {planet}-{stage})",
+    "unlocked": "Unlocked",
+    "unlocked-toast": "Unlocked: {name}",
+    "locked": "Locked",
     "free": "Free",
     "equipped": "Equipped",
     "equip": "Equip",
@@ -54,14 +61,14 @@ const STR = {
     "reward-kicker": "Planet set",
     "restart": "From the start",
     "stages": "Stages",
-    "how": "How?",
+    "how": "Explanation",
     "pause": "Pause",
     "paused": "Paused",
-    "resume": "Resume",
+    "resume": "Continue",
     "stage-list": "Stage list",
     "next-stage": "Next stage",
     "got-it": "Got it",
-    "replay": "Open Pause and tap How? to see this again.",
+    "replay": "Open Pause and tap Explanation to see this again.",
     "hint": "Hint",
     "prev": "Previous stage",
     "retry": "Retry",
@@ -102,6 +109,13 @@ const STR = {
     "tab-bgs": "배경",
     "tab-celes": "축하",
     "stars": "별",
+    "balance-prefix": "★ 남은 별 ",
+    "balance-suffix": "",
+    "balance-label": "남은 별 {n}",
+    "unlock-at": "({planet}-{stage} 해금)",
+    "unlocked": "해금",
+    "unlocked-toast": "해금: {name}",
+    "locked": "잠김",
     "free": "무료",
     "equipped": "장착됨",
     "equip": "장착",
@@ -133,7 +147,7 @@ const STR = {
     "pause": "일시정지",
     "paused": "일시정지",
     "resume": "계속",
-    "stage-list": "스테이지 목록",
+    "stage-list": "스테이지목록",
     "next-stage": "다음 스테이지",
     "got-it": "알겠어요",
     "replay": "일시정지에서 설명을 누르면 다시 볼 수 있어요.",
@@ -312,6 +326,7 @@ const LESSONS = {
     magma: ["Lava", "A marked square starts as floor. One tilt before it collapses, the floor cracks and you can still cross. The next tilt turns it into molten lava for good. Lava is not a wall. Rolling onto it, across it, or standing on it when it collapses ends the stage. No star. Retry starts over. A bump that does not move the ball does not count."],
     collapse: ["Collapsing floor", "A thin square crumbles after the ball leaves it, and also when a tilt ends there. You cannot roll onto it again."],
     movers: ["Swinging vines", "The vine bar switches to its other edge after every tilt that moves the ball. A bump that goes nowhere leaves it where it is."],
+    plain: ["This stage", "No extra rule on this stage. Tilt the board and roll the ball into the hole."],
   },
   ko: {
     sand: ["모래", "모래 칸에 들어가는 순간 공이 멈춥니다. 그 기울이기는 모래 위에서 끝나요."],
@@ -326,6 +341,7 @@ const LESSONS = {
     magma: ["용암", "표시된 칸은 보통 바닥으로 시작합니다. 무너지기 한 번 전에는 바닥에 금이 가고, 아직 건널 수 있어요. 다음 기울이기에 녹은 용암이 되어 그대로 남습니다. 용암은 벽이 아닙니다. 그 칸으로 굴러 들어가거나, 가로지르거나, 서 있는 동안 무너지면 스테이지가 끝납니다. 별은 없고, 다시 하면 처음부터예요. 공이 움직이지 않은 부딪힘은 횟수에 들어가지 않습니다."],
     collapse: ["무너지는 바닥", "얇은 칸은 공이 떠난 뒤, 또는 기울이기가 그 칸에서 끝나면 무너집니다. 다시 올라갈 수 없어요."],
     movers: ["흔들리는 덩굴", "공이 움직인 기울이기마다 덩굴 막대가 반대편 가장자리로 옮겨갑니다. 제자리 부딪힘은 그대로 둡니다."],
+    plain: ["이 스테이지", "특별한 규칙은 없어요. 보드를 기울여 공을 구멍에 넣으세요."],
   },
 };
 
@@ -342,7 +358,7 @@ export function detectLang() {
 
 export function t(lang, key, vars) {
   const table = STR[lang] || STR.en;
-  let text = table[key] || STR.en[key] || key;
+  let text = table[key] ?? STR.en[key] ?? key;
   if (vars) {
     for (const [name, value] of Object.entries(vars)) {
       text = text.replaceAll(`{${name}}`, value);
