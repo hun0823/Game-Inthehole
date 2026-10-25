@@ -46,7 +46,6 @@ const testUnlockOn = resolveTestUnlock(
 const skyEl = document.getElementById("sky");
 const boardWrapEl = document.querySelector(".board-wrap");
 const playfieldEl = document.getElementById("playfield");
-const scoreLabel = document.getElementById("score-label");
 const levelLabel = document.getElementById("btn-select");
 const movesLabel = document.getElementById("moves-label");
 const overlay = document.getElementById("overlay");
@@ -604,10 +603,8 @@ function updateHud() {
   const level = LEVELS[stageIndex];
   const par = level.par || 0;
   const starsLeft = purse();
-  scoreLabel.textContent = String(starsLeft);
   if (mapStars) mapStars.textContent = String(starsLeft);
   const starLabel = `${starsLeft} ${t(lang, "stars")}`;
-  document.getElementById("btn-store").setAttribute("aria-label", starLabel);
   if (mapStarbox) mapStarbox.setAttribute("aria-label", starLabel);
   paintStoreBalance(starsLeft);
   levelLabel.textContent = stageTitle(level, stageIndex);
@@ -1547,10 +1544,6 @@ function selectStoreTab(tab) {
   renderStore();
 }
 
-document.getElementById("btn-store").addEventListener("click", () => {
-  if (storeOpen()) closeStore();
-  else openStore();
-});
 storeClose.addEventListener("click", () => closeStore());
 storeSpend.addEventListener("click", () => confirmBuy());
 document.getElementById("store-cancel").addEventListener("click", () => cancelBuy());
@@ -1957,7 +1950,6 @@ function closeSettings() {
 
 function applyLang() {
   document.documentElement.lang = lang;
-  document.getElementById("btn-store").setAttribute("aria-label", t(lang, "shop"));
   document.getElementById("map-starbox").setAttribute("aria-label", t(lang, "shop"));
   document.getElementById("map-shop").textContent = t(lang, "shop");
   document.getElementById("map-play").textContent = t(lang, "play");

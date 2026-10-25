@@ -34,13 +34,15 @@ On the planet map the column is `visibility: hidden` but still laid out. Read th
 
 ## Measured play column
 
-Toy 8, Korean and English (same boxes). No safe-area insets, so these match a layout viewport of exactly that size. Heights are CSS pixels, rounded.
+The in-game top bar is one row: pause, the stage banner, and hint. The star balance is not on this bar (it stays on the shop header and the planet map). Toy 8, Korean and English (same boxes). No safe-area insets, so these match a layout viewport of exactly that size. Heights are CSS pixels, rounded.
 
 | Viewport | `.topbar` | `.controls` | Up-button face | `boardRect().height` | `dpadOverlap` |
 |----------|-----------|-------------|----------------|----------------------|---------------|
-| 375×667 | 111 | 228 | 62×68 | 332 | 12 |
-| 390×844 | 112 | 228 | 62×68 | 508 | 12 |
-| 430×932 | 133 | 244 | 66×72 | 559 | 12 |
+| 375×667 | 64 | 228 | 62×68 | 380 | 12 |
+| 390×844 | 65 | 228 | 62×68 | 556 | 12 |
+| 430×932 | 77 | 244 | 66×72 | 616 | 12 |
+
+`--hud-bottom` is the measured bottom edge of that bar, not its height. With the 4px app padding and no safe-area inset it is 68 / 69 / 81 at these three viewports. A shorter bar publishes a smaller `--hud-bottom`, and the board grows by the freed strip. `--dpad-top`, `--dpad-overlap` (12px), and the D-pad box are unchanged.
 
 Widths under 400px, or heights under 720px, use the compact tier (68px slots, 3px cross gaps, 62px faces). Wider, taller phones use 72px slots, 4px gaps, and 66px faces. The cross stays a 3×3 grid; only the gap between buttons got tighter. The retry circle's bottom lines up with the down button, and its caption hangs in the reserved space under that row.
 
@@ -48,8 +50,8 @@ Same stages with iPhone insets (status bar, and a home-indicator inset where the
 
 | Viewport | Insets (top / bottom) | HUD top | Gap under `.controls` | `boardRect().height` |
 |----------|----------------------|---------|------------------------|----------------------|
-| 375×667 | 20 / 0 | 24 | 4 | 312 |
-| 390×844 | 47 / 34 | 51 | 38 | 427 |
-| 430×932 | 59 / 34 | 63 | 38 | 466 |
+| 375×667 | 20 / 0 | 24 | 4 | 360 |
+| 390×844 | 47 / 34 | 51 | 38 | 475 |
+| 430×932 | 59 / 34 | 63 | 38 | 523 |
 
-On `main` before this pass the free board was 309 / 484 / 497 at these three viewports (HUD 127 / 128 / 151, controls 216 / 216 / 268).
+With the in-game star chip still on the bar, the free board was 332 / 508 / 559 at these three viewports (top bar 111 / 112 / 133, controls 228 / 228 / 244). On `main` before the arcade HUD the free board was 309 / 484 / 497 (HUD 127 / 128 / 151, controls 216 / 216 / 268).
