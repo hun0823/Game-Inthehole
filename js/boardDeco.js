@@ -122,8 +122,8 @@ function eye(g, x, y, r) {
 const READ = 1.28;
 let spriteUnit = 1;
 
-function stamp(parent, key, draw, x, y, z, w, h, anchorY = 0.12) {
-  const { mat } = paint(key, draw);
+function stamp(parent, key, draw, x, y, z, w, h, anchorY = 0.12, size = 160) {
+  const { mat } = paint(key, draw, size);
   const sprite = new THREE.Sprite(mat);
   sprite.center.set(0.5, anchorY);
   const s = READ * spriteUnit;
@@ -142,6 +142,32 @@ function bob(sprite) {
   });
 }
 
+// Wood mascot. The board rig already springs on nudge(); this reads that
+// roll and adds a softer follow so the body and tail lean, then settle.
+// Idle bob stays, quieter than the other mascots.
+function sway(sprite) {
+  const baseX = sprite.position.x;
+  const baseY = sprite.position.y;
+  let angle = 0;
+  let vel = 0;
+  let prev = null;
+  let rig = null;
+  loop((time) => {
+    const dt = prev == null ? 0.016 : Math.min(0.033, Math.max(0, time - prev));
+    prev = time;
+    if (!rig) rig = sprite.parent && sprite.parent.parent;
+    const roll = rig ? rig.rotation.z : 0;
+    // Sprite quads in r170 spin from material.rotation, not Object3D.rotation.
+    const target = roll * 1.55;
+    const omega = 9;
+    vel += (omega * omega * (target - angle) - 2 * omega * vel) * dt;
+    angle += vel * dt;
+    sprite.material.rotation = angle;
+    sprite.position.x = baseX - angle * 0.55;
+    sprite.position.y = baseY + Math.sin(time * 2.1) * 0.012;
+  });
+}
+
 function metrics(span, frameT) {
   const inner = span / 2 - 0.01;
   const outer = inner + frameT;
@@ -154,16 +180,108 @@ function metrics(span, frameT) {
   };
 }
 
+const SQUIRREL_URL = new URL("../assets/deco/squirrel.png", import.meta.url).href;
+let squirrelMap = null;
+const squirrelFitters = [];
+
+function woodSquirrelMap() {
+  if (squirrelMap) return squirrelMap;
+  squirrelMap = new THREE.TextureLoader().load(SQUIRREL_URL, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    const image = tex.image;
+    for (const fit of squirrelFitters) fit(image);
+    squirrelFitters.length = 0;
+  });
+  squirrelMap.colorSpace = THREE.SRGBColorSpace;
+  squirrelMap.generateMipmaps = true;
+  squirrelMap.minFilter = THREE.LinearMipmapLinearFilter;
+  squirrelMap.magFilter = THREE.LinearFilter;
+  return squirrelMap;
+}
+
+function woodSquirrel(parent, x, y, z) {
+  const map = woodSquirrelMap();
+  const mat = new THREE.SpriteMaterial({
+    map,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const sprite = new THREE.Sprite(mat);
+  // Feet sit on the frame. The PNG is cropped tight to the mockup squirrel.
+  sprite.center.set(0.5, 0.06);
+  const unit = spriteUnit;
+  const applyScale = (img) => {
+    const aspect = img.width / Math.max(1, img.height);
+    const h = 1.5 * READ * unit;
+    sprite.scale.set(h * aspect, h, 1);
+  };
+  if (map.image && map.image.width) applyScale(map.image);
+  else {
+    sprite.scale.set(1.62 * READ * unit, 1.5 * READ * unit, 1);
+    squirrelFitters.push(applyScale);
+  }
+  sprite.position.set(x, y, z);
+  sprite.renderOrder = 6;
+  sprite.frustumCulled = false;
+  sprite.name = "wood-squirrel";
+  parent.add(sprite);
+  return sprite;
+}
+
 const draw = {
-  squirrel(g, S) {
-    puff(g, S * 0.42, S * 0.58, S * 0.22, S * 0.2, "#c47a3a", "#8a4e22");
-    puff(g, S * 0.62, S * 0.4, S * 0.16, S * 0.14, "#e8a05a", "#c47a3a");
-    puff(g, S * 0.28, S * 0.42, S * 0.12, S * 0.16, "#c47a3a", "#8a4e22");
-    eye(g, S * 0.68, S * 0.36, 7);
-  },
   tree(g, S) {
-    box(g, S * 0.42, S * 0.62, S * 0.16, S * 0.28, "#8a5a32", "#5c3a1e");
-    puff(g, S * 0.5, S * 0.42, S * 0.28, S * 0.26, "#3d9a4a", "#2a6e34");
+    const ink = Math.max(9, S * 0.046);
+    g.lineJoin = "round";
+    g.lineWidth = ink;
+    g.strokeStyle = INK;
+    const trunk = () => {
+      g.beginPath();
+      g.moveTo(S * 0.40, S * 0.56);
+      g.lineTo(S * 0.60, S * 0.56);
+      g.lineTo(S * 0.68, S * 0.90);
+      g.lineTo(S * 0.32, S * 0.90);
+      g.closePath();
+    };
+    g.fillStyle = "#8a5a32";
+    trunk();
+    g.fill();
+    g.stroke();
+    g.save();
+    trunk();
+    g.clip();
+    g.fillStyle = "#5c3a1e";
+    g.fillRect(S * 0.52, S * 0.56, S * 0.2, S * 0.36);
+    g.fillStyle = "rgba(255,255,255,0.28)";
+    g.fillRect(S * 0.36, S * 0.62, S * 0.1, S * 0.2);
+    g.restore();
+    const lobes = [
+      [0.5, 0.34, 0.30, 0.26, "#46d25a"],
+      [0.28, 0.44, 0.20, 0.18, "#2e9a40"],
+      [0.72, 0.46, 0.19, 0.16, "#1f7a32"],
+    ];
+    for (const [cx, cy, rx, ry] of lobes) {
+      g.fillStyle = INK;
+      g.beginPath();
+      g.ellipse(S * cx, S * cy, S * rx, S * ry, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    for (const [cx, cy, rx, ry, fill] of lobes) {
+      g.fillStyle = fill;
+      g.beginPath();
+      g.ellipse(S * cx, S * cy, Math.max(2, S * rx - ink), Math.max(2, S * ry - ink), 0, 0, Math.PI * 2);
+      g.fill();
+      g.save();
+      g.beginPath();
+      g.ellipse(S * cx, S * cy, Math.max(2, S * rx - ink), Math.max(2, S * ry - ink), 0, 0, Math.PI * 2);
+      g.clip();
+      g.fillStyle = "rgba(255,255,255,0.22)";
+      g.beginPath();
+      g.ellipse(S * cx - S * rx * 0.25, S * cy - S * ry * 0.28, S * rx * 0.28, S * ry * 0.18, -0.5, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
   },
   lizard(g, S) {
     puff(g, S * 0.48, S * 0.55, S * 0.28, S * 0.14, "#7ec85a", "#3d8a34");
@@ -357,12 +475,19 @@ function place(group, mascot, left, right, m) {
   // would hide the face against the HUD.
   const hero = stamp(group, mascot, draw[mascot], 0, m.y, m.top, 1.15, 1.3, 0.38);
   bob(hero);
-  stamp(group, left, draw[left], -m.outer * 0.9, m.y, m.top, 0.92, 1.25, 0.32);
-  stamp(group, right, draw[right], m.outer * 0.9, m.y, m.top, 0.88, 1.15, 0.32);
+  if (left) stamp(group, left, draw[left], -m.outer * 0.9, m.y, m.top, 0.92, 1.25, 0.32);
+  if (right) stamp(group, right, draw[right], m.outer * 0.9, m.y, m.top, 0.88, 1.15, 0.32);
+}
+
+function placeWood(group, m) {
+  const hero = woodSquirrel(group, 0, m.y, m.top);
+  sway(hero);
+  // Inset from the left edge so a left roll does not clip the canopy.
+  stamp(group, "tree", draw.tree, -m.outer * 0.70, m.y, m.top, 1.28, 1.78, 0.26, 256);
 }
 
 const SETS = {
-  wood: ["squirrel", "tree", "tree"],
+  wood: ["squirrel", "tree"],
   desert: ["lizard", "cactus", "cactus"],
   ice: ["penguin", "peak", "peak"],
   ocean: ["crab", "coral", "coral"],
@@ -380,7 +505,15 @@ export function createBoardDeco(planet, span, frameT = 0.4) {
   group.name = "board-deco";
   const m = metrics(span, frameT);
   spriteUnit = m.unit;
-  const set = SETS[planet] || SETS.wood;
+  if (planet === "wood") {
+    placeWood(group, m);
+    return group;
+  }
+  const set = SETS[planet];
+  if (!set) {
+    placeWood(group, m);
+    return group;
+  }
   place(group, set[0], set[1], set[2], m);
   return group;
 }
