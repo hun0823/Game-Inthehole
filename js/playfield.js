@@ -187,6 +187,37 @@ function balloon(ctx, x, y, fill, shade, s) {
   ctx.stroke();
 }
 
+function acornProp(ctx, x, y, s) {
+  const ink = 4.5 * s;
+  const blobAt = (cx, cy, rx, ry, fill, shade) => {
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = fill;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(1, rx - ink), Math.max(1, ry - ink), 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (!shade) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, Math.max(1, rx - ink), Math.max(1, ry - ink), 0, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.ellipse(cx + rx * 0.28, cy + ry * 0.12, rx * 0.62, ry * 0.72, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.42)";
+    ctx.beginPath();
+    ctx.ellipse(cx - rx * 0.28, cy - ry * 0.2, rx * 0.22, ry * 0.28, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  };
+  blobAt(x, y + 10 * s, 18 * s, 20 * s, "#e8a05a", "#c47a3a");
+  blobAt(x, y - 6 * s, 20 * s, 13 * s, "#3d9a4a", "#2a6e34");
+  blobAt(x, y - 18 * s, 5.5 * s, 8 * s, "#46d25a", "#2a6e34");
+}
+
 function paintCornerProps(ctx, w, h, id) {
   const s = Math.max(0.72, Math.min(1, w / 430));
   const y0 = bandTop(h);
@@ -194,9 +225,7 @@ function paintCornerProps(ctx, w, h, id) {
   const right = w - 22 * s;
   const painters = {
     wood: () => {
-      blob(ctx, left + 16 * s, y0 + 28 * s, 12 * s, 10 * s, "#c47a3a", "#8a4e22");
-      brick(ctx, right - 8 * s, y0 + 8 * s, 16 * s, 28 * s, "#8a5a32", "#5c3a1e");
-      blob(ctx, right, y0 + 2 * s, 16 * s, 14 * s, "#3d9a4a", "#2a6e34");
+      acornProp(ctx, left + 48 * s, y0 + 34 * s, s);
     },
     desert: () => {
       brick(ctx, left, y0 + 6 * s, 14 * s, 36 * s, "#3d9a4a", "#2a6e34");
