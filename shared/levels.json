@@ -1,5 +1,5 @@
 {
-  "version": 13,
+  "version": 14,
   "levels": [
     {
       "id": 1,
@@ -5860,1110 +5860,6 @@
     },
     {
       "id": 73,
-      "name": "Mushroom 1",
-      "size": 5,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 3
-      },
-      "hole": {
-        "row": 4,
-        "col": 3
-      },
-      "par": 11,
-      "smog": [
-        {
-          "row": 3,
-          "col": 4
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 74,
-      "name": "Mushroom 2",
-      "size": 5,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 0
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 3
-      },
-      "hole": {
-        "row": 4,
-        "col": 2
-      },
-      "par": 12,
-      "smog": [
-        {
-          "row": 3,
-          "col": 4
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 75,
-      "name": "Mushroom 3",
-      "size": 5,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 0
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 0
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 4
-      },
-      "hole": {
-        "row": 0,
-        "col": 4
-      },
-      "par": 12,
-      "smog": [
-        {
-          "row": 2,
-          "col": 2
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 76,
-      "name": "Mushroom 4",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 1
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 1
-        }
-      ],
-      "ball": {
-        "row": 2,
-        "col": 1
-      },
-      "hole": {
-        "row": 1,
-        "col": 0
-      },
-      "par": 13,
-      "smog": [
-        {
-          "row": 0,
-          "col": 2
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 77,
-      "name": "Mushroom 5",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 0,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 4,
-        "col": 2
-      },
-      "hole": {
-        "row": 2,
-        "col": 5
-      },
-      "par": 13,
-      "smog": [
-        {
-          "row": 5,
-          "col": 4
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 78,
-      "name": "Mushroom 6",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 1
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 4
-      },
-      "hole": {
-        "row": 2,
-        "col": 5
-      },
-      "par": 14,
-      "smog": [
-        {
-          "row": 0,
-          "col": 2
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 79,
-      "name": "Mushroom 7",
-      "size": 6,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 3,
-        "col": 1
-      },
-      "hole": {
-        "row": 0,
-        "col": 4
-      },
-      "par": 14,
-      "smog": [
-        {
-          "row": 2,
-          "col": 5
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 80,
-      "name": "Mushroom 8",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 6
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 4
-        },
-        {
-          "row": 6,
-          "col": 2
-        }
-      ],
-      "ball": {
-        "row": 5,
-        "col": 6
-      },
-      "hole": {
-        "row": 0,
-        "col": 2
-      },
-      "par": 15,
-      "smog": [
-        {
-          "row": 0,
-          "col": 2
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 81,
-      "name": "Mushroom 9",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 5
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 5
-        },
-        {
-          "row": 4,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 1
-      },
-      "hole": {
-        "row": 0,
-        "col": 3
-      },
-      "par": 15,
-      "smog": [
-        {
-          "row": 4,
-          "col": 0
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 82,
-      "name": "Mushroom 10",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 6
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 2
-        },
-        {
-          "row": 5,
-          "col": 4
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 1,
-          "col": 1
-        },
-        {
-          "row": 1,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 4
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 1
-        },
-        {
-          "row": 6,
-          "col": 4
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 1
-      },
-      "hole": {
-        "row": 6,
-        "col": 2
-      },
-      "par": 16,
-      "smog": [
-        {
-          "row": 5,
-          "col": 4
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 83,
-      "name": "Mushroom 11",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 6
-        },
-        {
-          "row": 4,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 1
-        },
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 5,
-          "col": 0
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 6,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 0
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 1
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 3,
-          "col": 0
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 3
-        },
-        {
-          "row": 4,
-          "col": 3
-        }
-      ],
-      "ball": {
-        "row": 1,
-        "col": 4
-      },
-      "hole": {
-        "row": 0,
-        "col": 5
-      },
-      "par": 16,
-      "smog": [
-        {
-          "row": 4,
-          "col": 0
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 84,
-      "name": "Mushroom 12",
-      "size": 7,
-      "hWalls": [
-        {
-          "row": 0,
-          "col": 3
-        },
-        {
-          "row": 0,
-          "col": 5
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 1,
-          "col": 6
-        },
-        {
-          "row": 2,
-          "col": 0
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 2
-        },
-        {
-          "row": 4,
-          "col": 3
-        }
-      ],
-      "vWalls": [
-        {
-          "row": 0,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 2
-        },
-        {
-          "row": 1,
-          "col": 4
-        },
-        {
-          "row": 2,
-          "col": 3
-        },
-        {
-          "row": 2,
-          "col": 5
-        },
-        {
-          "row": 3,
-          "col": 2
-        },
-        {
-          "row": 3,
-          "col": 4
-        },
-        {
-          "row": 4,
-          "col": 1
-        },
-        {
-          "row": 4,
-          "col": 3
-        },
-        {
-          "row": 5,
-          "col": 3
-        },
-        {
-          "row": 6,
-          "col": 2
-        },
-        {
-          "row": 6,
-          "col": 5
-        }
-      ],
-      "ball": {
-        "row": 0,
-        "col": 4
-      },
-      "hole": {
-        "row": 6,
-        "col": 6
-      },
-      "par": 17,
-      "smog": [
-        {
-          "row": 1,
-          "col": 3
-        }
-      ],
-      "planet": "mushroom"
-    },
-    {
-      "id": 85,
       "name": "Candy 1",
       "size": 5,
       "hWalls": [
@@ -7052,7 +5948,7 @@
       "planet": "candy"
     },
     {
-      "id": 86,
+      "id": 74,
       "name": "Candy 2",
       "size": 5,
       "hWalls": [
@@ -7129,7 +6025,7 @@
       "planet": "candy"
     },
     {
-      "id": 87,
+      "id": 75,
       "name": "Candy 3",
       "size": 5,
       "hWalls": [
@@ -7218,7 +6114,7 @@
       "planet": "candy"
     },
     {
-      "id": 88,
+      "id": 76,
       "name": "Candy 4",
       "size": 6,
       "hWalls": [
@@ -7315,7 +6211,7 @@
       "planet": "candy"
     },
     {
-      "id": 89,
+      "id": 77,
       "name": "Candy 5",
       "size": 6,
       "hWalls": [
@@ -7396,7 +6292,7 @@
       "planet": "candy"
     },
     {
-      "id": 90,
+      "id": 78,
       "name": "Candy 6",
       "size": 6,
       "hWalls": [
@@ -7497,7 +6393,7 @@
       "planet": "candy"
     },
     {
-      "id": 91,
+      "id": 79,
       "name": "Candy 7",
       "size": 6,
       "hWalls": [
@@ -7594,7 +6490,7 @@
       "planet": "candy"
     },
     {
-      "id": 92,
+      "id": 80,
       "name": "Candy 8",
       "size": 7,
       "hWalls": [
@@ -7747,7 +6643,7 @@
       "planet": "candy"
     },
     {
-      "id": 93,
+      "id": 81,
       "name": "Candy 9",
       "size": 7,
       "hWalls": [
@@ -7856,7 +6752,7 @@
       "planet": "candy"
     },
     {
-      "id": 94,
+      "id": 82,
       "name": "Candy 10",
       "size": 7,
       "hWalls": [
@@ -7981,7 +6877,7 @@
       "planet": "candy"
     },
     {
-      "id": 95,
+      "id": 83,
       "name": "Candy 11",
       "size": 7,
       "hWalls": [
@@ -8118,7 +7014,7 @@
       "planet": "candy"
     },
     {
-      "id": 96,
+      "id": 84,
       "name": "Candy 12",
       "size": 7,
       "hWalls": [
@@ -8239,7 +7135,7 @@
       "planet": "candy"
     },
     {
-      "id": 97,
+      "id": 85,
       "name": "Lava 1",
       "size": 5,
       "hWalls": [
@@ -8301,7 +7197,7 @@
       "planet": "lava"
     },
     {
-      "id": 98,
+      "id": 86,
       "name": "Lava 2",
       "size": 5,
       "hWalls": [
@@ -8359,7 +7255,7 @@
       "planet": "lava"
     },
     {
-      "id": 99,
+      "id": 87,
       "name": "Lava 3",
       "size": 5,
       "hWalls": [
@@ -8429,7 +7325,7 @@
       "planet": "lava"
     },
     {
-      "id": 100,
+      "id": 88,
       "name": "Lava 4",
       "size": 6,
       "hWalls": [
@@ -8515,7 +7411,7 @@
       "planet": "lava"
     },
     {
-      "id": 101,
+      "id": 89,
       "name": "Lava 5",
       "size": 6,
       "hWalls": [
@@ -8593,7 +7489,7 @@
       "planet": "lava"
     },
     {
-      "id": 102,
+      "id": 90,
       "name": "Lava 6",
       "size": 6,
       "hWalls": [
@@ -8671,7 +7567,7 @@
       "planet": "lava"
     },
     {
-      "id": 103,
+      "id": 91,
       "name": "Lava 7",
       "size": 6,
       "hWalls": [
@@ -8746,7 +7642,7 @@
       "planet": "lava"
     },
     {
-      "id": 104,
+      "id": 92,
       "name": "Lava 8",
       "size": 7,
       "hWalls": [
@@ -8833,7 +7729,7 @@
       "planet": "lava"
     },
     {
-      "id": 105,
+      "id": 93,
       "name": "Lava 9",
       "size": 7,
       "hWalls": [
@@ -8926,7 +7822,7 @@
       ]
     },
     {
-      "id": 106,
+      "id": 94,
       "name": "Lava 10",
       "size": 7,
       "hWalls": [
@@ -9023,7 +7919,7 @@
       ]
     },
     {
-      "id": 107,
+      "id": 95,
       "name": "Lava 11",
       "size": 7,
       "hWalls": [
@@ -9107,7 +8003,7 @@
       ]
     },
     {
-      "id": 108,
+      "id": 96,
       "name": "Lava 12",
       "size": 7,
       "hWalls": [
@@ -9187,7 +8083,7 @@
       ]
     },
     {
-      "id": 109,
+      "id": 97,
       "name": "Jungle 1",
       "size": 5,
       "hWalls": [
@@ -9272,7 +8168,7 @@
       "planet": "jungle"
     },
     {
-      "id": 110,
+      "id": 98,
       "name": "Jungle 2",
       "size": 5,
       "hWalls": [
@@ -9341,7 +8237,7 @@
       "planet": "jungle"
     },
     {
-      "id": 111,
+      "id": 99,
       "name": "Jungle 3",
       "size": 5,
       "hWalls": [
@@ -9414,7 +8310,7 @@
       "planet": "jungle"
     },
     {
-      "id": 112,
+      "id": 100,
       "name": "Jungle 4",
       "size": 6,
       "hWalls": [
@@ -9507,7 +8403,7 @@
       "planet": "jungle"
     },
     {
-      "id": 113,
+      "id": 101,
       "name": "Jungle 5",
       "size": 6,
       "hWalls": [
@@ -9604,7 +8500,7 @@
       "planet": "jungle"
     },
     {
-      "id": 114,
+      "id": 102,
       "name": "Jungle 6",
       "size": 6,
       "hWalls": [
@@ -9685,7 +8581,7 @@
       "planet": "jungle"
     },
     {
-      "id": 115,
+      "id": 103,
       "name": "Jungle 7",
       "size": 6,
       "hWalls": [
@@ -9778,7 +8674,7 @@
       "planet": "jungle"
     },
     {
-      "id": 116,
+      "id": 104,
       "name": "Jungle 8",
       "size": 7,
       "hWalls": [
@@ -9931,7 +8827,7 @@
       "planet": "jungle"
     },
     {
-      "id": 117,
+      "id": 105,
       "name": "Jungle 9",
       "size": 7,
       "hWalls": [
@@ -10016,7 +8912,7 @@
       "planet": "jungle"
     },
     {
-      "id": 118,
+      "id": 106,
       "name": "Jungle 10",
       "size": 7,
       "hWalls": [
@@ -10129,7 +9025,7 @@
       "planet": "jungle"
     },
     {
-      "id": 119,
+      "id": 107,
       "name": "Jungle 11",
       "size": 7,
       "hWalls": [
@@ -10230,7 +9126,7 @@
       "planet": "jungle"
     },
     {
-      "id": 120,
+      "id": 108,
       "name": "Jungle 12",
       "size": 7,
       "hWalls": [
@@ -10359,7 +9255,7 @@
       "planet": "jungle"
     },
     {
-      "id": 121,
+      "id": 109,
       "name": "Alien 1",
       "size": 5,
       "hWalls": [
@@ -10442,7 +9338,7 @@
       "planet": "alien"
     },
     {
-      "id": 122,
+      "id": 110,
       "name": "Alien 2",
       "size": 5,
       "hWalls": [
@@ -10509,7 +9405,7 @@
       "planet": "alien"
     },
     {
-      "id": 123,
+      "id": 111,
       "name": "Alien 3",
       "size": 5,
       "hWalls": [
@@ -10596,7 +9492,7 @@
       "planet": "alien"
     },
     {
-      "id": 124,
+      "id": 112,
       "name": "Alien 4",
       "size": 6,
       "hWalls": [
@@ -10679,7 +9575,7 @@
       "planet": "alien"
     },
     {
-      "id": 125,
+      "id": 113,
       "name": "Alien 5",
       "size": 6,
       "hWalls": [
@@ -10786,7 +9682,7 @@
       "planet": "alien"
     },
     {
-      "id": 126,
+      "id": 114,
       "name": "Alien 6",
       "size": 6,
       "hWalls": [
@@ -10897,7 +9793,7 @@
       "planet": "alien"
     },
     {
-      "id": 127,
+      "id": 115,
       "name": "Alien 7",
       "size": 6,
       "hWalls": [
@@ -11000,7 +9896,7 @@
       "planet": "alien"
     },
     {
-      "id": 128,
+      "id": 116,
       "name": "Alien 8",
       "size": 7,
       "hWalls": [
@@ -11091,7 +9987,7 @@
       "planet": "alien"
     },
     {
-      "id": 129,
+      "id": 117,
       "name": "Alien 9",
       "size": 7,
       "hWalls": [
@@ -11210,7 +10106,7 @@
       "planet": "alien"
     },
     {
-      "id": 130,
+      "id": 118,
       "name": "Alien 10",
       "size": 7,
       "hWalls": [
@@ -11341,7 +10237,7 @@
       "planet": "alien"
     },
     {
-      "id": 131,
+      "id": 119,
       "name": "Alien 11",
       "size": 7,
       "hWalls": [
@@ -11460,7 +10356,7 @@
       "planet": "alien"
     },
     {
-      "id": 132,
+      "id": 120,
       "name": "Alien 12",
       "size": 7,
       "hWalls": [
@@ -11595,7 +10491,7 @@
       "planet": "alien"
     },
     {
-      "id": 133,
+      "id": 121,
       "name": "Machine 1",
       "size": 5,
       "hWalls": [
@@ -11696,7 +10592,7 @@
       "planet": "machine"
     },
     {
-      "id": 134,
+      "id": 122,
       "name": "Machine 2",
       "size": 5,
       "hWalls": [
@@ -11777,7 +10673,7 @@
       "planet": "machine"
     },
     {
-      "id": 135,
+      "id": 123,
       "name": "Machine 3",
       "size": 5,
       "hWalls": [
@@ -11870,7 +10766,7 @@
       "planet": "machine"
     },
     {
-      "id": 136,
+      "id": 124,
       "name": "Machine 4",
       "size": 6,
       "hWalls": [
@@ -11955,7 +10851,7 @@
       "planet": "machine"
     },
     {
-      "id": 137,
+      "id": 125,
       "name": "Machine 5",
       "size": 6,
       "hWalls": [
@@ -12092,7 +10988,7 @@
       "planet": "machine"
     },
     {
-      "id": 138,
+      "id": 126,
       "name": "Machine 6",
       "size": 6,
       "hWalls": [
@@ -12217,7 +11113,7 @@
       "planet": "machine"
     },
     {
-      "id": 139,
+      "id": 127,
       "name": "Machine 7",
       "size": 6,
       "hWalls": [
@@ -12346,7 +11242,7 @@
       "planet": "machine"
     },
     {
-      "id": 140,
+      "id": 128,
       "name": "Machine 8",
       "size": 7,
       "hWalls": [
@@ -12495,7 +11391,7 @@
       "planet": "machine"
     },
     {
-      "id": 141,
+      "id": 129,
       "name": "Machine 9",
       "size": 7,
       "hWalls": [
@@ -12592,7 +11488,7 @@
       "planet": "machine"
     },
     {
-      "id": 142,
+      "id": 130,
       "name": "Machine 10",
       "size": 7,
       "hWalls": [
@@ -12693,7 +11589,7 @@
       "planet": "machine"
     },
     {
-      "id": 143,
+      "id": 131,
       "name": "Machine 11",
       "size": 7,
       "hWalls": [
@@ -12790,7 +11686,7 @@
       "planet": "machine"
     },
     {
-      "id": 144,
+      "id": 132,
       "name": "Machine 12",
       "size": 7,
       "hWalls": [

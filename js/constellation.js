@@ -14,7 +14,20 @@ import { createBloom } from "./bloom.js";
 /** Pixels per world unit. Sphere diameter on screen is MAP_PPU * scale. */
 export const MAP_PPU = 70;
 
-const SCALES = [1, 0.94, 1.06, 0.92, 1.04, 0.96, 1.08, 0.93, 1.02, 0.97, 1.05, 0.95];
+/** Per-planet size, kept from the 12-planet map so removing one does not resize the rest. */
+const SCALE = {
+  wood: 1,
+  desert: 0.94,
+  ice: 1.06,
+  ocean: 0.92,
+  crystal: 1.04,
+  toy: 0.96,
+  candy: 0.93,
+  lava: 1.02,
+  jungle: 0.97,
+  alien: 1.05,
+  machine: 0.95,
+};
 /** Moon / ring swing, in world units, before scale. */
 const H_FACTOR = 1.08;
 /** Atmosphere plus a little bob, in world units, before scale. */
@@ -44,7 +57,8 @@ function starTex() {
  */
 export function mapLayout(width) {
   const count = PLANET_ORDER.length;
-  const maxScale = Math.max(...SCALES);
+  const scales = PLANET_ORDER.map((id) => SCALE[id] ?? 1);
+  const maxScale = Math.max(...scales);
   const margin = 8;
   const hMax = H_FACTOR * MAP_PPU * maxScale;
   const vMax = V_FACTOR * MAP_PPU * maxScale;
@@ -58,7 +72,7 @@ export function mapLayout(width) {
   const height = topPad + vMax + Math.max(0, count - 1) * pitch + vMax + bottomPad;
   const nodes = [];
   for (let i = 0; i < count; i++) {
-    const scale = SCALES[i % SCALES.length];
+    const scale = scales[i];
     const left = i % 2 === 0;
     const hReach = H_FACTOR * MAP_PPU * scale;
     const vReach = V_FACTOR * MAP_PPU * scale;

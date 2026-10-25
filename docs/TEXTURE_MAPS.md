@@ -75,7 +75,7 @@ cup, rind, knot) stay, and the hole cell does not move.
 | Set | Size | Maps |
 |-----|------|------|
 | Balls (24 patterned; gummy skipped) | 512×256 | albedo, normal, roughness. Meteor, alien, and skull also emissive |
-| Planets (ice, crystal, toy, mushroom, candy, jungle, alien, machine) | 1024×512 | albedo, normal, roughness. Alien and machine also emissive |
+| Planets (ice, crystal, toy, candy, jungle, alien, machine) | 1024×512 | albedo, normal, roughness. Alien and machine also emissive |
 
 Gummy is a flat translucent pink jelly (`#ff5a9a` in `makeBallMaterials`). A speckle map would not read on the board, so it stays unmapped (`UNMAPPED_BALLS` in `js/sphereMaps.js`).
 

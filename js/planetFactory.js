@@ -217,18 +217,6 @@ function paintPlanet(id) {
       g.fill();
     });
   }
-  if (id === "mushroom") {
-    return canvasTex((g, s) => {
-      g.fillStyle = "#c45a6a";
-      g.fillRect(0, 0, s, s);
-      g.fillStyle = "#f4efe6";
-      for (const [x, y, r] of [[40, 50, 16], [110, 40, 12], [80, 100, 18], [170, 90, 14], [200, 160, 20], [50, 180, 11]]) {
-        g.beginPath();
-        g.arc(x, y, r, 0, Math.PI * 2);
-        g.fill();
-      }
-    });
-  }
   if (id === "candy") {
     return canvasTex((g, s) => {
       g.fillStyle = "#ff8ad0";
@@ -393,7 +381,6 @@ const ATMOS = {
   ocean: "#7ecbff",
   crystal: "#e4ecff",
   toy: "#ffd0ea",
-  mushroom: "#ffc0c8",
   candy: "#ffc4ea",
   lava: "#ff8a3a",
   jungle: "#9dff8a",
@@ -449,18 +436,6 @@ export function createPlanet(id, opts = {}) {
     const isle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), leaf);
     isle.scale.y = 0.45;
     place(spin, isle, new THREE.Vector3(0.25, 0.1, 1));
-  }
-  if (sculpt && id === "mushroom") {
-    const capMat = new THREE.MeshStandardMaterial({ color: 0xe23b3b, roughness: 0.5 });
-    const stemMat = new THREE.MeshStandardMaterial({ color: 0xf4efe6, roughness: 0.6 });
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), capMat);
-    cap.scale.y = 0.55;
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.028, 0.06, 6), stemMat);
-    const group = new THREE.Group();
-    stem.position.y = 0.03;
-    cap.position.y = 0.07;
-    group.add(stem, cap);
-    place(spin, group, new THREE.Vector3(0.05, 0.2, 1));
   }
   if (sculpt && id === "lava") {
     const glow = new THREE.MeshStandardMaterial({ color: 0xffb020, emissive: 0xff6a10, emissiveIntensity: 0.8, roughness: 0.4 });

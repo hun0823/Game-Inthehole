@@ -2,7 +2,7 @@
 
 export const PLANET_ORDER = [
   "wood", "desert", "ice", "ocean", "crystal", "toy",
-  "mushroom", "candy", "lava", "jungle", "alien", "machine",
+  "candy", "lava", "jungle", "alien", "machine",
 ];
 
 export const PLANET_BALL = {
@@ -12,7 +12,6 @@ export const PLANET_BALL = {
   ocean: "beach",
   crystal: "marble",
   toy: "toy",
-  mushroom: "mushroom",
   candy: "gummy",
   lava: "meteor",
   jungle: "coco",
@@ -103,20 +102,6 @@ export const THEMES = {
     sky1: "#301454",
     sky2: "#241044",
     mote: "#ffd0ea",
-    storm: false,
-  },
-  mushroom: {
-    id: "mushroom",
-    frame: 0x8d4a86,
-    cap: 0xc46eb0,
-    edge: 0x5c3058,
-    floor: "#6d4a78",
-    groove: "40, 20, 40",
-    light: "220, 180, 210",
-    sky0: "#321850",
-    sky1: "#281440",
-    sky2: "#1c1030",
-    mote: "#e0b0d8",
     storm: false,
   },
   candy: {

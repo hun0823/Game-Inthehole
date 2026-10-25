@@ -41,7 +41,7 @@ GitHub의 Rollin' Board (InTheHole) 웹 빌드를 이어서 개발하는 파트�
 | `docs/GROK_HANDOFF.md` | Handoff 전체 |
 | `js/game.js` | 시뮬·힌트 BFS |
 | `js/main.js` | UI·상점·맵·저장 |
-| `shared/levels.json` | 144 스테이지 |
+| `shared/levels.json` | 132 스테이지 |
 | `tools/validate_levels.py`, `tools/sync_js_levels.py` | 검증·동기화 |
 | `unity/InTheHole/` | **paused** — 참고만 |
 

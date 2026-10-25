@@ -214,7 +214,7 @@ function paintMotif(g, id, x, y, w, groove) {
     g.arc(x + w * 0.38, y + w * 0.4, w * 0.07, 0, Math.PI * 2);
     g.arc(x + w * 0.62, y + w * 0.58, w * 0.045, 0, Math.PI * 2);
     g.fill();
-  } else if (id === "crystal" || id === "mushroom" || id === "candy" || id === "alien") {
+  } else if (id === "crystal" || id === "candy" || id === "alien") {
     g.beginPath();
     g.moveTo(cx, cy - w * 0.16);
     g.lineTo(cx + w * 0.05, cy);
