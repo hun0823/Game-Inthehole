@@ -180,53 +180,57 @@ function metrics(span, frameT) {
   };
 }
 
+const SQUIRREL_URL = new URL("../assets/deco/squirrel.png", import.meta.url).href;
+let squirrelMap = null;
+const squirrelFitters = [];
+
+function woodSquirrelMap() {
+  if (squirrelMap) return squirrelMap;
+  squirrelMap = new THREE.TextureLoader().load(SQUIRREL_URL, (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.needsUpdate = true;
+    const image = tex.image;
+    for (const fit of squirrelFitters) fit(image);
+    squirrelFitters.length = 0;
+  });
+  squirrelMap.colorSpace = THREE.SRGBColorSpace;
+  squirrelMap.generateMipmaps = true;
+  squirrelMap.minFilter = THREE.LinearMipmapLinearFilter;
+  squirrelMap.magFilter = THREE.LinearFilter;
+  return squirrelMap;
+}
+
+function woodSquirrel(parent, x, y, z) {
+  const map = woodSquirrelMap();
+  const mat = new THREE.SpriteMaterial({
+    map,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const sprite = new THREE.Sprite(mat);
+  // Feet sit on the frame. The PNG is cropped tight to the mockup squirrel.
+  sprite.center.set(0.5, 0.06);
+  const unit = spriteUnit;
+  const applyScale = (img) => {
+    const aspect = img.width / Math.max(1, img.height);
+    const h = 1.5 * READ * unit;
+    sprite.scale.set(h * aspect, h, 1);
+  };
+  if (map.image && map.image.width) applyScale(map.image);
+  else {
+    sprite.scale.set(1.62 * READ * unit, 1.5 * READ * unit, 1);
+    squirrelFitters.push(applyScale);
+  }
+  sprite.position.set(x, y, z);
+  sprite.renderOrder = 6;
+  sprite.frustumCulled = false;
+  sprite.name = "wood-squirrel";
+  parent.add(sprite);
+  return sprite;
+}
+
 const draw = {
-  squirrel(g, S) {
-    const ink = Math.max(9, S * 0.048);
-    const lump = (x, y, rx, ry, fill, shade) => {
-      g.fillStyle = INK;
-      g.beginPath();
-      g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = fill;
-      g.beginPath();
-      g.ellipse(x, y, Math.max(2, rx - ink), Math.max(2, ry - ink), 0, 0, Math.PI * 2);
-      g.fill();
-      if (!shade) return;
-      g.save();
-      g.beginPath();
-      g.ellipse(x, y, Math.max(2, rx - ink), Math.max(2, ry - ink), 0, 0, Math.PI * 2);
-      g.clip();
-      g.fillStyle = shade;
-      g.beginPath();
-      g.ellipse(x + rx * 0.12, y + ry * 0.28, rx * 0.7, ry * 0.55, 0, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = "rgba(255,255,255,0.32)";
-      g.beginPath();
-      g.ellipse(x - rx * 0.28, y - ry * 0.32, rx * 0.28, ry * 0.18, -0.5, 0, Math.PI * 2);
-      g.fill();
-      g.restore();
-    };
-    lump(S * 0.30, S * 0.46, S * 0.20, S * 0.22, "#8a4e22", "#5c3014");
-    lump(S * 0.22, S * 0.64, S * 0.13, S * 0.15, "#a8642e", "#6a3a16");
-    lump(S * 0.56, S * 0.64, S * 0.26, S * 0.22, "#e8943a", "#c46a28");
-    lump(S * 0.74, S * 0.42, S * 0.18, S * 0.17, "#f0a24a", "#d4843a");
-    lump(S * 0.64, S * 0.26, S * 0.07, S * 0.09, "#f0a24a", "#c46a28");
-    g.save();
-    g.beginPath();
-    g.ellipse(S * 0.74, S * 0.42, S * 0.18 - ink, S * 0.17 - ink, 0, 0, Math.PI * 2);
-    g.clip();
-    g.fillStyle = "#d4843a";
-    g.beginPath();
-    g.ellipse(S * 0.66, S * 0.50, S * 0.07, S * 0.055, 0, 0, Math.PI * 2);
-    g.fill();
-    g.restore();
-    eye(g, S * 0.80, S * 0.40, S * 0.055);
-    g.fillStyle = INK;
-    g.beginPath();
-    g.ellipse(S * 0.90, S * 0.44, S * 0.035, S * 0.028, 0, 0, Math.PI * 2);
-    g.fill();
-  },
   tree(g, S) {
     const ink = Math.max(9, S * 0.046);
     g.lineJoin = "round";
@@ -480,10 +484,10 @@ function place(group, mascot, left, right, m) {
 }
 
 function placeWood(group, m) {
-  const hero = stamp(group, "squirrel", draw.squirrel, 0, m.y, m.top, 1.62, 1.78, 0.3, 256);
-  hero.name = "wood-squirrel";
+  const hero = woodSquirrel(group, 0, m.y, m.top);
   sway(hero);
-  stamp(group, "tree", draw.tree, -m.outer * 0.86, m.y, m.top, 1.28, 1.78, 0.26, 256);
+  // Inset from the left edge so a left roll does not clip the canopy.
+  stamp(group, "tree", draw.tree, -m.outer * 0.70, m.y, m.top, 1.28, 1.78, 0.26, 256);
 }
 
 const SETS = {
@@ -510,7 +514,11 @@ export function createBoardDeco(planet, span, frameT = 0.4) {
     placeWood(group, m);
     return group;
   }
-  const set = SETS[planet] || SETS.wood;
+  const set = SETS[planet];
+  if (!set) {
+    placeWood(group, m);
+    return group;
+  }
   place(group, set[0], set[1], set[2], m);
   return group;
 }
