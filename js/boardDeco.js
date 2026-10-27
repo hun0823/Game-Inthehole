@@ -26,6 +26,7 @@ export function decoWanted() {
 export function beginDeco() {
   jobs.length = 0;
   woodGen += 1;
+  hideSquirrelChip();
 }
 
 export function tickDeco(time) {
@@ -302,6 +303,96 @@ function projectAnchor(x, y, z, rig, rect) {
   };
 }
 
+// The board canvas stops above the D-pad. The squirrel sits on the grass
+// below that, in the open column beside the acorn, drawn on its own chip.
+let squirrelChipEl = null;
+let squirrelImg = null;
+
+function hideSquirrelChip() {
+  if (squirrelChipEl) squirrelChipEl.style.display = "none";
+}
+
+function squirrelImage() {
+  if (squirrelImg) return squirrelImg;
+  squirrelImg = new Image();
+  squirrelImg.src = SQUIRREL_URL;
+  squirrelImg.onload = () => woodRelayout();
+  return squirrelImg;
+}
+
+function squirrelChip() {
+  if (squirrelChipEl) return squirrelChipEl;
+  const chip = document.createElement("canvas");
+  chip.className = "wood-squirrel-chip";
+  chip.style.position = "fixed";
+  chip.style.pointerEvents = "none";
+  chip.style.zIndex = "4";
+  chip.style.display = "none";
+  document.body.appendChild(chip);
+  squirrelChipEl = chip;
+  return chip;
+}
+
+function grassSquirrelBox() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const s = Math.max(0.72, Math.min(1, vw / 430));
+  const sqH = SQUIRREL_PX;
+  const sqW = SQUIRREL_PX * squirrelAspect;
+  const edge = 14;
+  const gap = 12;
+  const buttons = [...document.querySelectorAll(".dpad-up, .dpad-down, .dpad-left, .dpad-right, .retry-btn")];
+  let leftLimit = vw;
+  for (const el of buttons) {
+    const box = el.getBoundingClientRect();
+    if (box.width > 2) leftLimit = Math.min(leftLimit, box.left);
+  }
+  const maxX = leftLimit - gap - sqW;
+  const acornX = (18 + 48) * s;
+  const x = Math.max(edge, Math.min(acornX - sqW * 0.45, maxX));
+  const y = vh - edge - sqH;
+  return { x, y, sqW, sqH };
+}
+
+function paintGrassSquirrel(angle, bob) {
+  const app = document.querySelector(".app");
+  if (app && app.classList.contains("is-map")) {
+    hideSquirrelChip();
+    return;
+  }
+  const img = squirrelImage();
+  const chip = squirrelChip();
+  if (!img.naturalWidth) {
+    chip.style.display = "none";
+    return;
+  }
+  const home = grassSquirrelBox();
+  const extra = 22;
+  const cw = home.sqW + extra * 2;
+  const ch = home.sqH + extra * 2;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const bw = Math.max(1, Math.round(cw * dpr));
+  const bh = Math.max(1, Math.round(ch * dpr));
+  if (chip.width !== bw || chip.height !== bh) {
+    chip.width = bw;
+    chip.height = bh;
+  }
+  const shift = -angle * SQUIRREL_PX * 0.28;
+  chip.style.width = `${cw}px`;
+  chip.style.height = `${ch}px`;
+  chip.style.left = `${home.x - extra + shift}px`;
+  chip.style.top = `${home.y - extra + bob}px`;
+  chip.style.display = "block";
+  const ctx = chip.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.save();
+  ctx.translate(extra + home.sqW / 2, extra + home.sqH / 2);
+  ctx.rotate(-angle);
+  ctx.drawImage(img, -home.sqW / 2, -home.sqH / 2, home.sqW, home.sqH);
+  ctx.restore();
+}
+
 const draw = {
   tree(g, S) {
     const ink = Math.max(9, S * 0.046);
@@ -553,76 +644,65 @@ function place(group, mascot, left, right, m) {
 
 function placeWood(group, m, span, frameT) {
   const hero = woodSquirrel(group, 0, m.y, m.top);
+  hero.visible = false;
   // Inset from the left edge so a left roll does not clip the canopy.
   const tree = stamp(group, "tree", draw.tree, -m.outer * 0.70, m.y, m.top, 1.28, 1.78, 0.26, 256);
-  const baseX = 0;
   const baseY = m.y;
   const baseZ = m.top;
   const treeX = -m.outer * 0.70;
   let angle = 0;
   let vel = 0;
   let prev = null;
-    let side = false;
+  let side = false;
   const half = viewHalfOf(span, frameT);
   const gen = ++woodGen;
 
   const relayout = (time) => {
     if (gen !== woodGen) return;
     const rect = layoutRect();
-    const rig = hero.parent && hero.parent.parent;
+    const rig = tree.parent && tree.parent.parent;
     if (!rect) return;
     const vFov = syncFitCamera(rect, half);
     const hudTop = rect.top + HUD_PAD;
     const pxPerAt = (depth) => (rect.height * 0.5) / (depth * Math.tan(vFov / 2));
-    const sq = projectAnchor(baseX, baseY, baseZ, rig, rect);
+    const sq = projectAnchor(0, baseY, baseZ, rig, rect);
     const sqTop = sq.y - (1 - 0.06) * SQUIRREL_PX;
     const clearance = sqTop - LEAN_PAD - hudTop;
     if (side) side = clearance < 10;
     else side = clearance < 0;
     const bob = Math.sin(time * 2.1);
-    hero.visible = true;
+    hero.visible = false;
     tree.visible = true;
-    hero.material.rotation = angle;
     if (!side) {
-      hero.center.set(0.5, 0.06);
       tree.center.set(0.5, 0.26);
-      const sqScale = SQUIRREL_PX / pxPerAt(sq.depth);
-      hero.scale.set(sqScale * squirrelAspect, sqScale, 1);
       const treeAnchor = projectAnchor(treeX, baseY, baseZ, rig, rect);
       const room = Math.max(16, treeAnchor.y - hudTop);
       const treePx = Math.min(TREE_PX, room / 0.74);
       const treeScale = treePx / pxPerAt(treeAnchor.depth);
       tree.scale.set(treeScale * (1.28 / 1.78), treeScale, 1);
-      hero.position.set(baseX - angle * sqScale * 0.28, baseY + bob * 0.012, baseZ);
       tree.position.set(treeX, baseY, baseZ);
-      return;
+    } else {
+      tree.center.set(0.5, 0.5);
+      const localXForScreen = (sign, targetX) => {
+        let lo = 0;
+        let hi = half * 1.35;
+        for (let i = 0; i < 14; i++) {
+          const mid = (lo + hi) / 2;
+          const sx = projectAnchor(sign * mid, baseY, 0, rig, rect).x;
+          if (sign < 0 ? sx > targetX : sx < targetX) lo = mid;
+          else hi = mid;
+        }
+        return sign * (lo + hi) / 2;
+      };
+      const treeHalf = TREE_PX * (1.28 / 1.78) * 0.5;
+      const treeLocal = localXForScreen(-1, rect.left + treeHalf + 6);
+      const treeAt = projectAnchor(treeLocal, baseY, 0, rig, rect);
+      const treeScale = TREE_PX / pxPerAt(treeAt.depth);
+      tree.scale.set(treeScale * (1.28 / 1.78), treeScale, 1);
+      tree.position.set(treeLocal, baseY, 0);
     }
-    // Top gap cannot hold a 35px squirrel. Perch on the side edges instead.
-    hero.center.set(0.5, 0.5);
-    tree.center.set(0.5, 0.5);
-    const localXForScreen = (sign, targetX) => {
-      let lo = 0;
-      let hi = half * 1.35;
-      for (let i = 0; i < 14; i++) {
-        const mid = (lo + hi) / 2;
-        const sx = projectAnchor(sign * mid, baseY, 0, rig, rect).x;
-        if (sign < 0 ? sx > targetX : sx < targetX) lo = mid;
-        else hi = mid;
-      }
-      return sign * (lo + hi) / 2;
-    };
-    const sqHalf = SQUIRREL_PX * squirrelAspect * 0.5;
-    const treeHalf = TREE_PX * (1.28 / 1.78) * 0.5;
-    const sqX = localXForScreen(1, rect.right - sqHalf - 8);
-    const treeLocal = localXForScreen(-1, rect.left + treeHalf + 6);
-    const sqAt = projectAnchor(sqX, baseY, 0, rig, rect);
-    const treeAt = projectAnchor(treeLocal, baseY, 0, rig, rect);
-    const sqScale = SQUIRREL_PX / pxPerAt(sqAt.depth);
-    const treeScale = TREE_PX / pxPerAt(treeAt.depth);
-    hero.scale.set(sqScale * squirrelAspect, sqScale, 1);
-    tree.scale.set(treeScale * (1.28 / 1.78), treeScale, 1);
-    hero.position.set(sqX - angle * sqScale * 0.28, baseY + bob * 0.012, 0);
-    tree.position.set(treeLocal, baseY, 0);
+    // Same spring the frame sprite used: rotate, shift, and a quiet bob.
+    paintGrassSquirrel(angle, bob * 0.8);
   };
   woodRelayout = () => relayout(performance.now() / 1000);
   bindWoodWatch();
