@@ -25,6 +25,8 @@ export function decoWanted() {
 
 export function beginDeco() {
   jobs.length = 0;
+  woodGen += 1;
+  hideSquirrelChip();
 }
 
 export function tickDeco(time) {
@@ -142,31 +144,6 @@ function bob(sprite) {
   });
 }
 
-// Wood mascot. The board rig already springs on nudge(); this reads that
-// roll and adds a softer follow so the body and tail lean, then settle.
-// Idle bob stays, quieter than the other mascots.
-function sway(sprite) {
-  const baseX = sprite.position.x;
-  const baseY = sprite.position.y;
-  let angle = 0;
-  let vel = 0;
-  let prev = null;
-  let rig = null;
-  loop((time) => {
-    const dt = prev == null ? 0.016 : Math.min(0.033, Math.max(0, time - prev));
-    prev = time;
-    if (!rig) rig = sprite.parent && sprite.parent.parent;
-    const roll = rig ? rig.rotation.z : 0;
-    // Sprite quads in r170 spin from material.rotation, not Object3D.rotation.
-    const target = roll * 1.55;
-    const omega = 9;
-    vel += (omega * omega * (target - angle) - 2 * omega * vel) * dt;
-    angle += vel * dt;
-    sprite.material.rotation = angle;
-    sprite.position.x = baseX - angle * 0.55;
-    sprite.position.y = baseY + Math.sin(time * 2.1) * 0.012;
-  });
-}
 
 function metrics(span, frameT) {
   const inner = span / 2 - 0.01;
@@ -181,8 +158,25 @@ function metrics(span, frameT) {
 }
 
 const SQUIRREL_URL = new URL("../assets/deco/squirrel.png", import.meta.url).href;
+const SQUIRREL_PX = 35;
+const TREE_PX = 35 * (1.78 / 1.5);
+const LEAN_PAD = 8;
+const HUD_PAD = 4;
+const REST_X = 0.045;
 let squirrelMap = null;
+let squirrelAspect = 758 / 701;
 const squirrelFitters = [];
+let woodRelayout = () => {};
+let woodGen = 0;
+let woodWatchBound = false;
+
+function bindWoodWatch() {
+  if (woodWatchBound || typeof window === "undefined") return;
+  woodWatchBound = true;
+  const run = () => woodRelayout();
+  window.addEventListener("resize", run);
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", run);
+}
 
 function woodSquirrelMap() {
   if (squirrelMap) return squirrelMap;
@@ -190,8 +184,10 @@ function woodSquirrelMap() {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.needsUpdate = true;
     const image = tex.image;
+    if (image && image.width) squirrelAspect = image.width / Math.max(1, image.height);
     for (const fit of squirrelFitters) fit(image);
     squirrelFitters.length = 0;
+    woodRelayout();
   });
   squirrelMap.colorSpace = THREE.SRGBColorSpace;
   squirrelMap.generateMipmaps = true;
@@ -209,25 +205,192 @@ function woodSquirrel(parent, x, y, z) {
     depthTest: false,
   });
   const sprite = new THREE.Sprite(mat);
-  // Feet sit on the frame. The PNG is cropped tight to the mockup squirrel.
+  // Feet sit on the anchor. The PNG is cropped tight to the mockup squirrel.
   sprite.center.set(0.5, 0.06);
-  const unit = spriteUnit;
-  const applyScale = (img) => {
-    const aspect = img.width / Math.max(1, img.height);
-    const h = 1.5 * READ * unit;
-    sprite.scale.set(h * aspect, h, 1);
-  };
-  if (map.image && map.image.width) applyScale(map.image);
-  else {
-    sprite.scale.set(1.62 * READ * unit, 1.5 * READ * unit, 1);
-    squirrelFitters.push(applyScale);
-  }
+  if (map.image && map.image.width) squirrelAspect = map.image.width / Math.max(1, map.image.height);
+  sprite.scale.set(0.2, 0.2, 1);
   sprite.position.set(x, y, z);
   sprite.renderOrder = 6;
   sprite.frustumCulled = false;
   sprite.name = "wood-squirrel";
   parent.add(sprite);
   return sprite;
+}
+
+// Same fit the board camera uses, so a pixel target lines up with the HUD.
+const fitCam = new THREE.PerspectiveCamera(28, 1, 0.1, 80);
+const fitWorld = new THREE.Vector3();
+const fitProj = new THREE.Vector3();
+
+function viewHalfOf(span, frameT) {
+  const n = span / 1.16;
+  const unit = n / 6;
+  const inner = span / 2 - 0.01;
+  return inner + frameT + 0.05 * unit;
+}
+
+function layoutRect() {
+  const canvas = document.querySelector("canvas.playfield");
+  if (canvas) {
+    const box = canvas.getBoundingClientRect();
+    if (box.width > 2 && box.height > 2) return box;
+  }
+  const api = typeof window !== "undefined" ? window.RB_LAYOUT : null;
+  if (api && typeof api.boardRect === "function") {
+    try {
+      const rect = api.boardRect();
+      if (rect && rect.width > 2 && rect.height > 2) return rect;
+    } catch {
+      /* publisher not ready */
+    }
+  }
+  return null;
+}
+
+function syncFitCamera(rect, half) {
+  const w = rect.width;
+  const h = rect.height;
+  const aspect = w / Math.max(1, h);
+  const fov = 28;
+  fitCam.fov = fov;
+  fitCam.aspect = aspect;
+  const vFov = THREE.MathUtils.degToRad(fov);
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+  const elev = THREE.MathUtils.degToRad(82);
+  const sinE = Math.sin(elev);
+  const cosE = Math.cos(elev);
+  const screenW = window.innerWidth || w;
+  const want = Math.min(w * 0.99, screenW * 0.92);
+  const fillW = Math.min(1.02, (want / Math.max(1, w)) * 1.035);
+  const fillH = 0.98;
+  const distW = half / (fillW * Math.tan(hFov / 2)) + half * cosE;
+  const distH = (half * sinE) / (fillH * Math.tan(vFov / 2)) + half * cosE;
+  const dist = Math.max(distW, distH);
+  const lookY = 0.42;
+  fitCam.position.set(0, lookY + dist * sinE, dist * cosE);
+  fitCam.lookAt(0, lookY, 0);
+  fitCam.updateProjectionMatrix();
+  fitCam.updateMatrixWorld(true);
+  fitCam.matrixWorldInverse.copy(fitCam.matrixWorld).invert();
+  return vFov;
+}
+
+function localToWorld(x, y, z, rig) {
+  fitWorld.set(x, y, z);
+  if (rig) {
+    rig.updateWorldMatrix(true, false);
+    fitWorld.applyMatrix4(rig.matrixWorld);
+  } else {
+    const c = Math.cos(REST_X);
+    const s = Math.sin(REST_X);
+    const y1 = fitWorld.y * c - fitWorld.z * s;
+    const z1 = fitWorld.y * s + fitWorld.z * c;
+    fitWorld.y = y1;
+    fitWorld.z = z1;
+  }
+  return fitWorld;
+}
+
+function projectAnchor(x, y, z, rig, rect) {
+  localToWorld(x, y, z, rig);
+  const e = fitCam.matrixWorldInverse.elements;
+  const depth = -(e[2] * fitWorld.x + e[6] * fitWorld.y + e[10] * fitWorld.z + e[14]);
+  fitProj.copy(fitWorld).project(fitCam);
+  return {
+    x: rect.left + (fitProj.x * 0.5 + 0.5) * rect.width,
+    y: rect.top + (-fitProj.y * 0.5 + 0.5) * rect.height,
+    depth: Math.max(0.2, depth),
+  };
+}
+
+// The board canvas stops above the D-pad. The squirrel sits on the grass
+// below that, in the open column beside the acorn, drawn on its own chip.
+let squirrelChipEl = null;
+let squirrelImg = null;
+
+function hideSquirrelChip() {
+  if (squirrelChipEl) squirrelChipEl.style.display = "none";
+}
+
+function squirrelImage() {
+  if (squirrelImg) return squirrelImg;
+  squirrelImg = new Image();
+  squirrelImg.src = SQUIRREL_URL;
+  squirrelImg.onload = () => woodRelayout();
+  return squirrelImg;
+}
+
+function squirrelChip() {
+  if (squirrelChipEl) return squirrelChipEl;
+  const chip = document.createElement("canvas");
+  chip.className = "wood-squirrel-chip";
+  chip.style.position = "fixed";
+  chip.style.pointerEvents = "none";
+  chip.style.zIndex = "4";
+  chip.style.display = "none";
+  document.body.appendChild(chip);
+  squirrelChipEl = chip;
+  return chip;
+}
+
+function grassSquirrelBox() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const s = Math.max(0.72, Math.min(1, vw / 430));
+  const sqH = SQUIRREL_PX;
+  const sqW = SQUIRREL_PX * squirrelAspect;
+  const edge = 14;
+  const gap = 12;
+  const buttons = [...document.querySelectorAll(".dpad-up, .dpad-down, .dpad-left, .dpad-right, .retry-btn")];
+  let leftLimit = vw;
+  for (const el of buttons) {
+    const box = el.getBoundingClientRect();
+    if (box.width > 2) leftLimit = Math.min(leftLimit, box.left);
+  }
+  const maxX = leftLimit - gap - sqW;
+  const acornX = (18 + 48) * s;
+  const x = Math.max(edge, Math.min(acornX - sqW * 0.45, maxX));
+  const y = vh - edge - sqH;
+  return { x, y, sqW, sqH };
+}
+
+function paintGrassSquirrel(angle, bob) {
+  const app = document.querySelector(".app");
+  if (app && app.classList.contains("is-map")) {
+    hideSquirrelChip();
+    return;
+  }
+  const img = squirrelImage();
+  const chip = squirrelChip();
+  if (!img.naturalWidth) {
+    chip.style.display = "none";
+    return;
+  }
+  const home = grassSquirrelBox();
+  const extra = 22;
+  const cw = home.sqW + extra * 2;
+  const ch = home.sqH + extra * 2;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const bw = Math.max(1, Math.round(cw * dpr));
+  const bh = Math.max(1, Math.round(ch * dpr));
+  if (chip.width !== bw || chip.height !== bh) {
+    chip.width = bw;
+    chip.height = bh;
+  }
+  const shift = -angle * SQUIRREL_PX * 0.28;
+  chip.style.width = `${cw}px`;
+  chip.style.height = `${ch}px`;
+  chip.style.left = `${home.x - extra + shift}px`;
+  chip.style.top = `${home.y - extra + bob}px`;
+  chip.style.display = "block";
+  const ctx = chip.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  ctx.save();
+  ctx.translate(extra + home.sqW / 2, extra + home.sqH / 2);
+  ctx.rotate(-angle);
+  ctx.drawImage(img, -home.sqW / 2, -home.sqH / 2, home.sqW, home.sqH);
+  ctx.restore();
 }
 
 const draw = {
@@ -479,11 +642,84 @@ function place(group, mascot, left, right, m) {
   if (right) stamp(group, right, draw[right], m.outer * 0.9, m.y, m.top, 0.88, 1.15, 0.32);
 }
 
-function placeWood(group, m) {
+function placeWood(group, m, span, frameT) {
   const hero = woodSquirrel(group, 0, m.y, m.top);
-  sway(hero);
+  hero.visible = false;
   // Inset from the left edge so a left roll does not clip the canopy.
-  stamp(group, "tree", draw.tree, -m.outer * 0.70, m.y, m.top, 1.28, 1.78, 0.26, 256);
+  const tree = stamp(group, "tree", draw.tree, -m.outer * 0.70, m.y, m.top, 1.28, 1.78, 0.26, 256);
+  const baseY = m.y;
+  const baseZ = m.top;
+  const treeX = -m.outer * 0.70;
+  let angle = 0;
+  let vel = 0;
+  let prev = null;
+  let side = false;
+  const half = viewHalfOf(span, frameT);
+  const gen = ++woodGen;
+
+  const relayout = (time) => {
+    if (gen !== woodGen) return;
+    const rect = layoutRect();
+    const rig = tree.parent && tree.parent.parent;
+    if (!rect) return;
+    const vFov = syncFitCamera(rect, half);
+    const hudTop = rect.top + HUD_PAD;
+    const pxPerAt = (depth) => (rect.height * 0.5) / (depth * Math.tan(vFov / 2));
+    const sq = projectAnchor(0, baseY, baseZ, rig, rect);
+    const sqTop = sq.y - (1 - 0.06) * SQUIRREL_PX;
+    const clearance = sqTop - LEAN_PAD - hudTop;
+    if (side) side = clearance < 10;
+    else side = clearance < 0;
+    const bob = Math.sin(time * 2.1);
+    hero.visible = false;
+    tree.visible = true;
+    if (!side) {
+      tree.center.set(0.5, 0.26);
+      const treeAnchor = projectAnchor(treeX, baseY, baseZ, rig, rect);
+      const room = Math.max(16, treeAnchor.y - hudTop);
+      const treePx = Math.min(TREE_PX, room / 0.74);
+      const treeScale = treePx / pxPerAt(treeAnchor.depth);
+      tree.scale.set(treeScale * (1.28 / 1.78), treeScale, 1);
+      tree.position.set(treeX, baseY, baseZ);
+    } else {
+      tree.center.set(0.5, 0.5);
+      const localXForScreen = (sign, targetX) => {
+        let lo = 0;
+        let hi = half * 1.35;
+        for (let i = 0; i < 14; i++) {
+          const mid = (lo + hi) / 2;
+          const sx = projectAnchor(sign * mid, baseY, 0, rig, rect).x;
+          if (sign < 0 ? sx > targetX : sx < targetX) lo = mid;
+          else hi = mid;
+        }
+        return sign * (lo + hi) / 2;
+      };
+      const treeHalf = TREE_PX * (1.28 / 1.78) * 0.5;
+      const treeLocal = localXForScreen(-1, rect.left + treeHalf + 6);
+      const treeAt = projectAnchor(treeLocal, baseY, 0, rig, rect);
+      const treeScale = TREE_PX / pxPerAt(treeAt.depth);
+      tree.scale.set(treeScale * (1.28 / 1.78), treeScale, 1);
+      tree.position.set(treeLocal, baseY, 0);
+    }
+    // Same spring the frame sprite used: rotate, shift, and a quiet bob.
+    paintGrassSquirrel(angle, bob * 0.8);
+  };
+  woodRelayout = () => relayout(performance.now() / 1000);
+  bindWoodWatch();
+
+  loop((time) => {
+    const dt = prev == null ? 0.016 : Math.min(0.033, Math.max(0, time - prev));
+    prev = time;
+    const rig = hero.parent && hero.parent.parent;
+    const roll = rig ? rig.rotation.z : 0;
+    const target = roll * 1.55;
+    const omega = 9;
+    vel += (omega * omega * (target - angle) - 2 * omega * vel) * dt;
+    angle += vel * dt;
+    relayout(time);
+  });
+  woodRelayout();
+  requestAnimationFrame(woodRelayout);
 }
 
 const SETS = {
@@ -506,12 +742,12 @@ export function createBoardDeco(planet, span, frameT = 0.4) {
   const m = metrics(span, frameT);
   spriteUnit = m.unit;
   if (planet === "wood") {
-    placeWood(group, m);
+    placeWood(group, m, span, frameT);
     return group;
   }
   const set = SETS[planet];
   if (!set) {
-    placeWood(group, m);
+    placeWood(group, m, span, frameT);
     return group;
   }
   place(group, set[0], set[1], set[2], m);
