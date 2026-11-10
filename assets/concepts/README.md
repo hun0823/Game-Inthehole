@@ -1,6 +1,6 @@
 # Wood visual concepts
 
-Four optional skins for the Wood planet (stages 1–12). Rules, levels, and the other planets stay as they are. With no `look` param the board is the current game.
+Four optional looks for the Wood planet (stages 1–12). The tilt rules, walls, levels, and the other planets stay as they are. With no `look` param the board is the shipped game.
 
 | Look | Open |
 | --- | --- |
@@ -13,54 +13,84 @@ Stage links still use the hash. Wood 1 is `#1`. Wood 8 is `#8`.
 
 ```
 https://hun0823.github.io/Game-Inthehole/?look=diorama#1
+https://hun0823.github.io/Game-Inthehole/?look=pixel#1
+https://hun0823.github.io/Game-Inthehole/?look=clay#1
+https://hun0823.github.io/Game-Inthehole/?look=neon#1
 ```
 
-GitHub Pages publishes `main` only. Before that merge, serve this branch from the repo root:
+Wood 8 is the same URL with `#8`. GitHub Pages publishes `main` only. Before that merge, serve this branch from the repo root:
 
 ```
 python3 -m http.server 8080
 ```
 
-Then open `http://127.0.0.1:8080/?look=diorama#1` (and `pixel`, `clay`, `neon`).
-
-`look`, `fps`, and `perf` stay in the address bar when you change stage or open the map. The skin applies only while the planet is Wood.
+Then open `http://127.0.0.1:8080/?look=diorama#1`. `look`, `fps`, and `perf` stay in the address bar when the stage changes. The skin applies only while the planet is Wood, and the kit is not downloaded on any other planet.
 
 ## What each look changes
 
-The camera, HUD boxes, and board size are unchanged. The skin replaces materials, the sky canvas, the frame props, and the HUD colors.
+The camera (elevation 82°, fov 28), the HUD boxes, and the board’s fill of the screen are unchanged. Each look hides the stock frame and draws its own board from a Blender kit. Cells, walls, and the hole stay on the same grid. The ball still stops on the grid, not on the mesh.
 
-**Diorama.** Warm dawn sky, grass pads with dirt grout, bark-colored walls that keep the red/blue/green/purple identity, an acorn-colored ball, and an amber goal ring. A modelled squirrel, two low-poly trees, a stump, and an acorn sit on the frame, not on the hole. No fullscreen pass.
+**Diorama.** A dirt island with round grass pads, a jagged grass-and-root cliff, log walls, a bark hollow for the hole, and an acorn. The squirrel is a fluffy plan-view mascot in the sky gap, with oak, pine, and birch on the rim.
 
-**Pixel.** Limited green palette, nearest-filter tiles, billboard squirrel and trees, and a flat nut-colored ball. A 2-device-pixel grid plus scanlines (original) and three.js r170 film grain. The DOM HUD stays sharp.
+**Pixel.** Hard cubes, a stepped block rim, brick walls, a square pit, and a banded voxel ball. The squirrel is a stack of cubes with a block tail. The sky is a banded night with a small pixel sun. No post pass.
 
-**Clay.** Soft terracotta and pastel tiles with edge darkening baked into the albedo, a fingerprint normal that is not a radial target, a peach ball, and a terracotta goal. A short glow plus the three.js vignette. No SSAO.
+**Clay.** Bevelled cushion tiles in a tray with a bead rim, capsule walls, a terracotta well, and a faceted clay ball. The squirrel is a huge-headed chibi. Trees are blobs and a topiary.
 
-**Neon.** Night sky, emissive grid and gem walls, a cyan ball, a magenta goal, fireflies, and a stronger glow plus vignette.
+**Neon.** Dark plates with glowing borders, a thin rail for each wall, a magenta ring around the hole, and a ringed ball. The squirrel is a dark slab with a cyan stripe and a thick zigzag tail. Colors are unlit vertex colors, so the rails read without a bloom pass.
 
-Glass, gates, and magma hooks are still the existing meshes. Wood stages do not use them. Other planets ignore `look`.
+Glass, gates, and magma hooks are still the existing meshes. Wood stages do not use them.
 
 ## Art
 
-Tiles, skies, the squirrel, trees, and sprites are drawn in code at runtime. There are no extra image files to download. Licenses for the two vendored three.js shaders are in `CREDITS.md`.
+Meshes are original, authored in Blender 4.5.16 LTS by `tools/blender/build_looks.py`, then meshopt-compressed with gltfpack (`-c -kn -kv`). Lighting and ambient occlusion are baked into vertex colors. There are no KTX2 or WebP textures on the kits; a transcoder would have been larger than the meshes. Licenses are in `CREDITS.md`.
 
-## Size
+| Piece | Diorama tris | Pixel tris | Clay tris | Neon tris |
+| --- | ---: | ---: | ---: | ---: |
+| Tiles (3) | 164 | 84 | 324 | 180 |
+| Wall | 168 | 48 | 156 | 48 |
+| Rim + corners | 300 | 96 | 208 | 176 |
+| Ball + goal | 384 | 172 | 316 | 416 |
+| Squirrel | 480 | 192 | 400 | 240 |
+| Trees + props | 380 | 192 | 388 | 310 |
+| Ground | 2 | 2 | 2 | 2 |
+| **Kit total** | **1878** | **786** | **1794** | **1372** |
 
-Figures are gzip of the modules the browser fetches. `js/woodLook.js` (about 0.5 KB) and the HUD rules in `css/style.css` (about 1.1 KB) load with every visit. A look’s modules load only when that `look` is set.
+GLB size on disk: diorama 47.8 KB, pixel 24.6 KB, clay 47.5 KB, neon 34.8 KB. All four together are 151 KB. Only the selected kit is fetched.
 
-| Look | Gzip when selected | Also loads |
-| --- | --- | --- |
-| Diorama | 7.5 KB | `diorama.js`, `props.js`, `sky.js` |
-| Pixel | 9.6 KB | those, plus `pass.js` and `FilmShader.js` |
-| Clay | 8.9 KB | those, plus `pass.js` and `VignetteShader.js` |
-| Neon | 8.9 KB | those, plus `pass.js` and `VignetteShader.js` |
+Gzip of what a first visit downloads when that look is selected (the look module, shared kit, sky, GLTFLoader, meshopt decoder, and the GLB):
 
-## Performance notes
+| Look | Gzip |
+| --- | ---: |
+| Diorama | 59 KB |
+| Pixel | 42 KB |
+| Clay | 57 KB |
+| Neon | 48 KB |
 
-One shadow map stays at 1024. The pixel-ratio cap is unchanged. Diorama does not add a post pass. Clay and neon add one scene target and two fullscreen blits, and they do not run on top of the existing bloom. Decorative props do not cast shadows. Clay’s contact darkening is painted into the tile, not a screen-space AO pass.
+`js/woodLook.js` is about 0.5 KB gzip and loads with every visit. It does not import a look or a GLB until a Wood stage is opened with `?look=` set.
+
+## Performance
+
+Measured in headless Chromium with an iPhone user agent, a 430×932 viewport, device scale 2, and SwiftShader (`ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)`). This is not WebKit and not a phone. Do not read these numbers as iPhone frame rate.
+
+| Scene | fps | frame p50 / p95 | draws | triangles |
+| --- | ---: | --- | ---: | --- |
+| Shipped Wood 1 | 9 | 117 / 117 ms | 56 | 17k |
+| Diorama Wood 1 | 23 | 33 / 83 ms | 25 | 4.1k |
+| Pixel Wood 1 | 27 | 33 / 67 ms | 24 | 1.6k |
+| Clay Wood 1 | 25 | 33 / 67 ms | 24 | 3.9k |
+| Neon Wood 1 | 27 | 33 / 67 ms | 25 | 2.7k |
+| Diorama Wood 8 | 20 | 33 / 117 ms | 25 | 8.5k |
+| Neon Wood 8 | 26 | 33 / 67 ms | 25 | 5.7k |
+
+The looks are MeshBasic vertex colors with instanced tiles and walls. They hide the stock frame instead of drawing it again, and they do not add a fullscreen pass.
+
+## Rules
+
+The looks do not change the tilt solver. `python3 tools/validate_levels.py` reports 132 stages solvable and par matching BFS. `js/game.js` and `shared/levels.json` are not part of this change. The same Wood 1 solution (left, up, left, down) reaches 4/4 in every look, and the same Wood 8 solution (left, up, right, down, right, up, right, down) reaches 8/8.
 
 ## Stills
 
-430×932, captured in headless Chromium with an iPhone-sized viewport. These files are documentation. The game does not request them.
+430×932. These files are documentation. The game does not request them.
 
 ![Diorama, Wood 1](diorama-wood1.webp)
 ![Diorama, Wood 8](diorama-wood8.webp)

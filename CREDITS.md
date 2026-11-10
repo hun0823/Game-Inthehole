@@ -11,21 +11,27 @@ Menu and stage background music. Files: `assets/audio/bgm/flowerbed_fields.m4a` 
 
 ## Code
 
-Wood looks (`?look=diorama|pixel|clay|neon`) are original geometry, canvas textures, and GLSL, except the two shaders below. No Kenney, Poly Haven, or other texture packs are bundled. The looks are not loaded unless the query param is set.
+Wood looks (`?look=diorama|pixel|clay|neon`) are original meshes authored in Blender and drawn with vertex colors. They are not loaded unless the query param is set. No Kenney, Poly Haven, or other model or texture packs are bundled. Lighting and ambient occlusion are baked into those vertex colors; the looks do not ship a runtime post pass.
 
-**FilmShader.js** (`js/vendor/look/FilmShader.js`)  
-Grain pass used by the pixel look.  
-Source: https://github.com/mrdoob/three.js/blob/r170/examples/jsm/shaders/FilmShader.js  
+**Look meshes** (`assets/looks/*.glb`, authored by `tools/blender/build_looks.py`)  
+Original geometry. Built with Blender 4.5.16 LTS.  
+Blender itself is GPL and is not distributed. The exported meshes are original project content.  
+Canonical Blender build: https://download.blender.org/release/Blender4.5/blender-4.5.16-linux-x64.tar.xz  
+(The build used here was fetched from the NLUUG mirror of that same tarball, because download.blender.org returned a Cloudflare challenge to the agent.)
+
+**GLTFLoader.js** (`js/vendor/look/GLTFLoader.js`)  
+Loads the look kits. Loaded only with a look.  
+Source: https://github.com/mrdoob/three.js/blob/r170/examples/jsm/loaders/GLTFLoader.js  
 License: MIT (three.js r170). Copyright 2010-2024 three.js authors. See `js/vendor/look/LICENSE`.  
-The scanline term in the pixel look is original and is not the CC-BY FilmShader from older three.js releases.
+Local edits are the import path and a triangle-draw stub. The kits are triangle lists, so the stub is not exercised.
 
-**VignetteShader.js** (`js/vendor/look/VignetteShader.js`)  
-Vignette used by the clay and neon looks.  
-Source: https://github.com/mrdoob/three.js/blob/r170/examples/jsm/shaders/VignetteShader.js  
-License: MIT (three.js r170). Copyright 2010-2024 three.js authors. See `js/vendor/look/LICENSE`.
+**meshopt_decoder.module.js** (`js/vendor/look/meshopt_decoder.module.js`)  
+Decodes `EXT_meshopt_compression` on the look GLBs. Loaded only with a look.  
+Source: https://github.com/zeux/meshoptimizer (the copy shipped with three.js r170 `examples/jsm/libs/meshopt_decoder.module.js`)  
+License: MIT. Copyright (C) 2016-2022 Arseny Kapoulkine.  
+The GLBs were compressed with gltfpack 1.3 from the same project: https://github.com/zeux/meshoptimizer/releases/tag/v1.3
 
-**Glow and pixelate passes** (`js/looks/pass.js`, `js/looks/pixel.js`)  
-Original. No third-party postprocessing package is bundled.
+Vertex colors carry the baked lighting, so the kits do not use KTX2 or WebP textures. A texture transcoder would have been larger than the meshes.
 
 ## Agent skills
 

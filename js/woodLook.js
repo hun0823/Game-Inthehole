@@ -11,6 +11,7 @@ const LOADERS = {
 };
 
 let api = null;
+let pending = null;
 
 export function woodLookId() {
   try {
@@ -24,15 +25,20 @@ export function woodLookId() {
 export function loadWoodLook() {
   const id = woodLookId();
   if (!id) return Promise.resolve(null);
-  return LOADERS[id]().then((mod) => {
+  if (api && api.id === id) return Promise.resolve(api);
+  if (pending) return pending;
+  pending = LOADERS[id]().then(async (mod) => {
+    if (mod.ready) await mod.ready;
     api = mod.createLook();
     api.id = id;
     return api;
   }).catch((err) => {
     console.error(err);
     api = null;
+    pending = null;
     return null;
   });
+  return pending;
 }
 
 export function woodLookFor(planet) {

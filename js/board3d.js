@@ -961,6 +961,8 @@ export function createView(canvas) {
   let activeLook = null;
   let sceneBaseline = null;
   let stageGeom = { n: 3, frameT: 0.4, span: 3.48 };
+  let stageWalls = { h: [], v: [] };
+  let stageBall = [0, 0];
   function layoutMotes(t) {
     for (let i = 0; i < MOTE_N; i++) {
       const s = moteSeed[i];
@@ -1506,6 +1508,10 @@ export function createView(canvas) {
       frameT: stageGeom.frameT,
       span: stageGeom.span,
       hole: holeCell,
+      ballCell: stageBall,
+      walls: stageWalls,
+      wallColor,
+      fogWalls,
       boardTop: BOARD_TOP,
       ballR: BALL_R,
       step: STEP,
@@ -1543,6 +1549,7 @@ export function createView(canvas) {
       suppressDeco(true);
     } catch (err) {
       console.error(err);
+      try { look.unmount(lookContext()); } catch (unmountErr) { console.error(unmountErr); }
       activeLook = null;
       restoreScene();
       suppressDeco(false);
@@ -1814,7 +1821,7 @@ export function createView(canvas) {
   function dressGoal() {
     emptyGoal();
     const custom = !!(holeCell && equipped.goal) && !woodLookFor(activeTheme.id);
-    if (stockHole) stockHole.visible = !custom;
+    if (stockHole) stockHole.visible = !custom && !activeLook;
     if (!custom) return;
     const spot = cellXZ(holeCell[0], holeCell[1]);
     goalGroup.position.set(spot.x, 0, spot.z);
@@ -1983,6 +1990,8 @@ export function createView(canvas) {
     const unit = n / 6;
     const frameT = FRAME_T * unit;
     stageGeom = { n, frameT, span };
+    stageWalls = { h: level.hWalls || [], v: level.vWalls || [] };
+    stageBall = level.ball;
     const frameH = FRAME_H * unit;
     const ink = 0.05 * unit;
     const line = 0.045 * unit;
@@ -1996,6 +2005,7 @@ export function createView(canvas) {
       const mesh = new THREE.Mesh(frameRingGeo(ow, iw, oR, iR, height), mat);
       mesh.position.y = y;
       mesh.userData.ownGeo = true;
+      mesh.userData.stockBoard = true;
       mesh.castShadow = false;
       mesh.receiveShadow = mat !== frameInkMat;
       if (outline) addScreenOutline(mesh);
@@ -2014,6 +2024,7 @@ export function createView(canvas) {
     const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
     board.position.y = BOARD_TOP - boardH / 2;
     board.receiveShadow = true;
+    board.userData.stockBoard = true;
     rig.add(board);
     const top = new THREE.Mesh(new THREE.PlaneGeometry(span, span), floorTopMaterial(n));
     top.userData.noInk = true;
@@ -2021,6 +2032,7 @@ export function createView(canvas) {
     top.position.y = BOARD_TOP + 0.004;
     top.receiveShadow = true;
     top.userData.ownGeo = true;
+    top.userData.stockBoard = true;
     rig.add(top);
 
     const placeEdge = (axis, r, c) => {
@@ -2073,6 +2085,7 @@ export function createView(canvas) {
         group.add(mesh);
         if (kind !== "glass") addScreenOutline(mesh);
       }
+      if (kind === "wall") group.userData.stockBoard = true;
       mesh.userData = {
         kind,
         axis,
@@ -2364,6 +2377,10 @@ export function createView(canvas) {
       return;
     }
     mesh.parent.visible = show;
+    if (mesh.userData.kind === "wall") {
+      mesh.userData.lookShow = show;
+      if (activeLook && mesh.parent.userData.stockBoard) mesh.parent.visible = false;
+    }
   }
 
   function refreshFog() {

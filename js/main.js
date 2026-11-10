@@ -15,8 +15,6 @@ import { createAudio } from "./audio.js";
 import { bootPerf } from "./perf.js";
 import { loadWoodLook, woodLookFor } from "./woodLook.js";
 
-await loadWoodLook();
-
 const STORAGE_KEY = "inthehole_cleared";
 const STORAGE_STARS_PREFIX = "inthehole_stars_";
 const STORAGE_LESSONS = "inthehole_lessons";
@@ -101,6 +99,7 @@ const audio = createAudio();
 
 let lang = detectLang();
 let stageIndex = 0;
+let stageToken = 0;
 let game = new Game(LEVELS[0]);
 let animating = false;
 let gameOver = false;
@@ -1003,9 +1002,13 @@ function hasDeepLink() {
   return new URLSearchParams(location.search).has("stage");
 }
 
-function loadStage(index) {
+async function loadStage(index) {
+  const token = ++stageToken;
   closePause();
-  stageIndex = Math.max(0, Math.min(index, LEVELS.length - 1));
+  const next = Math.max(0, Math.min(index, LEVELS.length - 1));
+  if (LEVELS[next].planet === "wood") await loadWoodLook();
+  if (token !== stageToken) return;
+  stageIndex = next;
   game = new Game(LEVELS[stageIndex]);
   gameOver = false;
   hideOverlay();
@@ -2159,10 +2162,11 @@ grantClearedPlanetBalls();
 view.setBall(equippedId());
 view.setTrail(equippedFor("trails"));
 view.setCelebration(equippedFor("celes"));
-if (hasDeepLink()) loadStage(indexFromLocation());
+if (hasDeepLink()) await loadStage(indexFromLocation());
 else {
   stageIndex = 0;
   game = new Game(LEVELS[0]);
+  if (LEVELS[0].planet === "wood") await loadWoodLook();
   renderBoard();
   showMap();
 }

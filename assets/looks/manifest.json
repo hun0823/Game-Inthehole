@@ -1,0 +1,94 @@
+{
+  "outward": 0.3,
+  "step": 1.16,
+  "looks": {
+    "diorama": {
+      "tris": {
+        "tile_a": 48,
+        "tile_b": 68,
+        "tile_c": 48,
+        "wall": 168,
+        "edge_a": 150,
+        "edge_b": 110,
+        "corner": 40,
+        "ground": 2,
+        "ball": 184,
+        "goal": 200,
+        "squirrel": 480,
+        "tree_a": 80,
+        "tree_b": 56,
+        "tree_c": 80,
+        "stump": 84,
+        "rock": 40,
+        "acorn": 40
+      },
+      "total": 1878
+    },
+    "pixel": {
+      "tris": {
+        "tile_a": 24,
+        "tile_b": 24,
+        "tile_c": 36,
+        "wall": 48,
+        "edge_a": 48,
+        "edge_b": 24,
+        "corner": 24,
+        "ground": 2,
+        "ball": 64,
+        "goal": 108,
+        "squirrel": 192,
+        "tree_a": 48,
+        "tree_b": 48,
+        "tree_c": 24,
+        "stump": 24,
+        "rock": 24,
+        "acorn": 24
+      },
+      "total": 786
+    },
+    "clay": {
+      "tris": {
+        "tile_a": 108,
+        "tile_b": 108,
+        "tile_c": 108,
+        "wall": 156,
+        "edge_a": 106,
+        "edge_b": 82,
+        "corner": 20,
+        "ground": 2,
+        "ball": 60,
+        "goal": 256,
+        "squirrel": 400,
+        "tree_a": 48,
+        "tree_b": 108,
+        "tree_c": 20,
+        "stump": 152,
+        "rock": 20,
+        "acorn": 40
+      },
+      "total": 1794
+    },
+    "neon": {
+      "tris": {
+        "tile_a": 60,
+        "tile_b": 60,
+        "tile_c": 60,
+        "wall": 48,
+        "edge_a": 78,
+        "edge_b": 78,
+        "corner": 20,
+        "ground": 2,
+        "ball": 216,
+        "goal": 200,
+        "squirrel": 240,
+        "tree_a": 18,
+        "tree_b": 156,
+        "tree_c": 20,
+        "stump": 68,
+        "rock": 20,
+        "acorn": 28
+      },
+      "total": 1372
+    }
+  }
+}
