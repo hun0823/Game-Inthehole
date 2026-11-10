@@ -16,7 +16,8 @@ import {
   dressGlass, dressGate, makeGateGroove, dressVine,
 } from "./trickLook.js";
 import { createMagmaLook } from "./magmaLook.js";
-import { beginDeco, tickDeco, decoWanted, createBoardDeco } from "./boardDeco.js";
+import { beginDeco, tickDeco, decoWanted, createBoardDeco, suppressDeco } from "./boardDeco.js";
+import { woodLookFor } from "./woodLook.js";
 
 const STEP = 1.16;
 const GEM_CYCLE = ["red", "blue", "green", "purple", "blue", "red", "purple", "green"];
@@ -889,8 +890,10 @@ export function createView(canvas) {
   scene.add(world);
   world.add(rig);
 
-  scene.add(new THREE.HemisphereLight(0xfff1c9, 0x6a4a32, 0.72));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.32));
+  const hemi = new THREE.HemisphereLight(0xfff1c9, 0x6a4a32, 0.72);
+  const ambient = new THREE.AmbientLight(0xffffff, 0.32);
+  scene.add(hemi);
+  scene.add(ambient);
   const key = new THREE.DirectionalLight(0xfff6e4, 2.6);
   key.position.set(4.2, 11, 6);
   key.castShadow = true;
@@ -955,6 +958,9 @@ export function createView(canvas) {
   motes.frustumCulled = false;
   scene.add(motes);
   let storm = false;
+  let activeLook = null;
+  let sceneBaseline = null;
+  let stageGeom = { n: 3, frameT: 0.4, span: 3.48 };
   function layoutMotes(t) {
     for (let i = 0; i < MOTE_N; i++) {
       const s = moteSeed[i];
@@ -1424,6 +1430,125 @@ export function createView(canvas) {
   rig.add(hintGroup, hintRoute);
   let hintBaseY = 1.28;
 
+  function ensureBaseline() {
+    if (sceneBaseline) return;
+    sceneBaseline = {
+      exposure: renderer.toneMappingExposure,
+      hemi: { c: hemi.color.getHex(), g: hemi.groundColor.getHex(), i: hemi.intensity },
+      amb: { c: ambient.color.getHex(), i: ambient.intensity },
+      key: { c: key.color.getHex(), i: key.intensity, p: key.position.clone() },
+      fill: { c: fill.color.getHex(), i: fill.intensity },
+      mote: moteMat.color.getHex(),
+      blob: blob.material.color.getHex(),
+      contactC: contact.material.color.getHex(),
+      contactO: contact.material.opacity,
+    };
+  }
+
+  function restoreScene() {
+    const base = sceneBaseline;
+    if (!base) return;
+    renderer.toneMappingExposure = base.exposure;
+    hemi.color.setHex(base.hemi.c);
+    hemi.groundColor.setHex(base.hemi.g);
+    hemi.intensity = base.hemi.i;
+    ambient.color.setHex(base.amb.c);
+    ambient.intensity = base.amb.i;
+    key.color.setHex(base.key.c);
+    key.intensity = base.key.i;
+    key.position.copy(base.key.p);
+    fill.color.setHex(base.fill.c);
+    fill.intensity = base.fill.i;
+    moteMat.color.setHex(base.mote);
+    motes.visible = true;
+    blob.material.color.setHex(base.blob);
+    contact.material.color.setHex(base.contactC);
+    contact.material.opacity = base.contactO;
+  }
+
+  function tuneScene(spec) {
+    ensureBaseline();
+    if (spec.exposure != null) renderer.toneMappingExposure = spec.exposure;
+    if (spec.hemi) {
+      hemi.color.setHex(spec.hemi.sky);
+      hemi.groundColor.setHex(spec.hemi.ground);
+      hemi.intensity = spec.hemi.intensity;
+    }
+    if (spec.ambient) {
+      ambient.color.setHex(spec.ambient.color);
+      ambient.intensity = spec.ambient.intensity;
+    }
+    if (spec.key) {
+      key.color.setHex(spec.key.color);
+      key.intensity = spec.key.intensity;
+      if (spec.key.position) key.position.set(spec.key.position[0], spec.key.position[1], spec.key.position[2]);
+    }
+    if (spec.fill) {
+      fill.color.setHex(spec.fill.color);
+      fill.intensity = spec.fill.intensity;
+    }
+    if (spec.motes) {
+      motes.visible = spec.motes.visible !== false;
+      if (spec.motes.color != null) moteMat.color.setHex(spec.motes.color);
+    }
+    if (spec.blob != null) blob.material.color.setHex(spec.blob);
+    if (spec.contact) {
+      contact.material.color.setHex(spec.contact.color);
+      contact.material.opacity = spec.contact.opacity;
+    }
+  }
+
+  function lookContext() {
+    return {
+      rig, scene, renderer, camera,
+      ballMesh, ballRoot, contact, stockHole,
+      n: stageGeom.n,
+      frameT: stageGeom.frameT,
+      span: stageGeom.span,
+      hole: holeCell,
+      boardTop: BOARD_TOP,
+      ballR: BALL_R,
+      step: STEP,
+      cellXZ,
+      frameMats: { mid: frameMidMat, hi: frameHiMat, low: frameLowMat, ink: frameInkMat },
+      floorEdge: floorEdgeMat,
+      gloss: frameGlossMat,
+      reduceMotion,
+      tune: tuneScene,
+      restore: restoreScene,
+    };
+  }
+
+  function releaseLook() {
+    suppressDeco(false);
+    if (!activeLook) return;
+    const look = activeLook;
+    activeLook = null;
+    try { look.unmount(lookContext()); } catch (err) { console.error(err); }
+    dressBallSkin();
+  }
+
+  function mountWoodLook() {
+    const look = woodLookFor(activeTheme.id);
+    if (!look) return;
+    activeLook = look;
+    try {
+      ensureBaseline();
+      look.mount(lookContext());
+      if (look.dressGoal && stockHole) look.dressGoal(stockHole);
+      if (look.dressBall) {
+        look.dressBall(ballMesh);
+        sportMarks.show("");
+      }
+      suppressDeco(true);
+    } catch (err) {
+      console.error(err);
+      activeLook = null;
+      restoreScene();
+      suppressDeco(false);
+    }
+  }
+
   function dropChild(child) {
     child.traverse((node) => {
       if (node.userData.ownMat && node.material) {
@@ -1436,6 +1561,7 @@ export function createView(canvas) {
   }
 
   function clearRig() {
+    releaseLook();
     magmaLook.clear();
     for (const s of shardPool) {
       s.visible = false;
@@ -1687,7 +1813,7 @@ export function createView(canvas) {
 
   function dressGoal() {
     emptyGoal();
-    const custom = !!(holeCell && equipped.goal);
+    const custom = !!(holeCell && equipped.goal) && !woodLookFor(activeTheme.id);
     if (stockHole) stockHole.visible = !custom;
     if (!custom) return;
     const spot = cellXZ(holeCell[0], holeCell[1]);
@@ -1704,6 +1830,10 @@ export function createView(canvas) {
     ballMesh.material = ballMaterials[equipped.id] || ballMaterials.oak;
     const textured = mapsReady && (equipped.id === "baseball" || equipped.id === "tennis");
     sportMarks.show(textured ? "" : equipped.id);
+    if (activeLook && activeLook.dressBall) {
+      activeLook.dressBall(ballMesh);
+      sportMarks.show("");
+    }
   }
 
   function setBall(id) {
@@ -1852,6 +1982,7 @@ export function createView(canvas) {
     // outline weight: a charcoal stroke and one theme-color band.
     const unit = n / 6;
     const frameT = FRAME_T * unit;
+    stageGeom = { n, frameT, span };
     const frameH = FRAME_H * unit;
     const ink = 0.05 * unit;
     const line = 0.045 * unit;
@@ -1874,7 +2005,10 @@ export function createView(canvas) {
     addRing(outerW - 0.01 * unit, outerW - frameT * 0.38, outerR * 0.9, Math.max(0.05, outerR * 0.62), frameH * 0.12, frameHiMat, 0.02 + frameH * 0.9, true);
     addRing(holeW + line * 2.1, holeW + 0.006 * unit, Math.max(0.05, innerR * 0.85), Math.max(0.04, innerR * 0.35), frameH * 0.1, frameLowMat, 0.025 + frameH * 0.86);
     addRing(outerW + ink * 2, outerW - 0.004 * unit, outerR + ink * 0.7, Math.max(0.05, outerR * 0.92), Math.max(0.04, frameH * 0.16), frameInkMat, 0.02 + frameH * 0.9);
-    if (decoWanted()) rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
+    if (decoWanted()) {
+      if (woodLookFor(level.planet)) suppressDeco(true);
+      rig.add(createBoardDeco(level.planet || activeTheme.id, span, frameT));
+    }
 
     const boardH = 0.26;
     const board = new THREE.Mesh(roundGeo(span, boardH, span, 2, 0.05), floorEdgeMat);
@@ -2166,6 +2300,7 @@ export function createView(canvas) {
     dressGoal();
     sync(game, { ready: true });
     frameCamera();
+    mountWoodLook();
     renderer.shadowMap.needsUpdate = true;
   }
 
@@ -2877,9 +3012,10 @@ export function createView(canvas) {
       world.position.z = Math.cos(time * 37) * mag;
 
       const ring = rig.getObjectByName("hole-ring");
-      if (ring) {
+      if (ring && !activeLook && ring.material && ring.material.emissiveIntensity != null) {
         ring.material.emissiveIntensity = 0.05 + Math.sin(time * 2.2) * 0.03;
       }
+      if (activeLook && activeLook.tick) activeLook.tick(time, dt);
 
       if (rollJob) stepRoll(rollJob, dt);
       if (rollJob && !sinkJob && equipped.motion === "bounce") {
@@ -3160,8 +3296,15 @@ export function createView(canvas) {
         renderer.info.autoReset = false;
         renderer.info.reset();
       }
-      if (useBloom && bloomFx) bloomFx.render(scene, camera);
-      else renderer.render(scene, camera);
+      let drew = false;
+      if (activeLook && activeLook.draw) {
+        try { drew = activeLook.draw(renderer, scene, camera, time) === true; }
+        catch (err) { console.error(err); }
+      }
+      if (!drew) {
+        if (useBloom && bloomFx) bloomFx.render(scene, camera);
+        else renderer.render(scene, camera);
+      }
       noteRender();
       if (useBloom && document.visibilityState === "visible") {
         const frameDt = now - bloomLast;

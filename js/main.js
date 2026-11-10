@@ -13,6 +13,9 @@ import { PLANET_ORDER, PLANET_BALL, themeById } from "./themes.js";
 import { migrateCampaignSave, remapLegacyStageId, retiredStars } from "./saveMigrate.js";
 import { createAudio } from "./audio.js";
 import { bootPerf } from "./perf.js";
+import { loadWoodLook, woodLookFor } from "./woodLook.js";
+
+await loadWoodLook();
 
 const STORAGE_KEY = "inthehole_cleared";
 const STORAGE_STARS_PREFIX = "inthehole_stars_";
@@ -948,6 +951,18 @@ async function handleTilt(dir) {
   handleAfterMove(won);
 }
 
+function keptSearch() {
+  const cur = new URLSearchParams(location.search);
+  const next = new URLSearchParams();
+  for (const key of ["look", "fps", "perf"]) {
+    if (!cur.has(key)) continue;
+    const value = cur.get(key);
+    if (value != null) next.set(key, value);
+  }
+  const q = next.toString();
+  return q ? `?${q}` : "";
+}
+
 function remapLegacyStageLink() {
   const hash = /^#(\d+)$/.exec(location.hash || "");
   const params = new URLSearchParams(location.search);
@@ -999,7 +1014,10 @@ function loadStage(index) {
   mapEl.hidden = true;
   mapView.stop();
   const hash = `#${LEVELS[stageIndex].id}`;
-  if (location.hash !== hash || location.search) history.replaceState(null, "", hash);
+  const nextUrl = `${location.pathname}${keptSearch()}${hash}`;
+  if (`${location.pathname}${location.search}${location.hash}` !== nextUrl) {
+    history.replaceState(null, "", nextUrl);
+  }
   renderBoard();
   paintSky();
   maybeAutoLesson();
@@ -1294,8 +1312,16 @@ window.addEventListener("hashchange", () => {
 });
 
 function paintSky() {
+  const planet = !mapOpen() && LEVELS[stageIndex] ? LEVELS[stageIndex].planet : null;
+  const look = woodLookFor(planet);
+  if (look) document.documentElement.dataset.look = look.id;
+  else delete document.documentElement.dataset.look;
   if (mapOpen()) {
     drawSky(skyEl, null);
+    return;
+  }
+  if (look && look.paintSky) {
+    look.paintSky(skyEl);
     return;
   }
   const override = backgroundById(equippedFor("bgs"));
@@ -1928,7 +1954,10 @@ function showMap() {
   document.querySelector(".app").classList.add("is-map");
   mapEl.hidden = false;
   constellationEl.classList.remove("is-zooming");
-  if (location.hash || location.search) history.replaceState(null, "", location.pathname);
+  const mapUrl = `${location.pathname}${keptSearch()}`;
+  if (`${location.pathname}${location.search}${location.hash}` !== mapUrl) {
+    history.replaceState(null, "", mapUrl);
+  }
   renderMap();
   mapView.start();
   requestAnimationFrame(() => positionMap());
