@@ -319,44 +319,62 @@ def gray(level):
 
 # --- diorama -----------------------------------------------------------------
 
+def hx(value):
+    return ((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255
+
+
+def lin(value):
+    """sRGB hex as a linear vertex color. Three.js displays that as the hex."""
+    out = []
+    for channel in (((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255):
+        if channel <= 0.04045:
+            out.append(channel / 12.92)
+        else:
+            out.append(((channel + 0.055) / 1.055) ** 2.4)
+    return tuple(out)
+
+
+GRASS_HEX = lin(0x7CB342)
+RIM_HEX = lin(0x8D6E4C)
+WALL_HEX = lin(0x6D4C41)
+BALL_HEX = lin(0xE0A04A)
+HOLE_HEX = lin(0x3E2723)
+LIP_HEX = lin(0xC9842A)
+FUR = lin(0xE87820)
+FUR_D = lin(0xA85A12)
+BELLY = lin(0xF4E4C8)
+
+
 def diorama_tiles():
-    specs = (
-        ("tile_a", 0.46, GRASS, False),
-        ("tile_b", 0.40, GRASS_B, True),
-        ("tile_c", 0.48, GRASS_C, False),
+    colors = (
+        ("tile_a", lin(0x7CB342)),
+        ("tile_b", lin(0x8BC34A)),
+        ("tile_c", lin(0x6EAE38)),
     )
-    for name, radius, color, pebble in specs:
-        dirt = prim("cube", name + "_d", loc=(0, 0, -0.04), scale=(1.02, 1.02, 0.06))
-        grass = prim("cyl", name + "_g", loc=(0, 0, -0.015), radius=radius, depth=0.05, verts=10)
-        parts = [solid(dirt, DIRT, ao=0.16, seed=3), solid(grass, color, ao=0.14, seed=5)]
-        if pebble:
-            pebble_m = prim("ico", name + "_p", loc=(0.16, -0.12, 0.02), radius=0.045, sub=1, scale=(1.1, 0.8, 0.55))
-            parts.append(solid(pebble_m, (0.55, 0.52, 0.46), ao=0.3, seed=8))
-        fuse(parts, name)
+    for name, color in colors:
+        pad = prim("cube", name, loc=(0, 0, 0.04), scale=(1.02, 1.02, 0.08))
+        bevel(pad, 0.035, segs=2)
+
+        def color_fn(co, normal, rng, base=color):
+            if normal.z > 0.65:
+                return base
+            return (base[0] * 0.72, base[1] * 0.72, base[2] * 0.68)
+
+        paint_fn(pad, color_fn, ao=0.1, noise=0.02, seed=4)
+        apply_tf(pad, loc=True, rot=False, scale=False)
 
 
 def diorama_wall():
-    body = prim(
-        "cyl", "w_body",
-        loc=(0, 0, 0.12), rot=(0, math.pi / 2, 0),
-        radius=0.115, depth=1.08, verts=8,
-    )
-    parts = [solid(body, gray(0.72), ao=0.28, seed=2)]
-    for x in (-0.46, 0.0, 0.46):
-        ring = prim(
-            "cyl", "w_ring",
-            loc=(x, 0, 0.12), rot=(0, math.pi / 2, 0),
-            radius=0.132, depth=0.06, verts=8,
-        )
-        parts.append(solid(ring, gray(0.42), ao=0.2, seed=4))
-    for x in (-0.54, 0.54):
-        cap = prim(
-            "cyl", "w_cap",
-            loc=(x, 0, 0.12), rot=(0, math.pi / 2, 0),
-            radius=0.118, depth=0.035, verts=8,
-        )
-        parts.append(solid(cap, gray(0.92), ao=0.12, seed=6))
-    fuse(parts, "wall")
+    beam = prim("cube", "wb", loc=(0, 0, 0.22), scale=(1.08, 0.24, 0.40))
+    bevel(beam, 0.035, segs=2)
+
+    def color_fn(co, normal, rng):
+        return WALL_HEX
+
+    paint_fn(beam, color_fn, ao=0.08, noise=0.02, seed=2)
+    apply_tf(beam, loc=True, rot=False, scale=False)
+    beam.name = "wall"
+    beam.data.name = "wall"
 
 
 def diorama_edges():
@@ -396,47 +414,74 @@ def diorama_edges():
     fuse([solid(rock, (0.40, 0.38, 0.34), ao=0.3, seed=3), solid(rock2, DIRT, ao=0.25, seed=4)], "corner")
 
 
+def face_eye(root, name, loc, radius):
+    """Disc facing -Y. Local Y is up after export, so a Y scale blinks."""
+    x, y, z = loc
+    disc = prim("ico", name + "_w", loc=(x, y, z), radius=radius, sub=1, scale=(1.05, 0.38, 1.05))
+    dot = prim(
+        "ico", name + "_p",
+        loc=(x, y - radius * 0.22, z),
+        radius=radius * 0.48, sub=1, scale=(0.85, 0.4, 0.9),
+    )
+    glint = prim(
+        "ico", name + "_s",
+        loc=(x + radius * 0.28, y - radius * 0.28, z + radius * 0.28),
+        radius=radius * 0.16, sub=0,
+    )
+    paint(disc, EYE_W, ao=0.0, noise=0.0, seed=2)
+    paint(dot, EYE, ao=0.0, noise=0.0, seed=3)
+    paint(glint, (1, 1, 1), ao=0.0, noise=0.0, seed=4)
+    apply_tf(dot, loc=True, rot=False, scale=False)
+    apply_tf(glint, loc=True, rot=False, scale=False)
+    parent_to(fuse([disc, dot, glint], name), root)
+
+
 def diorama_squirrel():
+    """Standing hero. Feet on Z=0, face toward -Y (glTF +Z, toward the camera)."""
     root = empty("squirrel")
+    fur = FUR
+    fur_d = FUR_D
+    belly = BELLY
     parts = []
-    body = prim("ico", "sq_body", loc=(0, 0.02, 0.11), radius=0.16, sub=1, scale=(1.35, 2.15, 0.62))
-    parts.append(solid(body, FUR, ao=0.18, seed=1))
-    belly = prim("ico", "sq_belly", loc=(0, -0.02, 0.15), radius=0.11, sub=1, scale=(1.05, 1.55, 0.42))
-    parts.append(solid(belly, BELLY, ao=0.12, seed=2))
-    head = prim("ico", "sq_head", loc=(0, -0.40, 0.13), radius=0.155, sub=1, scale=(1.12, 0.92, 0.72))
-    parts.append(solid(head, FUR, ao=0.14, seed=3))
-    snout = prim("ico", "sq_snout", loc=(0, -0.54, 0.12), radius=0.07, sub=1, scale=(0.85, 1.15, 0.55))
-    parts.append(solid(snout, BELLY, ao=0.1, seed=4))
-    nose = prim("ico", "sq_nose", loc=(0, -0.62, 0.145), radius=0.028, sub=1)
-    parts.append(solid(nose, NOSE, ao=0.06, seed=5))
+    body = prim("ico", "sq_body", loc=(0, 0.02, 0.46), radius=0.24, sub=2, scale=(0.82, 0.66, 1.15))
+    parts.append(solid(body, fur, ao=0.12, seed=1))
+    tum = prim("ico", "sq_belly", loc=(0, -0.14, 0.46), radius=0.15, sub=2, scale=(0.7, 0.7, 1.0))
+    parts.append(solid(tum, belly, ao=0.08, seed=2))
+    head = prim("ico", "sq_head", loc=(0, -0.08, 1.05), radius=0.34, sub=2, scale=(1.08, 0.86, 0.98))
+    parts.append(solid(head, fur, ao=0.1, seed=3))
+    snout = prim("ico", "sq_snout", loc=(0, -0.38, 0.94), radius=0.13, sub=2, scale=(0.85, 0.9, 0.7))
+    parts.append(solid(snout, belly, ao=0.06, seed=4))
+    nose = prim("ico", "sq_nose", loc=(0, -0.50, 0.98), radius=0.042, sub=1)
+    parts.append(solid(nose, lin(0x5C2E1A), ao=0.04, seed=5))
     for sx in (-1, 1):
-        ear = prim("ico", "sq_ear", loc=(sx * 0.13, -0.44, 0.24), radius=0.07, sub=1, scale=(0.55, 0.42, 1.15))
-        parts.append(solid(ear, FUR, ao=0.12, seed=6))
-        inner = prim("ico", "sq_ein", loc=(sx * 0.125, -0.45, 0.26), radius=0.038, sub=1, scale=(0.45, 0.35, 0.9))
-        parts.append(solid(inner, PINK, ao=0.08, seed=7))
-        paw = prim("ico", "sq_paw", loc=(sx * 0.16, -0.16, 0.05), radius=0.045, sub=1, scale=(0.85, 1.15, 0.45))
-        parts.append(solid(paw, FUR_D, ao=0.16, seed=8))
-        cheek = prim("ico", "sq_ch", loc=(sx * 0.10, -0.50, 0.14), radius=0.038, sub=1)
-        parts.append(solid(cheek, PINK, ao=0.08, seed=9))
+        ear = prim("ico", "sq_ear", loc=(sx * 0.20, -0.02, 1.42), radius=0.10, sub=1, scale=(0.42, 0.32, 1.45))
+        parts.append(solid(ear, fur, ao=0.08, seed=6))
+        inner = prim("ico", "sq_ein", loc=(sx * 0.19, -0.08, 1.46), radius=0.055, sub=1, scale=(0.36, 0.28, 1.05))
+        parts.append(solid(inner, lin(0xE8A090), ao=0.04, seed=7))
+        cheek = prim("ico", "sq_ch", loc=(sx * 0.16, -0.34, 0.96), radius=0.05, sub=1)
+        parts.append(solid(cheek, lin(0xF0A090), ao=0.04, seed=8))
+        paw = prim("ico", "sq_paw", loc=(sx * 0.15, -0.16, 0.28), radius=0.065, sub=1, scale=(0.75, 0.85, 0.6))
+        parts.append(solid(paw, fur_d, ao=0.1, seed=9))
+        foot = prim("ico", "sq_ft", loc=(sx * 0.11, -0.07, 0.16), radius=0.11, sub=1, scale=(1.15, 1.35, 0.55))
+        parts.append(solid(foot, fur_d, ao=0.1, seed=10))
     fuse(parts, "squirrel_body")
     parent_to(bpy.data.objects["squirrel_body"], root)
-    look_eye(root, "squirrel_eye_l", (-0.065, -0.38, 0.24), 0.048, EYE_W, EYE)
-    look_eye(root, "squirrel_eye_r", (0.065, -0.38, 0.24), 0.048, EYE_W, EYE)
+    face_eye(root, "squirrel_eye_l", (-0.15, -0.46, 1.18), 0.135)
+    face_eye(root, "squirrel_eye_r", (0.15, -0.46, 1.18), 0.135)
     puffs = []
     curve = (
-        ((0.0, 0.28, 0.12), 0.10),
-        ((0.05, 0.42, 0.16), 0.14),
-        ((0.02, 0.56, 0.18), 0.16),
-        ((-0.06, 0.70, 0.16), 0.13),
-        ((0.0, 0.82, 0.13), 0.08),
+        ((0.04, 0.20, 0.30), 0.15),
+        ((0.24, 0.32, 0.46), 0.22),
+        ((0.40, 0.26, 0.68), 0.26),
+        ((0.32, 0.14, 0.88), 0.20),
+        ((0.16, 0.06, 1.02), 0.13),
     )
     for i, ((x, y, z), radius) in enumerate(curve):
-        puff = prim("ico", f"puff{i}", loc=(x, y, z), radius=radius, sub=1)
-        col = FUR if i % 2 == 0 else FUR_D
-        paint(puff, col, ao=0.16, seed=20 + i)
+        puff = prim("ico", f"puff{i}", loc=(x, y, z), radius=radius, sub=2)
+        paint(puff, fur if i % 2 == 0 else fur_d, ao=0.14, seed=20 + i)
         puffs.append(puff)
     tail = fuse(puffs, "squirrel_tail")
-    origin_at(tail, (0.0, 0.22, 0.12))
+    origin_at(tail, (0.04, 0.16, 0.42))
     parent_to(tail, root)
 
 
@@ -494,33 +539,64 @@ def diorama_props():
 
 
 def diorama_ball_goal():
-    nut = prim("uv", "ball_n", radius=0.30, seg=10, rings=7, scale=(1.0, 1.0, 0.92))
-    cap = prim("uv", "ball_c", loc=(0, 0, 0.15), radius=0.20, seg=8, rings=4, scale=(1.15, 1.15, 0.48))
-    stem = prim("cyl", "ball_s", loc=(0, 0, 0.26), radius=0.022, depth=0.07, verts=5)
+    ball = prim("uv", "ball_n", radius=0.32, seg=12, rings=8)
+
+    def bands(co, normal, rng):
+        if co.z > 0.18:
+            return lin(0xF0B45A)
+        if co.z < -0.16:
+            return lin(0xC47A28)
+        return BALL_HEX
+
+    paint_fn(ball, bands, ao=0.12, noise=0.02, seed=1)
+    apply_tf(ball, loc=True, rot=False, scale=False)
+    ball.name = "ball"
+    ball.data.name = "ball"
+    mouth = prim("cyl", "g_mouth", loc=(0, 0, -0.04), radius=0.26, depth=0.14, verts=14)
+    lip = prim("torus", "g_lip", loc=(0, 0, 0.02), major_r=0.32, minor_r=0.055, major=14, minor=5)
+    bowl = prim("cyl", "g_bowl", loc=(0, 0, -0.01), radius=0.46, depth=0.05, verts=14)
     fuse(
         [
-            solid(nut, NUT, ao=0.2, seed=1),
-            solid(cap, (0.55, 0.74, 0.24), ao=0.08, seed=2),
-            solid(stem, BARK, ao=0.1, seed=3),
-        ],
-        "ball",
-    )
-    mouth = prim("cyl", "g_mouth", loc=(0, 0, -0.02), radius=0.30, depth=0.08, verts=12)
-    lip = prim("torus", "g_lip", loc=(0, 0, 0.02), major_r=0.34, minor_r=0.055, major=12, minor=5)
-    bark = prim("cyl", "g_bark", loc=(0, 0, -0.01), radius=0.50, depth=0.06, verts=10)
-    fuse(
-        [
-            solid(bark, BARK, ao=0.22, seed=4),
-            solid(mouth, (0.05, 0.03, 0.02), ao=0.05, seed=5),
-            solid(lip, AMBER, ao=0.12, seed=6),
+            solid(bowl, RIM_HEX, ao=0.16, seed=4),
+            solid(mouth, HOLE_HEX, ao=0.02, seed=5),
+            solid(lip, LIP_HEX, ao=0.08, seed=6),
         ],
         "goal",
     )
 
 
+def sit_top(ob, z=0.0):
+    me = ob.data
+    me.update()
+    top = max(v.co.z for v in me.vertices)
+    for v in me.vertices:
+        v.co.z -= top - z
+    me.update()
+
+
 def diorama_ground():
-    ground = prim("plane", "ground", loc=(0, 0, -0.045))
-    solid(ground, DIRT_D, ao=0.05, noise=0.02, seed=1)
+    block = prim("cube", "isle", loc=(0, 0, -0.52), scale=(1.0, 1.0, 1.04))
+    bevel(block, 0.09, segs=3)
+
+    def color_fn(co, normal, rng):
+        edge = max(abs(co.x), abs(co.y))
+        if normal.z > 0.55 and co.z > -0.1:
+            if edge > 0.36:
+                return RIM_HEX
+            return lin(0x689F38)
+        if co.z > -0.22:
+            return RIM_HEX
+        if co.z > -0.62:
+            return lin(0x6D4C41)
+        return lin(0x4E342E)
+
+    paint_fn(block, color_fn, ao=0.2, noise=0.03, seed=3)
+    sit_top(block, 0.0)
+    block.name = "ground"
+    block.data.name = "ground"
+    hill = prim("uv", "hill", radius=1.0, seg=20, rings=10, scale=(1.25, 1.0, 0.22))
+    solid(hill, GRASS_HEX, ao=0.18, noise=0.03, seed=8)
+    sit_top(hill, 0.0)
 
 
 def build_diorama():

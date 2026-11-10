@@ -4,17 +4,18 @@
   "looks": {
     "diorama": {
       "tris": {
-        "tile_a": 48,
-        "tile_b": 68,
-        "tile_c": 48,
-        "wall": 168,
+        "tile_a": 108,
+        "tile_b": 108,
+        "tile_c": 108,
+        "wall": 108,
         "edge_a": 150,
         "edge_b": 110,
         "corner": 40,
-        "ground": 2,
-        "ball": 184,
-        "goal": 200,
-        "squirrel": 480,
+        "ground": 188,
+        "hill": 360,
+        "ball": 168,
+        "goal": 244,
+        "squirrel": 1060,
         "tree_a": 80,
         "tree_b": 56,
         "tree_c": 80,
@@ -22,7 +23,7 @@
         "rock": 40,
         "acorn": 40
       },
-      "total": 1878
+      "total": 3132
     },
     "pixel": {
       "tris": {

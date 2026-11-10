@@ -1342,6 +1342,11 @@ export function createView(canvas) {
   }
 
   function frameCamera() {
+    if (activeLook && typeof activeLook.frame === "function") {
+      activeLook.frame(lookContext());
+      fitShadow();
+      return;
+    }
     const fit = boardFitSize();
     const w = fit.w;
     const h = fit.h;
@@ -1379,6 +1384,18 @@ export function createView(canvas) {
     key.shadow.camera.updateProjectionMatrix();
     blob.scale.set(half * 2.3, half * 1.6, 1);
     blob.position.z = half * 0.08;
+  }
+
+  function fitShadow() {
+    const dist = camera.position.length();
+    const s = viewHalf * 2.4;
+    key.shadow.camera.left = -s;
+    key.shadow.camera.right = s;
+    key.shadow.camera.top = s;
+    key.shadow.camera.bottom = -s;
+    key.shadow.camera.near = 0.5;
+    key.shadow.camera.far = Math.max(24, dist * 3);
+    key.shadow.camera.updateProjectionMatrix();
   }
 
   const hintMat = new THREE.MeshBasicMaterial({
@@ -1515,6 +1532,9 @@ export function createView(canvas) {
       boardTop: BOARD_TOP,
       ballR: BALL_R,
       step: STEP,
+      viewHalf,
+      world,
+      fit: boardFitSize,
       cellXZ,
       frameMats: { mid: frameMidMat, hi: frameHiMat, low: frameLowMat, ink: frameInkMat },
       floorEdge: floorEdgeMat,
@@ -1547,6 +1567,7 @@ export function createView(canvas) {
         sportMarks.show("");
       }
       suppressDeco(true);
+      frameCamera();
     } catch (err) {
       console.error(err);
       try { look.unmount(lookContext()); } catch (unmountErr) { console.error(unmountErr); }

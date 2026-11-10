@@ -130,7 +130,7 @@ export function mountStage(scene, ctx, spec) {
   };
 
   const ground = decorate(new THREE.Mesh(geo("ground")));
-  ground.scale.set(span, 1, span);
+  ground.scale.set(spec.island ? span + 0.95 : span, 1, spec.island ? span + 0.95 : span);
   ground.position.y = boardTop;
 
   const variantOf = [];
@@ -204,6 +204,7 @@ export function mountStage(scene, ctx, spec) {
   }
 
   const rims = [[], []];
+  if (!spec.island) {
   for (let c = 0; c < n; c++) {
     const x = (c - (n - 1) / 2) * step;
     rims[c % 2].push({ x, z: span / 2, ry: 0 });
@@ -243,6 +244,7 @@ export function mountStage(scene, ctx, spec) {
   });
   corner.instanceMatrix.needsUpdate = true;
   decorate(corner);
+  }
 
   if (hole) {
     const goal = decorate(new THREE.Mesh(geo("goal")));
@@ -258,36 +260,63 @@ export function mountStage(scene, ctx, spec) {
     node.receiveShadow = false;
     node.frustumCulled = false;
   });
-  root.add(squirrel);
   const hero = Math.min(1.85, Math.max(1.05, span / 3.35));
-  // The mascot is a long plan-view silhouette. Keep the tail under the top bar.
-  parkSky(squirrel, 0, hero * 0.74, ctx);
-  let baseY = squirrel.position.y;
-
+  const scenery = [];
   const trees = [];
-  [
-    ["tree_a", -span * 0.36, hero * 0.82],
-    ["tree_b", span * 0.36, hero * 0.74],
-  ].forEach(([name, x, sc]) => {
-    const tree = decorate(new THREE.Mesh(geo(name)));
-    parkSky(tree, x, sc, ctx);
-    trees.push(tree);
-  });
-  const third = decorate(new THREE.Mesh(geo("tree_c")));
-  parkNear(third, span * 0.12, hero * 0.5, ctx);
-  if (overlapsGrid(third, ctx)) root.remove(third);
-  else trees.push(third);
-
-  const propScale = Math.min(1.05, Math.max(0.62, span / 5.4));
-  [
-    ["stump", span * 0.28, propScale],
-    ["rock", -span * 0.3, propScale * 0.9],
-    ["acorn", span * 0.02, propScale * 0.85],
-  ].forEach(([name, x, sc]) => {
-    const prop = decorate(new THREE.Mesh(geo(name)));
-    parkNear(prop, x, sc, ctx);
-    if (overlapsGrid(prop, ctx)) root.remove(prop);
-  });
+  const pose = { baseY: 0 };
+  if (spec.island && ctx.world) {
+    ctx.world.add(squirrel);
+    scenery.push(squirrel);
+    squirrel.position.set(0, -8, 0);
+    pose.baseY = squirrel.position.y;
+    const hillNode = scene.getObjectByName("hill");
+    if (hillNode) {
+      const hill = decorate(new THREE.Mesh(geo("hill")));
+      root.remove(hill);
+      ctx.world.add(hill);
+      scenery.push(hill);
+      hill.scale.set(span * 1.18, 1.45, span * 1.08);
+      hill.position.set(-span * 0.06, -0.22, span * 0.04);
+    }
+    [
+      ["tree_a", span * 0.48, -span * 0.88, span * 0.72],
+      ["tree_b", -span * 0.62, -span * 0.78, span * 0.53],
+    ].forEach(([name, x, z, sc]) => {
+      const tree = decorate(new THREE.Mesh(geo(name)));
+      root.remove(tree);
+      ctx.world.add(tree);
+      scenery.push(tree);
+      trees.push(tree);
+      tree.scale.setScalar(sc);
+      tree.position.set(x, -0.12, z);
+    });
+  } else {
+    root.add(squirrel);
+    parkSky(squirrel, 0, hero * 0.74, ctx);
+    pose.baseY = squirrel.position.y;
+    [
+      ["tree_a", -span * 0.36, hero * 0.82],
+      ["tree_b", span * 0.36, hero * 0.74],
+    ].forEach(([name, x, sc]) => {
+      const tree = decorate(new THREE.Mesh(geo(name)));
+      parkSky(tree, x, sc, ctx);
+      trees.push(tree);
+    });
+    const third = decorate(new THREE.Mesh(geo("tree_c")));
+    parkNear(third, span * 0.12, hero * 0.5, ctx);
+    if (overlapsGrid(third, ctx)) root.remove(third);
+    else trees.push(third);
+    const propScale = Math.min(1.05, Math.max(0.62, span / 5.4));
+    [
+      ["stump", span * 0.28, propScale],
+      ["rock", -span * 0.3, propScale * 0.9],
+      ["acorn", span * 0.02, propScale * 0.85],
+    ].forEach(([name, x, sc]) => {
+      const prop = decorate(new THREE.Mesh(geo(name)));
+      parkNear(prop, x, sc, ctx);
+      if (overlapsGrid(prop, ctx)) root.remove(prop);
+    });
+  }
 
   ctx.rig.add(root);
 
@@ -300,6 +329,26 @@ export function mountStage(scene, ctx, spec) {
   }
   let oldGeo = null;
   const inks = [];
+  const puffs = [];
+  let puffMat = null;
+  let puffGeo = null;
+  if (spec.dust && hole) {
+    puffGeo = new THREE.SphereGeometry(0.055, 6, 4);
+    puffMat = new THREE.MeshBasicMaterial({
+      color: 0xc9842a,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      toneMapped: spec.toneMapped !== false,
+    });
+    for (let i = 0; i < 6; i++) {
+      const mesh = new THREE.Mesh(puffGeo, puffMat);
+      mesh.visible = false;
+      mesh.frustumCulled = false;
+      root.add(mesh);
+      puffs.push(mesh);
+    }
+  }
   const tail = squirrel.getObjectByName("squirrel_tail");
   const eyeL = squirrel.getObjectByName("squirrel_eye_l");
   const eyeR = squirrel.getObjectByName("squirrel_eye_r");
@@ -338,8 +387,9 @@ export function mountStage(scene, ctx, spec) {
     }
     const reduce = !!ctx.reduceMotion;
     if (tail) {
-      tail.rotation.y = reduce ? 0 : Math.sin(time * 2.15) * 0.42;
-      tail.rotation.x = reduce ? 0 : Math.sin(time * 1.25) * 0.12;
+      const amp = spec.island ? 0.22 : 0.42;
+      tail.rotation.y = reduce ? 0 : Math.sin(time * 2.15) * amp;
+      tail.rotation.x = reduce ? 0 : Math.sin(time * 1.25) * (spec.island ? 0.05 : 0.12);
     }
     const shut = !reduce && (time % 3.5) > 3.28;
     const sy = shut ? 0.14 : 1;
@@ -354,15 +404,43 @@ export function mountStage(scene, ctx, spec) {
       const bp = ctx.ballRoot.position;
       const near = Math.hypot(bp.x - holePos.x, bp.z - holePos.z) < step * 0.48
         && bp.y < boardTop + ctx.ballR * 0.65;
-      if (near && !wasNear) cheer = 1;
+      if (near && !wasNear) {
+        cheer = 1;
+        puffs.forEach((mesh) => {
+          mesh.visible = true;
+          mesh.userData.life = 1;
+        });
+      }
       wasNear = near;
     }
+    const bob = spec.island && !reduce ? Math.sin(time * 1.6) * squirrel.scale.y * 0.018 : 0;
     if (cheer > 0) {
       cheer = Math.max(0, cheer - dt * 0.55);
-      squirrel.position.y = baseY + Math.sin(cheer * Math.PI) * 0.16;
-      if (tail && !reduce) tail.rotation.y = Math.sin(time * 14) * 0.55 * cheer;
+      const hop = spec.island ? squirrel.scale.y * 0.05 : 0.16;
+      squirrel.position.y = pose.baseY + bob + Math.sin(cheer * Math.PI) * hop;
+      if (tail && !reduce) tail.rotation.y = Math.sin(time * 14) * (spec.island ? 0.28 : 0.55) * cheer;
     } else {
-      squirrel.position.y = baseY;
+      squirrel.position.y = pose.baseY + bob;
+    }
+    if (puffs.length && holePos) {
+      puffs.forEach((mesh, i) => {
+        if (!mesh.visible) return;
+        mesh.userData.life = (mesh.userData.life || 0) - dt * 0.85;
+        if (mesh.userData.life <= 0) {
+          mesh.visible = false;
+          return;
+        }
+        const a = (i / puffs.length) * Math.PI * 2;
+        const k = 1 - mesh.userData.life;
+        mesh.position.set(
+          holePos.x + Math.cos(a) * (0.12 + k * 0.28),
+          boardTop + 0.06 + k * 0.22,
+          holePos.z + Math.sin(a) * (0.12 + k * 0.28),
+        );
+        const s = 0.6 + k * 1.4;
+        mesh.scale.setScalar(s);
+        puffMat.opacity = mesh.userData.life * 0.55;
+      });
     }
   }
 
@@ -374,11 +452,14 @@ export function mountStage(scene, ctx, spec) {
     hidden.forEach((node) => {
       node.visible = true;
     });
+    scenery.forEach((node) => node.removeFromParent());
     root.removeFromParent();
     mat.dispose();
+    if (puffMat) puffMat.dispose();
+    if (puffGeo) puffGeo.dispose();
   }
 
-  return { dressBall, tick, dispose, root };
+  return { dressBall, tick, dispose, root, hero: squirrel, pose };
 }
 
 function stockVisible(ctx, spot) {

@@ -28,9 +28,9 @@ Then open `http://127.0.0.1:8080/?look=diorama#1`. `look`, `fps`, and `perf` sta
 
 ## What each look changes
 
-The camera (elevation 82°, fov 28), the HUD boxes, and the board’s fill of the screen are unchanged. Each look hides the stock frame and draws its own board from a Blender kit. Cells, walls, and the hole stay on the same grid. The ball still stops on the grid, not on the mesh.
+Pixel, clay, and neon keep the shipped camera (elevation 82°, fov 28). Diorama, on Wood only, uses a three-quarter camera at 46° from horizontal and fov 34, so the board reads as a thick island. The HUD boxes do not move. Each look hides the stock frame and draws its own board from a Blender kit. Cells, walls, and the hole stay on the same grid. The ball still stops on the grid, not on the mesh.
 
-**Diorama.** A dirt island with round grass pads, a jagged grass-and-root cliff, log walls, a bark hollow for the hole, and an acorn. The squirrel is a fluffy plan-view mascot in the sky gap, with oak, pine, and birch on the rim.
+**Diorama.** A thick grass island with a rounded wood rim (`#8D6E4C`), grass tiles (`#7CB342`), and dark wood walls (`#6D4C41`). The honey ball (`#E0A04A`) and the dug hole (inside `#3E2723`, rim `#C9842A`) are a set. The island sits on a grass hill with two trees behind it, under a warm sky (`#F7E8C8` to `#E8F2F0`). A standing squirrel waits at the front-left, facing the camera, and idles with a blink and a tail sway. The island tilts with the input. The squirrel, hill, and trees stay upright. A wall stop still squashes the ball, and the hole lets off a small dust puff.
 
 **Pixel.** Hard cubes, a stepped block rim, brick walls, a square pit, and a banded voxel ball. The squirrel is a stack of cubes with a block tail. The sky is a banded night with a small pixel sun. No post pass.
 
@@ -46,22 +46,22 @@ Meshes are original, authored in Blender 4.5.16 LTS by `tools/blender/build_look
 
 | Piece | Diorama tris | Pixel tris | Clay tris | Neon tris |
 | --- | ---: | ---: | ---: | ---: |
-| Tiles (3) | 164 | 84 | 324 | 180 |
-| Wall | 168 | 48 | 156 | 48 |
+| Tiles (3) | 324 | 84 | 324 | 180 |
+| Wall | 108 | 48 | 156 | 48 |
 | Rim + corners | 300 | 96 | 208 | 176 |
-| Ball + goal | 384 | 172 | 316 | 416 |
-| Squirrel | 480 | 192 | 400 | 240 |
+| Ball + goal | 412 | 172 | 316 | 416 |
+| Squirrel | 1060 | 192 | 400 | 240 |
 | Trees + props | 380 | 192 | 388 | 310 |
-| Ground | 2 | 2 | 2 | 2 |
-| **Kit total** | **1878** | **786** | **1794** | **1372** |
+| Ground + hill | 548 | 2 | 2 | 2 |
+| **Kit total** | **3132** | **786** | **1794** | **1372** |
 
-GLB size on disk: diorama 47.8 KB, pixel 24.6 KB, clay 47.5 KB, neon 34.8 KB. All four together are 151 KB. Only the selected kit is fetched.
+The diorama island does not place the rim pieces; the thick ground is the rim. Those meshes stay in the file. GLB size on disk: diorama 71.5 KB, pixel 24.6 KB, clay 47.5 KB, neon 34.8 KB. All four together are 174 KB. Only the selected kit is fetched.
 
 Gzip of what a first visit downloads when that look is selected (the look module, shared kit, sky, GLTFLoader, meshopt decoder, and the GLB):
 
 | Look | Gzip |
 | --- | ---: |
-| Diorama | 59 KB |
+| Diorama | 74 KB |
 | Pixel | 42 KB |
 | Clay | 57 KB |
 | Neon | 48 KB |
@@ -75,18 +75,18 @@ Measured in headless Chromium with an iPhone user agent, a 430×932 viewport, de
 | Scene | fps | frame p50 / p95 | draws | triangles |
 | --- | ---: | --- | ---: | --- |
 | Shipped Wood 1 | 9 | 117 / 117 ms | 56 | 17k |
-| Diorama Wood 1 | 23 | 33 / 83 ms | 25 | 4.1k |
+| Diorama Wood 1 | 20 | 33 / 217 ms | 17 | 3.5k |
 | Pixel Wood 1 | 27 | 33 / 67 ms | 24 | 1.6k |
 | Clay Wood 1 | 25 | 33 / 67 ms | 24 | 3.9k |
 | Neon Wood 1 | 27 | 33 / 67 ms | 25 | 2.7k |
-| Diorama Wood 8 | 20 | 33 / 117 ms | 25 | 8.5k |
+| Diorama Wood 8 | 31 | 33 / 50 ms | 17 | 7.3k |
 | Neon Wood 8 | 26 | 33 / 67 ms | 25 | 5.7k |
 
 The looks are MeshBasic vertex colors with instanced tiles and walls. They hide the stock frame instead of drawing it again, and they do not add a fullscreen pass.
 
 ## Rules
 
-The looks do not change the tilt solver. `python3 tools/validate_levels.py` reports 132 stages solvable and par matching BFS. `js/game.js` and `shared/levels.json` are not part of this change. The same Wood 1 solution (left, up, left, down) reaches 4/4 in every look, and the same Wood 8 solution (left, up, right, down, right, up, right, down) reaches 8/8.
+The looks do not change the tilt solver. `python3 tools/validate_levels.py` reports 132 stages solvable and par matching BFS. `js/game.js` and `shared/levels.json` are not part of this change. After the diorama camera change, the same Wood 1 solution (left, up, left, down) still reaches 4/4 and the same Wood 8 solution (left, up, right, down, right, up, right, down) still reaches 8/8, played with the D-pad.
 
 ## Stills
 
