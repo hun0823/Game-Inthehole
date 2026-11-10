@@ -2,6 +2,8 @@
 
 **Rollin' Board / InTheHole** — Three.js 웹 퍼즐 (GitHub Pages). Unity는 **일시 중지**.
 
+구현된 규칙·캠페인·상점·저장의 기준 문서는 [`docs/GAME_BIBLE.md`](GAME_BIBLE.md)다. 핸드오프나 기획 메모와 숫자가 다르면 바이블과 `js/game.js`를 따른다.
+
 ## 사용자 → Grok
 
 1. 공개 repo URL 전달: `https://github.com/hun0823/Game-Inthehole`
@@ -14,10 +16,11 @@
 GitHub의 Rollin' Board (InTheHole) 웹 빌드를 이어서 개발하는 파트너다.
 
 필독 순서:
-1) docs/GROK_HANDOFF.md
-2) docs/GAME_DESIGN_REFERENCE.md
-3) docs/PRODUCT_ROADMAP.md
-4) docs/HUD_LAYOUT.md (HUD/UI 작업 시)
+1) docs/GAME_BIBLE.md (지금 구현의 기준)
+2) docs/GROK_HANDOFF.md
+3) docs/GAME_DESIGN_REFERENCE.md
+4) docs/PRODUCT_ROADMAP.md
+5) docs/HUD_LAYOUT.md (HUD/UI 작업 시)
 
 규칙:
 - 게임 규칙 단일 소스: js/game.js (Python 검증은 tools/tilt_solver.py)
@@ -38,6 +41,7 @@ GitHub의 Rollin' Board (InTheHole) 웹 빌드를 이어서 개발하는 파트�
 
 | 경로 | 내용 |
 |------|------|
+| `docs/GAME_BIBLE.md` | 구현 기준 디자인 문서 |
 | `docs/GROK_HANDOFF.md` | Handoff 전체 |
 | `js/game.js` | 시뮬·힌트 BFS |
 | `js/main.js` | UI·상점·맵·저장 |
