@@ -30,8 +30,12 @@ Thumbs.db
 
 # Cursor / local
 agent-tools/
-.cursor/
-**/.cursor/
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
+**/.cursor/*
+!**/.cursor/skills/
+!**/.cursor/skills/**
 
 # Large local logs
 unity/**/Library/Bee/

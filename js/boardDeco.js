@@ -23,6 +23,13 @@ export function decoWanted() {
   return true;
 }
 
+let decoSuppressed = false;
+
+export function suppressDeco(on) {
+  decoSuppressed = !!on;
+  if (decoSuppressed) hideSquirrelChip();
+}
+
 export function beginDeco() {
   jobs.length = 0;
   woodGen += 1;
@@ -360,6 +367,10 @@ function paintGrassSquirrel(angle, bob) {
     hideSquirrelChip();
     return;
   }
+  if (decoSuppressed) {
+    hideSquirrelChip();
+    return;
+  }
   const img = squirrelImage();
   const chip = squirrelChip();
   if (!img.naturalWidth) {
@@ -659,6 +670,12 @@ function placeWood(group, m, span, frameT) {
 
   const relayout = (time) => {
     if (gen !== woodGen) return;
+    if (decoSuppressed) {
+      tree.visible = false;
+      hero.visible = false;
+      hideSquirrelChip();
+      return;
+    }
     const rect = layoutRect();
     const rig = tree.parent && tree.parent.parent;
     if (!rect) return;

@@ -4111,3 +4111,166 @@ html[lang="ko"] .map {
   pointer-events: none;
   user-select: none;
 }
+
+/* Wood concept skins. Colors only — boxes, type size, and hit areas stay put. */
+html[data-look="diorama"] .arcade-btn--gold {
+  --face: #e2b15a;
+  --face-hot: #ffe3a8;
+}
+html[data-look="diorama"] .arcade-btn--purple {
+  --face: #c46a3a;
+  --face-hot: #e8a078;
+}
+html[data-look="diorama"] .arcade-face {
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.1),
+    inset 0 4px 0 rgba(255, 255, 255, 0.65),
+    0 5px 0 #8a5a18,
+    0 8px 0 #2a1a10;
+}
+html[data-look="diorama"] .stage-banner-face {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, #d7e7a4 0%, #6eae48 48%, #3e7a32 100%);
+  box-shadow: inset 0 -7px 0 rgba(30, 60, 20, 0.18);
+}
+html[data-look="diorama"] .hud-sq--hint .hud-sq-face {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 38%),
+    linear-gradient(180deg, #f0c36a 0%, #d4923a 100%);
+}
+
+html[data-look="pixel"] #playfield {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+html[data-look="pixel"] .arcade-btn--gold {
+  --face: #f0c84a;
+  --face-hot: #ffe38a;
+}
+html[data-look="pixel"] .arcade-btn--purple {
+  --face: #3a6adf;
+  --face-hot: #8aabff;
+}
+html[data-look="pixel"] .arcade-face {
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.1),
+    inset 0 4px 0 rgba(255, 255, 255, 0.65),
+    0 5px 0 #8a5a10,
+    0 8px 0 #141414;
+}
+html[data-look="pixel"] .stage-banner-face {
+  background:
+    linear-gradient(180deg, #8fd15a 0%, #3a8c32 100%);
+  box-shadow: inset 0 -7px 0 rgba(0, 0, 0, 0.18);
+}
+html[data-look="pixel"] .hud-sq--hint .hud-sq-face {
+  background: #3a6adf;
+}
+
+html[data-look="clay"] .arcade-btn--gold {
+  --face: #f0c2ae;
+  --face-hot: #ffe4d8;
+}
+html[data-look="clay"] .arcade-btn--purple {
+  --face: #e07a6a;
+  --face-hot: #f0b0a4;
+}
+html[data-look="clay"] .arcade-face {
+  box-shadow:
+    inset 0 -6px 0 rgba(90, 50, 40, 0.12),
+    inset 0 4px 0 rgba(255, 255, 255, 0.7),
+    0 5px 0 #c48a78,
+    0 8px 0 #8a5a4c;
+}
+html[data-look="clay"] .stage-banner-face {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 40%),
+    linear-gradient(180deg, #f6d8cc 0%, #e7b09a 100%);
+  box-shadow: inset 0 -7px 0 rgba(120, 70, 55, 0.12);
+}
+html[data-look="clay"] .hud-sq--hint .hud-sq-face {
+  background:
+    linear-gradient(180deg, #f6d2c6 0%, #e09a88 100%);
+}
+
+html[data-look="neon"] .arcade-btn--gold {
+  --face: #14182c;
+  --face-hot: #243050;
+}
+html[data-look="neon"] .arcade-btn--purple {
+  --face: #241028;
+  --face-hot: #3a1848;
+}
+html[data-look="neon"] .arcade-face,
+html[data-look="neon"] .hud-sq-face,
+html[data-look="neon"] .stage-banner-face {
+  border-color: #39ffd2;
+}
+html[data-look="neon"] .arcade-face {
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.35),
+    inset 0 4px 0 rgba(57, 255, 210, 0.18),
+    0 5px 0 #06221c,
+    0 8px 0 #05060c,
+    0 0 12px rgba(57, 255, 210, 0.28);
+}
+html[data-look="neon"] .stage-banner-face {
+  background:
+    linear-gradient(180deg, rgba(57, 255, 210, 0.18) 0%, rgba(57, 255, 210, 0) 40%),
+    linear-gradient(180deg, #1a1030 0%, #100818 100%);
+  box-shadow: inset 0 -7px 0 rgba(0, 0, 0, 0.35), 0 0 16px rgba(255, 61, 242, 0.22);
+}
+html[data-look="neon"] .hud-sq--pause .hud-sq-face {
+  background: #10131c;
+}
+html[data-look="neon"] .hud-sq--hint .hud-sq-face {
+  background:
+    linear-gradient(180deg, #2a1848 0%, #140818 100%);
+  color: #ff3df2;
+}
+
+html[data-look="diorama"] .controls .dpad .arcade-face {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, #ffe3a8 0%, #e2b15a 54%, #c48a28 100%);
+  box-shadow: inset 0 -6px 0 rgba(90, 50, 10, 0.28);
+}
+html[data-look="pixel"] .controls .dpad .arcade-face {
+  background:
+    linear-gradient(180deg, #ffe38a 0%, #f0c84a 100%);
+  box-shadow: inset 0 -6px 0 rgba(80, 40, 0, 0.28);
+}
+html[data-look="clay"] .controls .dpad .arcade-face {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(180deg, #ffe4d8 0%, #f0c2ae 54%, #e09a88 100%);
+  box-shadow: inset 0 -6px 0 rgba(120, 70, 55, 0.22);
+}
+html[data-look="neon"] .controls .dpad .arcade-face {
+  border-color: #39ffd2;
+  background:
+    linear-gradient(180deg, rgba(57, 255, 210, 0.22) 0%, rgba(57, 255, 210, 0) 34%),
+    linear-gradient(180deg, #243050 0%, #14182c 54%, #0c101c 100%);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.45), 0 0 10px rgba(57, 255, 210, 0.2);
+}
+html[data-look="diorama"] .controls .retry-btn .arcade-face--round {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 36%),
+    linear-gradient(180deg, #e8a078 0%, #c46a3a 55%, #8a4424 100%);
+}
+html[data-look="pixel"] .controls .retry-btn .arcade-face--round {
+  background:
+    linear-gradient(180deg, #8aabff 0%, #3a6adf 100%);
+}
+html[data-look="clay"] .controls .retry-btn .arcade-face--round {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 36%),
+    linear-gradient(180deg, #f0b0a4 0%, #e07a6a 55%, #c45a4c 100%);
+}
+html[data-look="neon"] .controls .retry-btn .arcade-face--round {
+  border-color: #ff3df2;
+  background:
+    linear-gradient(180deg, rgba(255, 61, 242, 0.28) 0%, rgba(255, 61, 242, 0) 36%),
+    linear-gradient(180deg, #3a1848 0%, #241028 55%, #140818 100%);
+}
